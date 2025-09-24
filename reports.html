@@ -1,0 +1,248 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REPORT Management - SMAIT ERP</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            blue: '#3b82f6',
+                            indigo: '#6366f1',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="flex justify-between items-center py-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center">
+                        <i data-feather="grid" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="text-xl font-semibold text-primary-900">EnterpriseERP</span>
+                </div>
+                
+                <div class="hidden lg:flex space-x-1">
+                    <a href="index.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Dashboard</a>
+                    <a href="hr.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">HR</a>
+                    <a href="inventory.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Inventory</a>
+                    <a href="finance.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Finance</a>
+                    <a href="sales.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Sales & CRM</a>
+                    <a href="reports.html" class="px-4 py-2 text-primary-700 bg-primary-100 rounded-lg transition-colors font-medium">Reports</a>
+                    <a href="payroll.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Payroll</a>
+                    <a href="fiscal.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Fiscal</a>
+                </div>
+</div>
+</div>
+</nav>
+
+
+  <div class="max-w-4xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">Report Dashboard</h1>
+<main class="container mx-auto px-4 py-12">
+  <!-- Report Filters -->
+  <form id="reportFilterForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 bg-white p-6 rounded-xl shadow">
+    <select id="reportType" class="px-4 py-2 border rounded" required>
+      <option value="">Select Report Type</option>
+      <option value="payroll">Payroll Summary</option>
+      <option value="deductions">Deductions</option>
+      <option value="netpay">Net Pay Distribution</option>
+    </select>
+    <input type="date" id="startDate" class="px-4 py-2 border rounded" required />
+    <input type="date" id="endDate" class="px-4 py-2 border rounded" required />
+    <button type="submit" class="col-span-1 md:col-span-3 bg-green-600 text-white px-4 py-2 rounded">
+      Generate Report
+    </button>
+  </form>
+
+  <!-- Report Summary Cards -->
+  <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <p class="text-gray-600">Employees Included</p>
+      <h3 id="reportEmployeeCount" class="text-3xl font-bold text-primary-800">0</h3>
+    </div>
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <p class="text-gray-600">Total Gross Pay</p>
+      <h3 id="reportGrossPay" class="text-3xl font-bold text-primary-800">K 0</h3>
+    </div>
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <p class="text-gray-600">Total Deductions</p>
+      <h3 id="reportDeductions" class="text-3xl font-bold text-primary-800">K 0</h3>
+    </div>
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <p class="text-gray-600">Total Net Pay</p>
+      <h3 id="reportNetPay" class="text-3xl font-bold text-primary-800">K 0</h3>
+    </div>
+  </section>
+
+  <!-- Report Charts -->
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+    <div class="bg-white p-6 rounded-xl shadow">
+      <h2 class="text-lg font-semibold mb-4">Report Overview</h2>
+      <canvas id="reportOverviewChart" class="w-full h-64"></canvas>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow">
+      <h2 class="text-lg font-semibold mb-4">Net Pay Comparison</h2>
+      <canvas id="netPayChart" class="w-full h-64"></canvas>
+    </div>
+  </section>
+
+  <!-- Detailed Report Table -->
+  <section class="bg-white p-6 rounded-xl shadow mb-12">
+    <h2 class="text-lg font-semibold mb-4">Detailed Report</h2>
+    <table class="w-full text-sm" id="reportTable">
+      <thead>
+        <tr class="bg-gray-100 text-left">
+          <th class="px-4 py-2">Employee</th>
+          <th class="px-4 py-2">Gross Pay</th>
+          <th class="px-4 py-2">Deductions</th>
+          <th class="px-4 py-2">Net Pay</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+
+  <!-- Export Button -->
+  <button onclick="exportReportToPDF()" class="bg-purple-600 text-white px-4 py-2 rounded">
+    Export Report to PDF
+  </button>
+</main>
+</div>
+ 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const reportForm = document.getElementById("reportFilterForm");
+    const reportTableBody = document.querySelector("#reportTable tbody");
+
+    // Sample data
+    const employees = [
+      { name: "Alice", gross: 12000, deductions: 2000},
+      { name: "Bob", gross: 9500, deductions: 1500},
+      { name: "Charlie", gross: 11000, deductions: 1800},
+    ];
+
+    // Handle form submission
+    reportForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      generateReport(employees);
+});
+
+    function generateReport(data) {
+      // Populate summary stats
+      const totalGross = data.reduce((sum, emp) => sum + emp.gross, 0);
+      const totalDeductions = data.reduce((sum, emp) => sum + emp.deductions, 0);
+      const totalNet = totalGross - totalDeductions;
+
+      document.getElementById("reportEmployeeCount").textContent = data.length;
+      document.getElementById("reportGrossPay").textContent = `K ${totalGross}`;
+      document.getElementById("reportDeductions").textContent = `K ${totalDeductions}`;
+      document.getElementById("reportNetPay").textContent = `K ${totalNet}`;
+
+      // Populate table
+      reportTableBody.innerHTML = "";
+      data.forEach(emp => {
+        const net = emp.gross - emp.deductions;
+        const row = `<tr>
+          <td class="px-4 py-2">${emp.name}</td>
+          <td class="px-4 py-2">K ${emp.gross}</td>
+          <td class="px-4 py-2">K ${emp.deductions}</td>
+          <td class="px-4 py-2">K ${net}</td>
+        </tr>`;
+        reportTableBody.insertAdjacentHTML("beforeend", row);
+});
+
+      renderCharts(data);
+}
+
+    function renderCharts(data) {
+      const labels = data.map(emp => emp.name);
+      const netPayData = data.map(emp => emp.gross - emp.deductions);
+
+      new Chart(document.getElementById("reportOverviewChart"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "Gross Pay",
+            data: data.map(emp => emp.gross),
+            backgroundColor: "#3b82f6"
+}]
+}
+});
+
+      new Chart(document.getElementById("netPayChart"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: "Net Pay",
+            data: netPayData,
+            borderColor: "#10b981",
+            fill: false
+}]
+}
+});
+}
+
+    // Export to PDF
+    window.exportReportToPDF = function () {
+      const { jsPDF} = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("Report Summary", 10, 10);
+      doc.text(`Employees: ${document.getElementById("reportEmployeeCount").textContent}`, 10, 20);
+      doc.text(`Gross Pay: ${document.getElementById("reportGrossPay").textContent}`, 10, 30);
+      doc.text(`Deductions: ${document.getElementById("reportDeductions").textContent}`, 10, 40);
+      doc.text(`Net Pay: ${document.getElementById("reportNetPay").textContent}`, 10, 50);
+      doc.save("report.pdf");
+};
+});
+</script>
+ 
+</body>
+</html>

@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMAIT ERP System</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            blue: '#3b82f6',
+                            indigo: '#6366f1',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="flex justify-between items-center py-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center">
+                        <i data-feather="grid" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="text-xl font-semibold text-primary-900">SMAIT ERP</span>
+                </div>
+                
+                <div class="hidden lg:flex space-x-1">
+                    <a href="hr.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">HR</a>
+                    <a href="inventory.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Inventory</a>
+                    <a href="finance.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Finance</a>
+                    <a href="sales.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Sales & CRM</a>
+                    <a href="reports.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Reports</a>
+                    <a href="payroll.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Payroll</a>
+                    <a href="fiscal.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Fiscal</a>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+                            <i data-feather="bell" class="w-5 h-5 text-primary-600"></i>
+                        </button>
+                        <span class="absolute -top-1 -right-1 bg-accent-rose text-white text-xs rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">3</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center shadow-sm">
+                            <i data-feather="user" class="w-4 h-4 text-white"></i>
+                        </div>
+                        <div class="hidden md:block">
+                            <p class="text-sm font-medium text-primary-900">Admin User</p>
+                            <p class="text-xs text-primary-500">System Administrator</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Header -->
+    <header class="bg-primary-900 text-white py-12 relative overflow-hidden">
+        <div class="absolute inset-0 bg-black/40 z-0"></div>
+        <img src="http://static.photos/office/1200x630/1" alt="Enterprise Background" class="absolute inset-0 w-full h-full object-cover z-0">
+        <div class="container mx-auto px-4 text-center relative z-10">
+            <h1 class="text-4xl font-bold mb-4" data-aos="fade-up">Enterprise Resource Planning</h1>
+            <p class="text-xl text-primary-200 mb-8" data-aos="fade-up" data-aos-delay="100">
+                Comprehensive business management solution for modern enterprises
+            </p>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="bg-primary-800 rounded-lg p-4 hover:bg-primary-700 transition-colors cursor-pointer">
+                    <i data-feather="users" class="w-8 h-8 mx-auto mb-2"></i>
+                    <span>HR</span>
+                </div>
+                <div class="bg-primary-800 rounded-lg p-4 hover:bg-primary-700 transition-colors cursor-pointer">
+                    <i data-feather="package" class="w-8 h-8 mx-auto mb-2"></i>
+                    <span>Inventory</span>
+                </div>
+                <div class="bg-primary-800 rounded-lg p-4 hover:bg-primary-700 transition-colors cursor-pointer">
+                    <i data-feather="dollar-sign" class="w-8 h-8 mx-auto mb-2"></i>
+                    <span>Finance</span>
+                </div>
+                <div class="bg-primary-800 rounded-lg p-4 hover:bg-primary-700 transition-colors cursor-pointer">
+                    <i data-feather="trending-up" class="w-8 h-8 mx-auto mb-2"></i>
+                    <span>Sales</span>
+                </div>
+                <div class="bg-primary-800 rounded-lg p-4 hover:bg-primary-700 transition-colors cursor-pointer">
+                    <i data-feather="bar-chart" class="w-8 h-8 mx-auto mb-2"></i>
+                    <span>Reports</span>
+                </div>
+                <div class="bg-primary-800 rounded-lg p-4 hover:bg-primary-700 transition-colors cursor-pointer">
+                    <i data-feather="credit-card" class="w-8 h-8 mx-auto mb-2"></i>
+                    <span>Payroll</span>
+                </div>
+                <div class="bg-primary-800 rounded-lg p-4 hover:bg-primary-700 transition-colors cursor-pointer">
+                    <i data-feather="file-text" class="w-8 h-8 mx-auto mb-2"></i>
+                    <span>Fiscal</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-12">
+        <!-- Quick Stats -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-600">Total Employees</p>
+                        <h3 class="text-3xl font-bold text-primary-800">247</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+                        <i data-feather="users" class="text-primary-600"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span class="bg-accent-green/20 text-accent-green px-2 py-1 rounded-full text-sm">+12%</span>
+                    <span class="text-gray-600 text-sm ml-2">from last month</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="100">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-600">Monthly Revenue</p>
+                        <h3 class="text-3xl font-bold text-primary-800">$284K</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <i data-feather="dollar-sign" class="text-green-600"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span class="bg-accent-green/20 text-accent-green px-2 py-1 rounded-full text-sm">+8%</span>
+                    <span class="text-gray-600 text-sm ml-2">from last month</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="200">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-600">Pending Orders</p>
+                        <h3 class="text-3xl font-bold text-primary-800">42</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                        <i data-feather="shopping-cart" class="text-orange-600"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span class="bg-accent-orange/20 text-accent-orange px-2 py-1 rounded-full text-sm">-3%</span>
+                    <span class="text-gray-600 text-sm ml-2">from last month</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="300">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-600">Low Stock Items</p>
+                        <h3 class="text-3xl font-bold text-primary-800">18</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                        <i data-feather="alert-triangle" class="text-red-600"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span class="bg-accent-red/20 text-accent-red px-2 py-1 rounded-full text-sm">+5%</span>
+                    <span class="text-gray-600 text-sm ml-2">from last month</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Modules Section -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- HR Management Card -->
+            <div id="hr" class="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up">
+                <div class="bg-primary-600 text-white px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                        <i data-feather="users" class="w-6 h-6"></i>
+                        <h3 class="text-xl font-semibold">HR Management</h3>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Active Employees</span>
+                            <span class="font-semibold">235</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">On Leave</span>
+                            <span class="font-semibold">12</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">New Hires</span>
+                            <span class="font-semibold">8</span>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <canvas id="hrChart" height="120"></canvas>
+                    </div>
+                    <button class="w-full mt-4 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors" onclick="window.location.href='hr.html'">
+                        Manage HR
+                    </button>
+                </div>
+            </div>
+
+            <!-- Inventory Management Card -->
+            <div id="inventory" class="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up" data-aos-delay="100">
+                <div class="bg-primary-600 text-white px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                        <i data-feather="package" class="w-6 h-6"></i>
+                        <h3 class="text-xl font-semibold">Inventory Management</h3>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Total Products</span>
+                            <span class="font-semibold">1,247</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Low Stock</span>
+                            <span class="font-semibold text-accent-red">18</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Out of Stock</span>
+                            <span class="font-semibold text-accent-red">5</span>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <canvas id="inventoryChart" height="120"></canvas>
+                    </div>
+                    <button class="w-full mt-4 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors" onclick="window.location.href='inventory.html'">
+                        Manage Inventory
+                    </button>
+                </div>
+            </div>
+
+            <!-- Finance Card -->
+            <div id="finance" class="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up" data-aos-delay="200">
+                <div class="bg-primary-600 text-white px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                        <i data-feather="dollar-sign" class="w-6 h-6"></i>
+                        <h3 class="text-xl font-semibold">Finance</h3>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Revenue</span>
+                            <span class="font-semibold text-green-600">$284K</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Expenses</span>
+                            <span class="font-semibold text-accent-red">$152K</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Profit</span>
+                            <span class="font-semibold text-accent-green">$132K</span>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <canvas id="financeChart" height="120"></canvas>
+                    </div>
+                    <button class="w-full mt-4 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors" onclick="window.location.href='finance.html'">
+                        Manage Finance
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sales & CRM Card -->
+            <div id="sales" class="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up" data-aos-delay="300">
+                <div class="bg-primary-600 text-white px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                        <i data-feather="trending-up" class="w-6 h-6"></i>
+                        <h3 class="text-xl font-semibold">Sales & CRM</h3>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Total Customers</span>
+                            <span class="font-semibold">892</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">New Leads</span>
+                            <span class="font-semibold">45</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Conversion Rate</span>
+                            <span class="font-semibold text-accent-green">24%</span>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <canvas id="salesChart" height="120"></canvas>
+                    </div>
+                    <button class="w-full mt-4 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors" onclick="window.location.href='sales.html'">
+                        Manage Sales
+                    </button>
+                </div>
+            </div>
+
+            <!-- Reports Card -->
+            <div id="reports" class="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up" data-aos-delay="400">
+                <div class="bg-primary-600 text-white px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                        <i data-feather="bar-chart" class="w-6 h-6"></i>
+                        <h3 class="text-xl font-semibold">Reports & Analytics</h3>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <i data-feather="file-text" class="text-gray-400"></i>
+                            <span>Monthly Performance Report</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <i data-feather="file-text" class="text-gray-400"></i>
+                            <span>Sales Analytics</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <i data-feather="file-text" class="text-gray-400"></i>
+                            <span>Employee Productivity</span>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <canvas id="reportsChart" height="120"></canvas>
+                    </div>
+                    <button class="w-full mt-4 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors" onclick="window.location.href='reports.html'">
+                        View Reports
+                    </button>
+                </div>
+            </div>
+
+            <!-- Payroll Card -->
+            <div id="payroll" class="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up" data-aos-delay="500">
+                <div class="bg-primary-600 text-white px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                        <i data-feather="credit-card" class="w-6 h-6"></i>
+                        <h3 class="text-xl font-semibold">Payroll</h3>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Total Payroll</span>
+                            <span class="font-semibold">$187K</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Processed</span>
+                            <span class="font-semibold text-accent-green">235/247</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Pending</span>
+                            <span class="font-semibold text-accent-orange">12</span>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <canvas id="payrollChart" height="120"></canvas>
+                    </div>
+                    <button class="w-full mt-4 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors" onclick="window.location.href='payroll.html'">
+                        Manage Payroll
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Fiscal Function Section -->
+        <section id="fiscal" class="mt-12 bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up">
+            <div class="bg-primary-600 text-white px-6 py-4">
+                <div class="flex items-center space-x-3">
+                    <i data-feather="file-text" class="w-6 h-6"></i>
+                    <h3 class="text-xl font-semibold">Fiscal Function</h3>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-4">Tax Compliance</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">VAT Collected</span>
+                                <span class="font-semibold">$42,800</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Corporate Tax</span>
+                                <span class="font-semibold">$28,500</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Compliance Status</span>
+                                <span class="bg-accent-green/20 text-accent-green px-2 py-1 rounded-full text-sm">Current</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-4">Financial Year Summary</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">FY Revenue</span>
+                                <span class="font-semibold">$3.2M</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">FY Expenses</span>
+                                <span class="font-semibold">$1.8M</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Net Profit</span>
+                                <span class="font-semibold text-accent-green">$1.4M</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <canvas id="fiscalChart" height="200"></canvas>
+                </div>
+            </div>
+        </section>
+    </main>
+
+        <div class="container mx-auto px-4">
+
+    <!-- Footer -->
+    <footer class="bg-primary-900 text-white py-8 mt-12">
+        <div class="container mx-auto px-4">
+
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">EnterpriseERP</h4>
+                    <p class="text-primary-200">Comprehensive business management solution for modern enterprises.</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Modules</h4>
+                    <ul class="space-y-2 text-primary-200">
+                        <li>HR Management</li>
+                        <li>Inventory Management</li>
+                        <li>Finance</li>
+                        <li>Sales & CRM</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-primary-200">
+                        <li>Documentation</li>
+                        <li>Help Center</li>
+                        <li>Contact Support</li>
+                        <li>System Status</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-primary-700 mt-8 pt-8 text-center text-primary-200">
+                <p>&copy; 2025 SMAIT ERP. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            once: true
+        });
+
+        // Initialize Feather Icons
+        feather.replace();
+
+        // Chart.js Configurations
+        const chartConfig = {
+            maintainAspectRatio: false,
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        display: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        };
+
+        // HR Chart
+        const hrCtx = document.getElementById('hrChart').getContext('2d');
+        new Chart(hrCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Employees',
+                    data: [220, 225, 230, 235, 240, 247],
+                    borderColor: '#6366f1',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)'
+                }]
+            },
+            options: chartConfig
+        });
+
+        // Inventory Chart
+        const inventoryCtx = document.getElementById('inventoryChart').getContext('2d');
+        new Chart(inventoryCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Electronics', 'Office', 'Software', 'Services'],
+                datasets: [{
+                    label: 'Stock Levels',
+                    data: [450, 320, 280, 197],
+                    backgroundColor: [
+                        'rgba(99, 102, 241, 0.8)',
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)'
+                    ]
+                }]
+            },
+            options: chartConfig
+        });
+
+        // Finance Chart
+        const financeCtx = document.getElementById('financeChart').getContext('2d');
+        new Chart(financeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Revenue', 'Expenses', 'Profit'],
+                datasets: [{
+                    data: [284, 152, 132],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(99, 102, 241, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Sales Chart
+        const salesCtx = document.getElementById('salesChart').getContext('2d');
+        new Chart(salesCtx, {
+            type: 'line',
+            data: {
+                labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                datasets: [{
+                    label: 'Sales',
+                    data: [120, 150, 180, 210],
+                    borderColor: '#10b981',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)'
+                }]
+            },
+            options: chartConfig
+        });
+
+        // Reports Chart
+        const reportsCtx = document.getElementById('reportsChart').getContext('2d');
+        new Chart(reportsCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Completed', 'In Progress', 'Pending'],
+                datasets: [{
+                    data: [65, 25, 10],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(239, 68, 68, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Payroll Chart
+        const payrollCtx = document.getElementById('payrollChart').getContext('2d');
+        new Chart(payrollCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Processed', 'Pending', 'Rejected'],
+                datasets: [{
+                    label: 'Payroll Status',
+                    data: [235, 12, 0],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(239, 68, 68, 0.8)'
+                    ]
+                }]
+            },
+            options: chartConfig
+        });
+
+        // Fiscal Chart
+        const fiscalCtx = document.getElementById('fiscalChart').getContext('2d');
+        new Chart(fiscalCtx, {
+            type: 'line',
+            data: {
+                labels: ['2020', '2021', '2022', '2023', '2024'],
+                datasets: [{
+                    label: 'Revenue',
+                    data: [1.8, 2.2, 2.8, 3.2, 3.6],
+                    borderColor: '#10b981',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)'
+                }, {
+                    label: 'Expenses',
+                    data: [1.2, 1.4, 1.6, 1.8, 2.0],
+                    borderColor: '#ef4444',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)'
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Millions ($)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

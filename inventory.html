@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INVENTORY Management - EnterpriseERP</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            blue: '#3b82f6',
+                            indigo: '#6366f1',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="flex justify-between items-center py-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center">
+                        <i data-feather="grid" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="text-xl font-semibold text-primary-900">SMAIT ERP</span>
+                </div>
+                
+                <div class="hidden lg:flex space-x-1">
+                    <a href="index.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Dashboard</a>
+                    <a href="hr.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">HR</a>
+                    <a href="inventory.html" class="px-4 py-2 text-primary-700 bg-primary-100 rounded-lg transition-colors font-medium">Inventory</a>
+                    <a href="finance.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Finance</a>
+                    <a href="sales.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Sales & CRM</a>
+                    <a href="reports.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Reports</a>
+                    <a href="payroll.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Payroll</a>
+                    <a href="fiscal.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Fiscal</a>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+                            <i data-feather="bell" class="w-5 h-5 text-primary-600"></i>
+                        </button>
+                        <span class="absolute -top-1 -right-1 bg-accent-rose text-white text-xs rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">3</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center shadow-sm">
+                            <i data-feather="user" class="w-4 h-4 text-white"></i>
+                        </div>
+                        <div class="hidden md:block">
+                            <p class="text-sm font-medium text-primary-900">Admin User</p>
+                            <p class="text-xs text-primary-500">System Administrator</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+  
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
+  <!-- Total Products -->
+  <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
+    <div class="flex justify-between items-center">
+      <div>
+        <p class="text-gray-600">Total Products</p>
+        <h3 id="totalProducts" class="text-3xl font-bold text-primary-800">247</h3>
+      </div>
+      <div class="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+        <i data-feather="package" class="text-primary-600"></i>
+      </div>
+    </div>
+    <div class="mt-4">
+      <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-sm">+8%</span>
+      <span class="text-gray-600 text-sm ml-2">from last month</span>
+    </div>
+  </div>
+
+  <!-- Low Stock Items -->
+  <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="100">
+    <div class="flex justify-between items-center">
+      <div>
+        <p class="text-gray-600">Low Stock Items</p>
+        <h3 id="lowStock" class="text-3xl font-bold text-yellow-800">18</h3>
+      </div>
+      <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+        <i data-feather="alert-triangle" class="text-yellow-600"></i>
+      </div>
+    </div>
+    <div class="mt-4">
+      <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm">-5%</span>
+      <span class="text-gray-600 text-sm ml-2">from last month</span>
+    </div>
+  </div>
+
+  <!-- Out of Stock -->
+  <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="200">
+    <div class="flex justify-between items-center">
+      <div>
+        <p class="text-gray-600">Out of Stock</p>
+        <h3 id="outOfStock" class="text-3xl font-bold text-red-800">5</h3>
+      </div>
+      <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+        <i data-feather="x-circle" class="text-red-600"></i>
+      </div>
+    </div>
+    <div class="mt-4">
+      <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-sm">+2%</span>
+      <span class="text-gray-600 text-sm ml-2">from last month</span>
+    </div>
+  </div>
+</section>
+
+
+  <!-- Inventory Table -->
+  <section class="bg-white rounded-xl shadow-md p-6 mx-6 mb-12" data-aos="fade-up">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold text-primary-800">Product Inventory</h2>
+      <button class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center">
+        <i data-feather="plus" class="w-5 h-5 mr-2"></i> Add Product
+      </button>
+    </div>
+    <input type="text" id="productSearch" placeholder="Search products..." class="mb-4 w-full px-4 py-2 border rounded-lg" />
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-4 py-2 text-left">Product</th>
+            <th class="px-4 py-2 text-left">Category</th>
+            <th class="px-4 py-2 text-left">Stock</th>
+            <th class="px-4 py-2 text-left">Status</th>
+            <th class="px-4 py-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="inventoryTable" class="divide-y divide-gray-200">
+          <tr>
+            <td class="px-4 py-2">Wireless Mouse</td>
+            <td class="px-4 py-2">Electronics</td>
+            <td class="px-4 py-2">12</td>
+            <td class="px-4 py-2"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Low Stock</span></td>
+            <td class="px-4 py-2">
+              <button class="text-blue-600 hover:underline mr-2">Edit</button>
+              <button class="text-red-600 hover:underline">Delete</button>
+            </td>
+          </tr>
+          <tr>
+            <td class="px-4 py-2">Office Chair</td>
+            <td class="px-4 py-2">Furniture</td>
+            <td class="px-4 py-2">0</td>
+            <td class="px-4 py-2"><span class="bg-red-100 text-red-800 px-2 py-1 rounded-full">Out of Stock</span></td>
+            <td class="px-4 py-2">
+              <button class="text-blue-600 hover:underline mr-2">Edit</button>
+              <button class="text-red-600 hover:underline">Delete</button>
+            </td>
+          </tr>
+          <tr>
+            <td class="px-4 py-2">Notebook</td>
+            <td class="px-4 py-2">Office Supplies</td>
+            <td class="px-4 py-2">120</td>
+            <td class="px-4 py-2"><span class="bg-green-100 text-green-800 px-2 py-1 rounded-full">In Stock</span></td>
+            <td class="px-4 py-2">
+              <button class="text-blue-600 hover:underline mr-2">Edit</button>
+              <button class="text-red-600 hover:underline">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Inventory Chart -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mx-6 mb-12">
+  <!-- Bar Chart -->
+  <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
+    <h2 class="text-lg font-semibold text-primary-800 mb-4">Stock by Category</h2>
+    <canvas id="barChart" height="200"></canvas>
+  </div>
+
+  <!-- Pie Chart -->
+  <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="100">
+    <h2 class="text-lg font-semibold text-primary-800 mb-4">Stock Status</h2>
+    <canvas id="pieChart" height="200"></canvas>
+  </div>
+
+  <!-- Line Chart -->
+  <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="200">
+    <h2 class="text-lg font-semibold text-primary-800 mb-4">Monthly Restocks</h2>
+    <canvas id="lineChart" height="200"></canvas>
+  </div>
+</section>
+<!-- Modal Overlay -->
+<div id="addProductModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+    <h2 class="text-xl font-semibold text-primary-800 mb-4">Add New Product</h2>
+    <form id="addProductForm" class="space-y-4">
+      <input type="text" placeholder="Product Name" class="w-full px-4 py-2 border rounded-lg" required />
+      <input type="text" placeholder="Category" class="w-full px-4 py-2 border rounded-lg" required />
+      <input type="number" placeholder="Stock Quantity" class="w-full px-4 py-2 border rounded-lg" required />
+      <div class="flex justify-end space-x-2">
+        <button type="button" id="cancelModal" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+        <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+  <!-- Scripts -->
+  
+ 
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    feather.replace();
+    AOS.init();
+
+    // Inventory data array
+    let inventoryData = [
+      { name: "Wireless Mouse", category: "Electronics", stock: 12},
+      { name: "Office Chair", category: "Furniture", stock: 0},
+      { name: "Notebook", category: "Office Supplies", stock: 120}
+    ];
+
+    // DOM references
+    const tableBody = document.getElementById("inventoryTable");
+    const totalProductsEl = document.getElementById("totalProducts");
+    const lowStockEl = document.getElementById("lowStock");
+    const outOfStockEl = document.getElementById("outOfStock");
+
+    // Chart instances
+    let barChartInstance, pieChartInstance;
+
+    // Initialize charts
+    function initCharts() {
+      const barCtx = document.getElementById("barChart").getContext("2d");
+      const pieCtx = document.getElementById("pieChart").getContext("2d");
+
+      barChartInstance = new Chart(barCtx, {
+        type: "bar",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "Stock",
+            data: [],
+            backgroundColor: ["#3b82f6", "#ef4444", "#10b981"]
+}]
+},
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false}}
+}
+});
+
+      pieChartInstance = new Chart(pieCtx, {
+        type: "pie",
+        data: {
+          labels: ["In Stock", "Low Stock", "Out of Stock"],
+          datasets: [{
+            data: [],
+            backgroundColor: ["#10b981", "#fbbf24", "#ef4444"]
+}]
+},
+        options: {
+          responsive: true,
+          plugins: { legend: { position: "bottom"}}
+}
+});
+
+      updateCharts();
+}
+
+    // Update summary cards
+    function updateSummaryCards() {
+      const total = inventoryData.length;
+      const low = inventoryData.filter(p => p.stock> 0 && p.stock < 20).length;
+      const out = inventoryData.filter(p => p.stock === 0).length;
+
+      totalProductsEl.textContent = total;
+      lowStockEl.textContent = low;
+      outOfStockEl.textContent = out;
+}
+
+    // Update charts
+    function updateCharts() {
+      const categoryMap = {};
+      inventoryData.forEach(p => {
+        categoryMap[p.category] = (categoryMap[p.category] || 0) + p.stock;
+});
+
+      barChartInstance.data.labels = Object.keys(categoryMap);
+      barChartInstance.data.datasets[0].data = Object.values(categoryMap);
+      barChartInstance.update();
+
+      const inStock = inventoryData.filter(p => p.stock>= 20).length;
+      const lowStock = inventoryData.filter(p => p.stock> 0 && p.stock < 20).length;
+      const outStock = inventoryData.filter(p => p.stock === 0).length;
+
+      pieChartInstance.data.datasets[0].data = [inStock, lowStock, outStock];
+      pieChartInstance.update();
+}
+
+   function renderTable() {
+  tableBody.innerHTML = "";
+  inventoryData.forEach((product, index) => {
+    let statusHTML = "";
+
+    if (product.stock === 0) {
+      statusHTML = `<span class="bg-red-100 text-red-800 px-2 py-1 rounded-full">Out of Stock</span>`;
+} else if (product.stock < 20) {
+      statusHTML = `<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Low Stock</span>`;
+} else {
+      statusHTML = `<span class="bg-green-100 text-green-800 px-2 py-1 rounded-full">In Stock</span>`;
+}
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="px-4 py-2">${product.name}</td>
+      <td class="px-4 py-2">${product.category}</td>
+      <td class="px-4 py-2">${product.stock}</td>
+      <td class="px-4 py-2">${statusHTML}</td>
+      <td class="px-4 py-2">
+        <button class="text-blue-600 hover:underline mr-2" data-index="${index}" data-action="edit">Edit</button>
+        <button class="text-red-600 hover:underline" data-index="${index}" data-action="delete">Delete</button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+});
+}
+
+
+    // Handle Edit/Delete actions
+    tableBody.addEventListener("click", (e) => {
+      const btn = e.target;
+      const index = btn.dataset.index;
+      const action = btn.dataset.action;
+      if (action === "edit") {
+        const product = inventoryData[index];
+        const newName = prompt("Edit product name:", product.name);
+        const newCategory = prompt("Edit category:", product.category);
+        const newStock = prompt("Edit stock quantity:", product.stock);
+
+        if (newName) product.name = newName;
+        if (newCategory) product.category = newCategory;
+        if (newStock &&!isNaN(newStock)) product.stock = parseInt(newStock);
+
+        updateSummaryCards();
+        updateCharts();
+        renderTable();
+}
+
+      if (action === "delete") {
+        const confirmDelete = confirm(`Delete "${inventoryData[index].name}"?`);
+        if (confirmDelete) {
+          inventoryData.splice(index, 1);
+          updateSummaryCards();
+          updateCharts();
+          renderTable();
+}
+}
+});
+
+    // Add Product modal
+    const modal = document.getElementById("addProductModal");
+    const openBtn = document.querySelector("button.bg-primary-600");
+    const cancelBtn = document.getElementById("cancelModal");
+    const form = document.getElementById("addProductForm");
+
+    openBtn.addEventListener("click", () => modal.classList.remove("hidden"));
+    cancelBtn.addEventListener("click", () => modal.classList.add("hidden"));
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const inputs = form.querySelectorAll("input");
+      const name = inputs[0].value;
+      const category = inputs[1].value;
+      const stock = parseInt(inputs[2].value);
+
+      inventoryData.push({ name, category, stock});
+      updateSummaryCards();
+      updateCharts();
+      renderTable();
+
+      modal.classList.add("hidden");
+      form.reset();
+});
+
+    // Search filter
+    document.getElementById("productSearch").addEventListener("input", function () {
+      const query = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#inventoryTable tr");
+      rows.forEach(row => {
+        const product = row.querySelector("td").textContent.toLowerCase();
+        row.style.display = product.includes(query)? "": "none";
+});
+});
+
+    // Initial render
+    initCharts();
+    updateSummaryCards();
+    renderTable();
+});
+</script>
+</body>
+</html>

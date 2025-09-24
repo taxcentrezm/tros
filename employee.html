@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HR Management - EnterpriseERP</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f8fafc',100: '#f1f5f9',200: '#e2e8f0',300: '#cbd5e1',
+              400: '#94a3b8',500: '#64748b',600: '#475569',700: '#334155',
+              800: '#1e293b',900: '#0f172a',
+            },
+            accent: {
+              blue: '#3b82f6',indigo: '#6366f1',cyan: '#06b6d4',
+              emerald: '#10b981',amber: '#f59e0b',rose: '#f43f5e'
+            }
+          },
+          fontFamily: { sans: ['Inter','ui-sans-serif','system-ui'] }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+
+  <!-- Navigation -->
+  <nav class="bg-white border-b border-gray-200 shadow-sm">
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="flex justify-between items-center py-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center">
+            <i data-feather="grid" class="w-5 h-5 text-white"></i>
+          </div>
+          <span class="text-xl font-semibold text-primary-900">SMAIT ERP</span>
+        </div>
+        <div class="hidden lg:flex space-x-1">
+          <a href="index.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg">Dashboard</a>
+          <a href="hr.html" class="px-4 py-2 text-primary-700 bg-primary-100 rounded-lg">HR</a>
+          <a href="inventory.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg">Inventory</a>
+          <a href="finance.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg">Finance</a>
+          <a href="sales.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg">Sales & CRM</a>
+          <a href="reports.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg">Reports</a>
+          <a href="payroll.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg">Payroll</a>
+          <a href="fiscal.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg">Fiscal</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header -->
+  <header class="bg-primary-900 text-white py-12 relative overflow-hidden">
+    <div class="absolute inset-0 bg-black/40 z-0"></div>
+    <div class="container mx-auto px-4 text-center relative z-10">
+      <h1 class="text-4xl font-bold mb-4">HR Management</h1>
+      <p class="text-xl text-primary-200 mb-8">
+        Comprehensive employee management and workforce analytics
+      </p>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container mx-auto px-4 py-12">
+
+    <!-- Employee Database -->
+    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+      <div class="bg-primary-600 text-white px-6 py-4 flex justify-between items-center">
+        <h3 class="text-xl font-semibold flex items-center"><i data-feather="database" class="mr-2"></i>Employee Database</h3>
+        <button id="openModal" class="bg-white text-primary-600 px-4 py-2 rounded-lg hover:bg-gray-100 flex items-center">
+          <i data-feather="plus" class="w-5 h-5 mr-2"></i>Add Employee
+        </button>
+      </div>
+      <div class="p-6 overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hire Date</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="employeeTable" class="divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Employee Modal -->
+  <div id="employeeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-6 rounded-lg w-full max-w-2xl shadow-lg max-h-[90vh] overflow-y-auto">
+      <h2 class="text-xl font-semibold mb-4">Add New Employee</h2>
+      <form id="addEmployeeForm" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input type="text" id="first_name" placeholder="First Name" class="w-full px-4 py-2 border rounded" required />
+          <input type="text" id="last_name" placeholder="Last Name" class="w-full px-4 py-2 border rounded" required />
+          <input type="date" id="date_of_birth" class="w-full px-4 py-2 border rounded" required />
+          <select id="gender" class="w-full px-4 py-2 border rounded">
+            <option value="">-- Gender --</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+          </select>
+          <input type="text" id="department" placeholder="Department" class="w-full px-4 py-2 border rounded" />
+          <input type="date" id="hire_date" class="w-full px-4 py-2 border rounded" required />
+          <select id="status" class="w-full px-4 py-2 border rounded">
+            <option value="Active">Active</option>
+            <option value="On Leave">On Leave</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+          <input type="text" id="salary_grade" placeholder="Salary Grade" class="w-full px-4 py-2 border rounded" />
+          <input type="text" id="tpin" placeholder="TPIN" class="w-full px-4 py-2 border rounded" required />
+          <input type="text" id="pacra_number" placeholder="PACRA Number" class="w-full px-4 py-2 border rounded" required />
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button type="button" id="cancelModal" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    feather.replace();
+    AOS.init();
+
+    const modal = document.getElementById("employeeModal");
+    document.getElementById("openModal").addEventListener("click", () => modal.classList.remove("hidden"));
+    document.getElementById("cancelModal").addEventListener("click", () => modal.classList.add("hidden"));
+
+    // Load employees
+    async function loadEmployees() {
+      const res = await fetch("/api/hr/employees");
+      const { data } = await res.json();
+      const tbody = document.getElementById("employeeTable");
+      tbody.innerHTML = "";
+
+      data.forEach(emp => {
+        const initials = (emp.first_name[0] + emp.last_name[0]).toUpperCase();
+        tbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td class="px-4 py-4">
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white font-medium">${initials}</div>
+                <div class="ml-4">
+                  <div class="text-sm font-medium text-gray-900">${emp.first_name} ${emp.last_name}</div>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-4 text-sm text-gray-500">${emp.department || "-"}</td>
+            <td class="px-4 py-4 text-sm">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${emp.status === "Active" ? "bg-green-100 text-green-800" : emp.status === "On Leave" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}">${emp.status}</span>
+            </td>
+            <td class="px-4 py-4 text-sm text-gray-500">${emp.hire_date ? new Date(emp.hire_date).toLocaleDateString() : "-"}</td>
+            <td class="px-4 py-4 text-sm font-medium">
+              <button class="text-primary-600 hover:text-primary-900 mr-3">Edit</button>
+              <button class="text-red-600 hover:text-red-900">Delete</button>
+            </td>
+          </tr>
+        `);
+      });
+    }
+
+    loadEmployees();
+
+    // Add employee
+    document.getElementById("addEmployeeForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = {
+        first_name: document.getElementById("first_name").value,
+        last_name: document.getElementById("last_name").value,
+        date_of_birth: document.getElementById("date_of_birth").value,
+        gender: document.getElementById("gender").value,
+        department: document.getElementById("department").value,
+        hire_date: document.getElementById("hire_date").value,
+        status: document.getElementById("status").value,
+        salary_grade: document.getElementById("salary_grade").value,
+        tpin: document.getElementById("tpin").value,
+        pacra_number: document.getElementById("pacra_number").value
+      };
+
+      await fetch("/api/hr/employees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      modal.classList.add("hidden");
+      e.target.reset();
+      loadEmployees();
+    });
+  </script>
+</body>
+</html>

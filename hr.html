@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Management - EnterpriseERP</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            blue: '#3b82f6',
+                            indigo: '#6366f1',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="flex justify-between items-center py-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center">
+                        <i data-feather="grid" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="text-xl font-semibold text-primary-900">SMAIT ERP</span>
+                </div>
+                
+                <div class="hidden lg:flex space-x-1">
+                    <a href="index.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Dashboard</a>
+                    <a href="hr.html" class="px-4 py-2 text-primary-700 bg-primary-100 rounded-lg transition-colors font-medium">HR</a>
+                    <a href="inventory.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Inventory</a>
+                    <a href="finance.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Finance</a>
+                    <a href="sales.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Sales & CRM</a>
+                    <a href="reports.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Reports</a>
+                    <a href="payroll.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Payroll</a>
+                    <a href="fiscal.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Fiscal</a>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">
+                            <i data-feather="bell" class="w-5 h-5 text-primary-600"></i>
+                        </button>
+                        <span class="absolute -top-1 -right-1 bg-accent-rose text-white text-xs rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">3</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center shadow-sm">
+                            <i data-feather="user" class="w-4 h-4 text-white"></i>
+                        </div>
+                        <div class="hidden md:block">
+                            <p class="text-sm font-medium text-primary-900">Admin User</p>
+                            <p class="text-xs text-primary-500">System Administrator</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HR Header -->
+    <header class="bg-primary-900 text-white py-12 relative overflow-hidden">
+        <div class="absolute inset-0 bg-black/40 z-0"></div>
+        <img src="http://static.photos/people/1200x630/1" alt="HR Background" class="absolute inset-0 w-full h-full object-cover z-0">
+        <div class="container mx-auto px-4 text-center relative z-10">
+            <h1 class="text-4xl font-bold mb-4" data-aos="fade-up">HR Management</h1>
+            <p class="text-xl text-primary-200 mb-8" data-aos="fade-up" data-aos-delay="100">
+                Comprehensive employee management and workforce analytics
+            </p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-12">
+        <!-- Quick Stats -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-600">Total Employees</p>
+                        <h3 class="text-3xl font-bold text-primary-800">247</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+                        <i data-feather="users" class="text-primary-600"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span class="bg-accent-green/20 text-accent-green px-2 py-1 rounded-full text-sm">+12%</span>
+                    <span class="text-gray-600 text-sm ml-2">from last month</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="100">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-600">Active Employees</p>
+                        <h3 class="text-3xl font-bold text-primary-800">235</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <i data-feather="user-check" class="text-green-600"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span class="bg-accent-green/20 text-accent-green px-2 py-1 rounded-full text-sm">+8%</span>
+                    <span class="text-gray-600 text-sm ml-2">from last month</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="200">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-600">On Leave</p>
+                        <h3 class="text-3xl font-bold text-primary-800">12</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                        <i data-feather="calendar" class="text-orange-600"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span class="bg-accent-orange/20 text-accent-orange px-2 py-1 rounded-full text-sm">-3%</span>
+                    <span class="text-gray-600 text-sm ml-2">from last month</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="300">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-600">New Hires</p>
+                        <h3 class="text-3xl font-bold text-primary-800">8</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i data-feather="user-plus" class="text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <span class="bg-accent-blue/20 text-accent-blue px-2 py-1 rounded-full text-sm">+5%</span>
+                    <span class="text-gray-600 text-sm ml-2">from last month</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- HR Modules -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <!-- Employee Database -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up">
+                <div class="bg-primary-600 text-white px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                        <i data-feather="database" class="w-6 h-6"></i>
+                        <h3 class="text-xl font-semibold">Employee Database</h3>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="relative w-64">
+                            <input type="text" placeholder="Search employees..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <i data-feather="search" class="w-5 h-5 text-gray-400 absolute left-3 top-2.5"></i>
+                        </div>
+                        <button class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center">
+                            <i data-feather="plus" class="w-5 h-5 mr-2"></i>
+                            Add Employee
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white font-medium">JD</div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">John Doe</div>
+                                                <div class="text-sm text-gray-500">john.doe@company.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">Software Engineer</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">Engineering</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-primary-600 hover:text-primary-900 mr-3">Edit</button>
+                                        <button class="text-red-600 hover:text-red-900">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-gradient-to-br from-accent-emerald to-accent-cyan rounded-full flex items-center justify-center text-white font-medium">JS</div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">Jane Smith</div>
+                                                <div class="text-sm text-gray-500">jane.smith@company.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">Marketing Manager</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">Marketing</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-primary-600 hover:text-primary-900 mr-3">Edit</button>
+                                        <button class="text-red-600 hover:text-red-900">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-gradient-to-br from-accent-amber to-accent-rose rounded-full flex items-center justify-center text-white font-medium">RB</div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">Robert Brown</div>
+                                                <div class="text-sm text-gray-500">robert.brown@company.com</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">HR Specialist</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">Human Resources</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">On Leave</span>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-primary-600 hover:text-primary-900 mr-3">Edit</button>
+                                        <button class="text-red-600 hover:text-red-900">Delete</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-6 flex justify-between items-center">
+                        <div class="text-sm text-gray-500">Showing 1 to 3 of 247 employees</div>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300">Previous</button>
+                            <button class="px-3 py-1 rounded-md bg-primary-600 text-white hover:bg-primary-700">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Tracking -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up" data-aos-delay="100">
+                <div class="bg-primary-600 text-white px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                        <i data-feather="clock" class="w-6 h-6"></i>
+                        <h3 class="text-xl font-semibold">Attendance Tracking</h3>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h4 class="text-lg font-medium text-gray-900">Today's Attendance</h4>
+                        <div class="text-sm text-gray-500">June 15, 2024</div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white font-medium">JD</div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">John Doe</div>
+                                    <div class="text-sm text-gray-500">Software Engineer</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-500 mr-4">09:00 AM</span>
+                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Present</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-yellow-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-gradient-to-br from-accent-emerald to-accent-cyan rounded-full flex items-center justify-center text-white font-medium">JS</div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">Jane Smith</div>
+                                    <div class="text-sm text-gray-500">Marketing Manager</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-500 mr-4">09:15 AM</span>
+                                <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Late</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-red-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-gradient-to-br from-accent-amber to-accent-rose rounded-full flex items-center justify-center text-white font-medium">RB</div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">Robert Brown</div>
+                                    <div class="text-sm text-gray-500">HR Specialist</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-500 mr-4">-</span>
+                                <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Absent</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <canvas id="attendanceChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leave Management -->
+        <section class="bg-white rounded-xl shadow-md overflow-hidden mb-12" data-aos="fade-up">
+            <div class="bg-primary-600 text-white px-6 py-4">
+                <div class="flex items-center space-x-3">
+                    <i data-feather="calendar" class="w-6 h-6"></i>
+                    <h3 class="text-xl font-semibold">Leave Management</h3>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-blue-50 rounded-lg p-6">
+                        <div class="text-3xl font-bold text-blue-800 mb-2">24</div>
+                        <div class="text-blue-600 font-medium">Annual Leave</div>
+                        <div class="text-sm text-blue-500 mt-1">Available days</div>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-6">
+                        <div class="text-3xl font-bold text-green-800 mb-2">5</div>
+                        <div class="text-green-600 font-medium">Sick Leave</div>
+                        <div class="text-sm text-green-500 mt-1">Available days</div>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-6">
+                        <div class="text-3xl font-bold text-purple-800 mb-2">3</div>
+                        <div class="text-purple-600 font-medium">Personal Leave</div>
+                        <div class="text-sm text-purple-500 mt-1">Available days</div>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mb-6">
+                    <h4 class="text-lg font-medium text-gray-900">Recent Leave Requests</h4>
+                    <button class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center">
+                        <i data-feather="plus" class="w-5 h-5 mr-2"></i>
+                        Request Leave
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leave Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white text-xs">JD</div>
+                                        <div class="ml-3">
+                                            <div class="text-sm font-medium text-gray-900">John Doe</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">Annual Leave</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">Jun 20, 2024</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">Jun 25, 2024</td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                                    <button class="text-green-600 hover:text-green-900 mr-3">Approve</button>
+                                    <button class="text-red-600 hover:text-red-900">Reject</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-gradient-to-br from-accent-emerald to-accent-cyan rounded-full flex items-center justify-center text-white text-xs">JS</div>
+                                        <div class="ml-3">
+                                            <div class="text-sm font-medium text-gray-900">Jane Smith</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">Sick Leave</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">Jun 10, 2024</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">Jun 12, 2024</td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Approved</span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                                    <button class="text-gray-400 cursor-not-allowed" disabled>Approved</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-primary-900 text-white py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">EnterpriseERP</h4>
+                    <p class="text-primary-200">Comprehensive business management solution for modern enterprises.</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Modules</h4>
+                    <ul class="space-y-2 text-primary-200">
+                        <li>HR Management</li>
+                        <li>Inventory Management</li>
+                        <li>Finance</li>
+                        <li>Sales & CRM</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2 text-primary-200">
+                        <li>Documentation</li>
+                        <li>Help Center</li>
+                        <li>Contact Support</li>
+                        <li>System Status</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-primary-700 mt-8 pt-8 text-center text-primary-200">
+                <p>&copy; 2025 SMAIT ERP. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    <!-- Modal -->
+<div id="employeeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
+    <h2 class="text-xl font-semibold mb-4">Add New Employee</h2>
+    <form id="addEmployeeForm" class="space-y-4">
+      <input type="text" id="empName" placeholder="Full Name" class="w-full px-4 py-2 border rounded" required />
+      <input type="email" id="empEmail" placeholder="Email Address" class="w-full px-4 py-2 border rounded" required />
+      <input type="text" id="empPosition" placeholder="Position" class="w-full px-4 py-2 border rounded" required />
+      <input type="text" id="empDepartment" placeholder="Department" class="w-full px-4 py-2 border rounded" required />
+      <select id="empStatus" class="w-full px-4 py-2 border rounded">
+        <option value="Active">Active</option>
+        <option value="On Leave">On Leave</option>
+        <option value="Inactive">Inactive</option>
+      </select>
+      <div class="flex justify-end space-x-2">
+        <button type="button" id="cancelModal" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+        <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script>
+
+        // Attendance Chart
+        const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+        new Chart(attendanceCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                datasets: [{
+                    label: 'Present',
+                    data: [45, 48, 42, 50, 47, 30],
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)'
+                }, {
+                    label: 'Late',
+                    data: [2, 1, 3, 0, 2, 1],
+                    backgroundColor: 'rgba(245, 158, 11, 0.8)'
+                }, {
+                    label: 'Absent',
+                    data: [0, 1, 4, 0, 1, 17],
+                    backgroundColor: 'rgba(239, 68, 68, 0.8)'
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
+    <script>
+        // 1. Initialize Feather Icons
+feather.replace();
+
+// 2. Toggle mobile menu (if you add one later)
+const menuToggle = document.querySelector('#menu-toggle');
+const navLinks = document.querySelector('#nav-links');
+
+if (menuToggle && navLinks) {
+  menuToggle.addEventListener('click', () => {
+    navLinks.classList.toggle('hidden');
+  });
+}
+
+// 3. Notification Bell Click
+const bellButton = document.querySelector('[data-feather="bell"]');
+
+if (bellButton) {
+  bellButton.addEventListener('click', () => {
+    alert('You have 3 new notifications!');
+  });
+}
+
+
+// 2. Optional: Add dynamic scroll effect (e.g., fade header on scroll)
+const header = document.querySelector('header');
+
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 50) {
+    header.classList.add('opacity-90');
+  } else {
+    header.classList.remove('opacity-90');
+  }
+});
+
+// 1. Initialize Feather Icons
+feather.replace();
+
+// 2. Initialize AOS animations
+AOS.init({
+  duration: 800,
+  once: true
+});
+
+// 3. Animate numbers (optional enhancement)
+function animateValue(element, start, end, duration) {
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    element.textContent = Math.floor(progress * (end - start) + start);
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    }
+  };
+  window.requestAnimationFrame(step);
+}
+
+// 4. Apply animation to stat numbers
+document.querySelectorAll('.stat-number').forEach((el) => {
+  const endValue = parseInt(el.textContent);
+  animateValue(el, 0, endValue, 1000);
+});
+
+ const searchInput = document.querySelector('input[placeholder="Search employees..."]');
+    const tableRows = document.querySelectorAll("tbody tr");
+
+    // 🔍 Live Search Filter
+    searchInput.addEventListener("input", () => {
+      const query = searchInput.value.toLowerCase();
+      tableRows.forEach(row => {
+        const name = row.querySelector("td.text-sm.font-medium").textContent.toLowerCase();
+        row.style.display = name.includes(query)? "": "none";
+});
+});
+
+    // 📝 Edit Button Simulation
+    document.querySelectorAll("button").forEach(btn => {
+      if (btn.textContent.trim() === "Edit") {
+        btn.addEventListener("click", () => {
+          const row = btn.closest("tr");
+          const nameCell = row.querySelector("td.text-sm.font-medium");
+          const emailCell = row.querySelector("td.text-sm.text-gray-500");
+
+          const newName = prompt("Edit name:", nameCell.textContent);
+          const newEmail = prompt("Edit email:", emailCell.textContent);
+
+          if (newName) nameCell.textContent = newName;
+          if (newEmail) emailCell.textContent = newEmail;
+});
+}
+
+      // 🗑 Delete Button Simulation
+      if (btn.textContent.trim() === "Delete") {
+        btn.addEventListener("click", () => {
+          const row = btn.closest("tr");
+          if (confirm("Are you sure you want to delete this employee?")) {
+            row.remove();
+}
+});
+}
+});
+
+    // 📦 Pagination Placeholder
+    const buttons = document.querySelectorAll("button");
+let prevBtn, nextBtn;
+
+buttons.forEach(btn => {
+  if (btn.textContent.trim() === "Previous") prevBtn = btn;
+  if (btn.textContent.trim() === "Next") nextBtn = btn;
+});
+
+    // Handle Approve/Reject buttons
+    document.querySelectorAll("tbody tr").forEach(row => {
+      const approveBtn = row.querySelector("button.text-green-600");
+      const rejectBtn = row.querySelector("button.text-red-600");
+      const statusSpan = row.querySelector("td span");
+
+      if (approveBtn) {
+        approveBtn.addEventListener("click", () => {
+          statusSpan.textContent = "Approved";
+          statusSpan.className = "px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800";
+          approveBtn.textContent = "Approved";
+          approveBtn.classList.add("text-gray-400", "cursor-not-allowed");
+          approveBtn.disabled = true;
+          rejectBtn.remove(); // Remove reject button after approval
+});
+}
+
+      if (rejectBtn) {
+        rejectBtn.addEventListener("click", () => {
+          statusSpan.textContent = "Rejected";
+          statusSpan.className = "px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800";
+          approveBtn.remove(); // Remove approve button after rejection
+          rejectBtn.textContent = "Rejected";
+          rejectBtn.classList.add("text-gray-400", "cursor-not-allowed");
+          rejectBtn.disabled = true;
+});
+}
+});
+
+    // Request Leave Modal (basic simulation)
+    const requestBtn = document.querySelector("button.bg-primary-600");
+    requestBtn.addEventListener("click", () => {
+      alert("Leave request form would open here.");
+      // You can replace this with a modal popup or form integration
+});
+
+    // Optional: Set today's date dynamically
+    const dateDisplay = document.querySelector(".text-sm.text-gray-500");
+    const today = new Date();
+    const options = { year: 'numeric', month: 'long', day: 'numeric'};
+    dateDisplay.textContent = today.toLocaleDateString(undefined, options);
+
+    // Attendance Chart
+    const ctx = document.getElementById("attendanceChart").getContext("2d");
+    new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ["Present", "Late", "Absent"],
+        datasets: [{
+          data: [1, 1, 1], // You can dynamically count these from DOM if needed
+          backgroundColor: ["#34D399", "#FBBF24", "#F87171"],
+          borderWidth: 1
+}]
+},
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: "bottom"
+},
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.label}: ${context.raw}`;
+}
+}
+}
+}
+}
+});
+
+
+    </script>
+    <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const modal = document.getElementById("employeeModal");
+    const openBtn = document.querySelector("button.flex.items-center"); // Add Employee button
+    const cancelBtn = document.getElementById("cancelModal");
+    const form = document.getElementById("addEmployeeForm");
+    const tableBody = document.querySelector("table tbody");
+
+    // Show modal
+    openBtn.addEventListener("click", () => {
+      modal.classList.remove("hidden");
+});
+
+    // Hide modal
+    cancelBtn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      form.reset();
+});
+
+    // Handle form submission
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById("empName").value;
+      const email = document.getElementById("empEmail").value;
+      const position = document.getElementById("empPosition").value;
+      const department = document.getElementById("empDepartment").value;
+      const status = document.getElementById("empStatus").value;
+
+      const initials = name.split(" ").map(n => n[0]).join("").toUpperCase();
+
+      const statusColor = {
+        "Active": "bg-green-100 text-green-800",
+        "On Leave": "bg-yellow-100 text-yellow-800",
+        "Inactive": "bg-red-100 text-red-800"
+};
+
+      const row = `
+        <tr>
+          <td class="px-4 py-4 whitespace-nowrap">
+            <div class="flex items-center">
+              <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white font-medium">${initials}</div>
+              <div class="ml-4">
+                <div class="text-sm font-medium text-gray-900">${name}</div>
+                <div class="text-sm text-gray-500">${email}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">${position}</td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">${department}</td>
+          <td class="px-4 py-4 whitespace-nowrap">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor[status]}">${status}</span>
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
+            <button class="text-primary-600 hover:text-primary-900 mr-3">Edit</button>
+           <button class="text-red-600 hover:text-red-900">Delete</button>
+          </td>
+        </tr>
+      `;
+
+      tableBody.insertAdjacentHTML("beforeend", row);
+      modal.classList.add("hidden");
+      form.reset();
+});
+});
+</script>
+</body>
+</html>

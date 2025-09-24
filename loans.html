@@ -1,0 +1,261 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAYROLL Management - SMAIT ERP</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            blue: '#3b82f6',
+                            indigo: '#6366f1',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="flex justify-between items-center py-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center">
+                        <i data-feather="grid" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="text-xl font-semibold text-primary-900">SMAIT ERP</span>
+                </div>
+    <a href="payroll.html" class="text-blue-600 hover:underline">← Back to Payroll</a>
+  </nav>
+
+<!-- Loan Form -->
+<section class="bg-white p-6 rounded-xl shadow m-6">
+  <h2 class="text-lg font-semibold mb-4">Grant Loan</h2>
+  <form id="loanForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <select id="employee_id" class="w-full px-4 py-2 border rounded-lg">
+      <option value="">-- Select Employee ID --</option>
+    </select>
+    <select id="full_name" class="w-full px-4 py-2 border rounded-lg">
+      <option value="">-- Select Employee Name --</option>
+    </select>
+    <select id="employee_tpin" class="w-full px-4 py-2 border rounded-lg">
+      <option value="">-- Select Employee TPIN --</option>
+    </select>
+    <select id="employee_pacra" class="w-full px-4 py-2 border rounded-lg">
+      <option value="">-- Select Employee PACRA --</option>
+    </select>
+
+    <input type="number" id="loanAmount" placeholder="Loan Amount (K)" class="px-4 py-2 border rounded" required />
+    <input type="number" id="interestRate" placeholder="Interest Rate (%)" class="px-4 py-2 border rounded" required />
+    <input type="number" id="months" placeholder="Repayment Months" class="px-4 py-2 border rounded" required />
+    <button type="submit" class="col-span-1 md:col-span-2 bg-blue-600 text-white px-4 py-2 rounded">Generate Plan</button>
+  </form>
+</section>
+
+<!-- Loan Summary -->
+<section id="loanSummary" class="bg-white rounded-xl shadow p-6 m-6 hidden">
+  <h2 class="text-lg font-semibold mb-4">Loan Summary</h2>
+  <p id="eligibility" class="mb-2 font-medium"></p>
+  <p><strong>Monthly Installment:</strong> <span id="installment"></span></p>
+  <p><strong>Total Payment:</strong> <span id="totalPayment"></span></p>
+  <p><strong>Total Interest:</strong> <span id="totalInterest"></span></p>
+  <button id="approveLoan" class="mt-4 bg-green-600 text-white px-4 py-2 rounded">Approve Loan</button>
+</section>
+
+<!-- Payment Plan -->
+<section id="planSection" class="bg-white rounded-xl shadow p-6 m-6 hidden">
+  <h2 class="text-lg font-semibold mb-4">Payment Plan</h2>
+  <table class="w-full text-sm border">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-4 py-2 border">Month</th>
+        <th class="px-4 py-2 border">Principal</th>
+        <th class="px-4 py-2 border">Interest</th>
+        <th class="px-4 py-2 border">Installment</th>
+        <th class="px-4 py-2 border">Remaining Balance</th>
+      </tr>
+    </thead>
+    <tbody id="planBody" class="divide-y divide-gray-200"></tbody>
+  </table>
+</section>
+
+<!-- Charts -->
+<section id="chartsSection" class="grid grid-cols-1 md:grid-cols-2 gap-6 m-6 hidden">
+  <div class="bg-white p-6 rounded-xl shadow">
+    <h2 class="text-lg font-semibold mb-4">Principal vs Interest</h2>
+    <canvas id="loanPie"></canvas>
+  </div>
+  <div class="bg-white p-6 rounded-xl shadow">
+    <h2 class="text-lg font-semibold mb-4">Impact on Net Pay</h2>
+    <canvas id="netBar"></canvas>
+  </div>
+</section>
+
+<script>
+let employees = [];
+let lastLoan = null;
+
+// Load employees from API
+async function loadEmployees() {
+  try {
+    const res = await fetch("/api/employees");
+    const json = await res.json();
+    employees = json.data || [];
+    const idSel = document.getElementById("employee_id");
+    const nameSel = document.getElementById("full_name");
+    const tpinSel = document.getElementById("employee_tpin");
+    const pacraSel = document.getElementById("employee_pacra");
+
+    employees.forEach(emp => {
+      const fullName = `${emp.first_name} ${emp.last_name}`;
+      idSel.add(new Option(emp.employee_id, emp.employee_id));
+      nameSel.add(new Option(fullName, emp.employee_id));
+      tpinSel.add(new Option(emp.tpin, emp.employee_id));
+      pacraSel.add(new Option(emp.pacra, emp.employee_id));
+    });
+  } catch (err) {
+    console.error("Error loading employees:", err);
+  }
+}
+
+function syncSelects(empId) {
+  ["employee_id","full_name","employee_tpin","employee_pacra"].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) sel.value = empId;
+  });
+}
+["employee_id","full_name","employee_tpin","employee_pacra"].forEach(id => {
+  document.getElementById(id).addEventListener("change", e => syncSelects(e.target.value));
+});
+
+loadEmployees();
+
+// Loan calculation
+document.getElementById("loanForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const empId = document.getElementById("employee_id").value;
+  const emp = employees.find(e => e.employee_id == empId);
+  if (!emp) return;
+
+  const loanAmount = parseFloat(document.getElementById("loanAmount").value);
+  const rate = parseFloat(document.getElementById("interestRate").value) / 100;
+  const months = parseInt(document.getElementById("months").value);
+
+  const monthlyRate = rate / 12;
+  const installment = (loanAmount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months));
+  const totalPayment = installment * months;
+  const totalInterest = totalPayment - loanAmount;
+
+  // Eligibility placeholder: adjust if netPay is in DB
+  const eligible = installment <= ((emp.netpay || 0) * 0.4);
+
+  lastLoan = { empId, loanAmount, rate: rate*100, months, installment, totalPayment, totalInterest, eligibility: eligible };
+
+  document.getElementById("loanSummary").classList.remove("hidden");
+  document.getElementById("eligibility").textContent = eligible ? "✅ Eligible" : "❌ Not Eligible";
+  document.getElementById("eligibility").className = eligible ? "text-green-600 font-bold" : "text-red-600 font-bold";
+  document.getElementById("installment").textContent = `K ${installment.toFixed(2)}`;
+  document.getElementById("totalPayment").textContent = `K ${totalPayment.toFixed(2)}`;
+  document.getElementById("totalInterest").textContent = `K ${totalInterest.toFixed(2)}`;
+
+  // Payment plan
+  const planBody = document.getElementById("planBody");
+  planBody.innerHTML = "";
+  let balance = loanAmount;
+  for (let i = 1; i <= months; i++) {
+    const interest = balance * monthlyRate;
+    const principal = installment - interest;
+    balance -= principal;
+    planBody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td class="px-4 py-2 border">${i}</td>
+        <td class="px-4 py-2 border">K ${principal.toFixed(2)}</td>
+        <td class="px-4 py-2 border">K ${interest.toFixed(2)}</td>
+        <td class="px-4 py-2 border">K ${installment.toFixed(2)}</td>
+        <td class="px-4 py-2 border">K ${balance.toFixed(2)}</td>
+      </tr>`);
+  }
+  document.getElementById("planSection").classList.remove("hidden");
+
+  // Charts
+  document.getElementById("chartsSection").classList.remove("hidden");
+  if (window.loanPieChart) window.loanPieChart.destroy();
+  if (window.netBarChart) window.netBarChart.destroy();
+  window.loanPieChart = new Chart(document.getElementById("loanPie"), {
+    type: "pie",
+    data: { labels: ["Principal","Interest"], datasets:[{ data:[loanAmount,totalInterest], backgroundColor:["#10b981","#ef4444"]}] }
+  });
+  window.netBarChart = new Chart(document.getElementById("netBar"), {
+    type:"bar",
+    data:{ labels:["Net Before Loan","Net After Loan"], datasets:[{ data:[emp.netpay||0,(emp.netpay||0)-installment], backgroundColor:["#3b82f6","#f59e0b"]}] },
+    options:{ plugins:{ legend:{ display:false }}, scales:{ y:{ beginAtZero:true } } }
+  });
+});
+
+// Approve Loan button
+document.getElementById("approveLoan").addEventListener("click", async () => {
+  if (!lastLoan) return;
+  if (!confirm("Are you sure you want to approve this loan?")) return;
+
+  try {
+    await fetch("/api/loans", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        employee_id: lastLoan.empId,
+        loan_amount: lastLoan.loanAmount,
+        interest_rate: lastLoan.rate,
+        months: lastLoan.months,
+        monthly_installment: lastLoan.installment,
+        total_payment: lastLoan.totalPayment,
+        total_interest: lastLoan.totalInterest,
+        eligibility: lastLoan.eligibility
+      })
+    });
+    alert("Loan approved and saved.");
+  } catch (err) {
+    console.error("Error approving loan:", err);
+    alert("Error saving loan.");
+  }
+});
+</script>
+</body>
+</html>

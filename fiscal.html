@@ -1,0 +1,519 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FISCAL Management - SMAIT ERP</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style media="print">
+  body {
+    background: white;
+    color: black;
+}
+.no-print {
+    display: none;
+}
+  canvas {
+    page-break-inside: avoid;
+}
+</style>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            blue: '#3b82f6',
+                            indigo: '#6366f1',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="flex justify-between items-center py-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center">
+                        <i data-feather="grid" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="text-xl font-semibold text-primary-900">SMAIT ERP</span>
+                </div>
+                
+                <div class="hidden lg:flex space-x-1">
+                    <a href="index.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Dashboard</a>
+                    <a href="hr.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">HR</a>
+                    <a href="inventory.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Inventory</a>
+                    <a href="finance.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Finance</a>
+                    <a href="sales.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Sales & CRM</a>
+                    <a href="reports.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Reports</a>
+                    <a href="payroll.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium".,>Payroll</a>
+                    <a href="fiscal.html" class="px-4 py-2 text-primary-700 bg-primary-100 rounded-lg transition-colors font-medium">Fiscal</a>
+                </div>
+</div>
+</div>
+</nav>
+
+  <div class="max-w-5xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6 text-center">Fiscal Overview</h1>
+
+     
+
+    <!-- Section: Fiscal Summary Cards -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+  <!-- Fiscal Year -->
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <p class="text-gray-600 flex items-center gap-2">
+      Fiscal Year
+      <span class="text-sm text-gray-400 cursor-help" title="The financial year this data applies to."></span>
+    </p>
+    <p class="text-2xl font-semibold">
+      <span id="summaryYear" class="px-2 py-1 rounded bg-gray-200 text-gray-800">—</span>
+    </p>
+  </div>
+
+  <!-- Revenue -->
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <p class="text-gray-600 flex items-center gap-2">
+      Revenue
+      <span class="text-sm text-gray-400 cursor-help" title="Total income generated before expenses."></span>
+    </p>
+    <p class="text-2xl font-semibold">
+      <span id="summaryRevenue" class="px-2 py-1 rounded text-white">0</span>
+    </p>
+  </div>
+
+
+<div class="bg-white rounded-xl shadow-md p-6">
+  <p class="text-2xl font-semibold">
+  <span id="summaryTaxes" class="px-2 py-1 rounded text-white">0</span>
+</p>
+</div>
+
+
+  <!-- Expenses -->
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <p class="text-gray-600 flex items-center gap-2">
+      Expenses
+      <span class="text-sm text-gray-400 cursor-help" title="Total costs incurred during the fiscal year."></span>
+    </p>
+    <p class="text-2xl font-semibold">
+      <span id="summaryExpenses" class="px-2 py-1 rounded text-white">0</span>
+    </p>
+  </div>
+
+  <!-- Net Profit -->
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <p class="text-gray-600 flex items-center gap-2">
+      Net Profit
+      <span class="text-sm text-gray-400 cursor-help" title="Revenue minus expenses and taxes."></span>
+    </p>
+    <p class="text-2xl font-semibold">
+      <span id="summaryProfit" class="px-2 py-1 rounded text-white">0</span>
+    </p>
+  </div>
+
+  <!-- Cash Flow -->
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <p class="text-gray-600 flex items-center gap-2">
+      Cash Flow
+      <span class="text-sm text-gray-400 cursor-help" title="Net amount of cash moving in and out."></span>
+    </p>
+    <p class="text-2xl font-semibold">
+      <span id="summaryCashFlow" class="px-2 py-1 rounded text-white">—</span>
+    </p>
+  </div>
+
+  <!-- EBITDA -->
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <p class="text-gray-600 flex items-center gap-2">
+      EBITDA
+      <span class="text-sm text-gray-400 cursor-help" title="Earnings before interest, taxes, depreciation, and amortization."></span>
+    </p>
+    <p class="text-2xl font-semibold">
+      <span id="summaryEBITDA" class="px-2 py-1 rounded text-white">—</span>
+    </p>
+  </div>
+
+  <!-- ROI -->
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <p class="text-gray-600 flex items-center gap-2">
+      ROI
+      <span class="text-sm text-gray-400 cursor-help" title="Return on Investment: Profit divided by Expenses."></span>
+    </p>
+    <p class="text-2xl font-semibold">
+      <span id="summaryROI" class="px-2 py-1 rounded text-white">—</span>%
+    </p>
+  </div>
+
+  <!-- Debt Ratio -->
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <p class="text-gray-600 flex items-center gap-2">
+      Debt Ratio
+      <span class="text-sm text-gray-400 cursor-help" title="Total liabilities divided by total assets."></span>
+    </p>
+    <p class="text-2xl font-semibold">
+      <span id="summaryDebtRatio" class="px-2 py-1 rounded text-white">—</span>%
+    </p>
+  </div>
+</section>
+
+
+    <!-- Section: Fiscal Ratios -->
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-12">
+      <div class="bg-white rounded-xl shadow-md p-6">
+        <p class="text-gray-600">ROI</p>
+        <p class="text-2xl font-semibold text-indigo-600"><span id="fiscalROI">—</span>%</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-md p-6">
+        <p class="text-gray-600">Operating Margin</p>
+        <p class="text-2xl font-semibold text-purple-600"><span id="summaryMargin">—</span>%</p>
+      </div>
+    </section>
+
+    <!-- Section: Fiscal Form -->
+    <section class="bg-white rounded-xl shadow-md p-6 mb-12">
+      <h2 class="text-xl font-semibold mb-4">Add Fiscal Record</h2>
+      <form id="fiscalForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="text" id="fiscalYear" placeholder="Fiscal Year" class="border p-2 rounded" required />
+        <input type="number" id="revenue" placeholder="Total Revenue (K)" class="border p-2 rounded" required />
+        <input type="number" id="expenses" placeholder="Total Expenses (K)" class="border p-2 rounded" required />
+        <input type="number" id="taxes" placeholder="Taxes Paid (K)" class="border p-2 rounded" required />
+        <button type="submit" class="col-span-2 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Add Record</button>
+      </form>
+    </section>
+
+    <!-- Section: Fiscal Table -->
+    <section class="bg-white rounded-xl shadow-md p-6 mb-12">
+      <h2 class="text-xl font-semibold mb-4">Fiscal History</h2>
+      <table id="fiscalTable" class="w-full text-left">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-2">Year</th>
+            <th class="p-2">Revenue</th>
+            <th class="p-2">Expenses</th>
+            <th class="p-2">Taxes</th>
+            <th class="p-2">Net Profit</th>
+            <th class="p-2">ROI</th>
+            <th class="p-2">Margin</th>
+            <th class="p-2">Cash Flow</th>
+<th class="p-2">EBITDA</th>
+<th class="p-2">Debt Ratio</th>
+
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- Section: Charts -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+ <div class="bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">Fiscal Breakdown</h2>
+        <canvas id="fiscalChart"></canvas>
+      </div>
+    </section>
+    <section class="grid grid-cols-1 gap-6 mb-12">
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <h2 class="text-xl font-semibold mb-4">Yearly Profit Trend</h2>
+    <canvas id="trendChart"></canvas>
+  </div>
+</section>
+
+
+    <!-- Section: Export Buttons -->
+    <section class="flex gap-4 justify-end mb-12">
+      <button onclick="exportFiscalToPDF()" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">Export PDF</button>
+      <button onclick="exportFiscalToExcel()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Export Excel</button>
+      <button onclick="window.print()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Print</button>
+    </section>
+  </div>
+
+  <script>
+const yearlyData = [];
+
+const tbody = document.querySelector("#fiscalTable tbody");
+let fiscalChart;
+let trendChart; // ✅ Move this up before renderTrendChart is called
+
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("fiscalForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+
+  const year = document.getElementById("fiscalYear").value;
+  const revenue = parseFloat(document.getElementById("revenue").value) || 0;
+  const expenses = parseFloat(document.getElementById("expenses").value) || 0;
+  const taxes = parseFloat(document.getElementById("taxes").value) || 0;
+  const profit = revenue - expenses - taxes;
+  const cashFlow = profit - taxes;
+  const ebitda = revenue - expenses;
+  const totalAssets = revenue + profit;
+  const totalLiabilities = expenses + taxes;
+  const debtRatio = totalAssets> 0? ((totalLiabilities / totalAssets) * 100).toFixed(2): "0.00";
+  const roi = expenses> 0? ((profit / expenses) * 100).toFixed(2): "0.00";
+  const margin = revenue> 0? ((profit / revenue) * 100).toFixed(2): "0.00";
+
+      // Update summary cards
+document.getElementById("summaryYear").textContent = year;
+document.getElementById("summaryRevenue").textContent = revenue.toLocaleString();
+document.getElementById("summaryExpenses").textContent = expenses.toLocaleString();
+document.getElementById("summaryTaxes").textContent = taxes.toLocaleString();
+document.getElementById("summaryProfit").textContent = profit.toLocaleString();
+document.getElementById("summaryROI").textContent = roi;
+document.getElementById("summaryMargin").textContent = margin;
+document.getElementById("summaryCashFlow").textContent = cashFlow.toLocaleString();
+document.getElementById("summaryEBITDA").textContent = ebitda.toLocaleString();
+document.getElementById("summaryDebtRatio").textContent = debtRatio;
+document.getElementById("fiscalROI").textContent = roi;
+
+// Add to table
+      const row = document.createElement("tr");
+      row.innerHTML = `
+  <td class="p-2">${year}</td>
+  <td class="p-2">K ${revenue.toLocaleString()}</td>
+  <td class="p-2">K ${expenses.toLocaleString()}</td>
+  <td class="p-2">K ${taxes.toLocaleString()}</td>
+  <td class="p-2">K ${profit.toLocaleString()}</td>
+  <td class="p-2">${roi}%</td>
+  <td class="p-2">${margin}%</td>
+  <td class="p-2">K ${cashFlow.toLocaleString()}</td>
+  <td class="p-2">K ${ebitda.toLocaleString()}</td>
+  <td class="p-2">${debtRatio}%</td>
+`;
+
+      tbody.appendChild(row);
+
+  yearlyData.push({ year, profit});
+  renderTrendChart();
+   renderFiscalChart(revenue, expenses, taxes, profit, roi, debtRatio, ebitda, margin);
+      document.getElementById("fiscalForm").reset();
+});
+
+function renderTrendChart() {
+  const ctx = document.getElementById("trendChart").getContext("2d");
+  if (trendChart) trendChart.destroy();
+
+  const labels = yearlyData.map(d => d.year);
+  const dataPoints = yearlyData.map(d => d.profit);
+
+  trendChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Net Profit (K)",
+        data: dataPoints,
+        borderColor: "#10b981",
+        backgroundColor: "rgba(16, 185, 129, 0.2)",
+        fill: true,
+        tension: 0.3,
+        pointRadius: 5,
+        pointHoverRadius: 7
+}]
+},
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: "top",
+          labels: {
+            color: "#374151",
+            font: { size: 14, weight: "bold"}
+}
+},
+        tooltip: {
+          callbacks: {
+            label: (context) => `K ${context.parsed.y.toLocaleString()}`
+}
+}
+},
+      scales: {
+        y: {
+          title: {
+            display: true,
+            text: "Profit (K)"
+}
+},
+        x: {
+          title: {
+            display: true,
+            text: "Fiscal Year"
+}
+}
+}
+}
+});
+}
+
+
+function renderFiscalChart(revenue, expenses, taxes, profit, roi, debtRatio, ebitda, margin) {
+
+      const ctx = document.getElementById("fiscalChart").getContext("2d");
+      if (fiscalChart) fiscalChart.destroy();
+
+      fiscalChart = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels: ["Revenue", "Expenses", "Taxes", "Profit" , "ROI"],
+          datasets: [{
+            data: [revenue, expenses, taxes, profit, roi],
+            backgroundColor: ["#3b82f6", "#ef4444", "#f59e0b", "#10b981"]
+}]
+},
+options: {
+  animation: {
+    duration: 1200,
+    easing: 'easeOutBounce'
+},
+  plugins: {
+    legend: {
+      display: true,
+      position: 'bottom',
+      labels: {
+        color: '#374151',
+        font: {
+          size: 14,
+          weight: 'bold',
+          family: 'Helvetica'
+},
+        boxWidth: 20,
+        padding: 15
+},
+      title: {
+        display: true,
+        text: 'Fiscal Components',
+        color: '#1f2937',
+        font: {
+          size: 16,
+          weight: 'bold'
+},
+        padding: 10
+}
+}
+}
+}
+});
+
+
+     function exportFiscalToPDF() {
+    const doc = new jspdf.jsPDF();
+    const chartCanvas = document.getElementById("fiscalChart");
+    const chartImg = chartCanvas.toDataURL("image/png", 1.0);
+
+    doc.setFontSize(16);
+    doc.text("Fiscal Overview", 14, 20);
+    doc.addImage(chartImg, "PNG", 14, 30, 180, 90);
+
+    doc.setFontSize(12);
+    doc.text(`Year: ${document.getElementById("summaryYear").textContent}`, 14, 130);
+    doc.text(`Revenue: K ${document.getElementById("summaryRevenue").textContent}`, 14, 140);
+    doc.text(`Expenses: K ${document.getElementById("summaryExpenses").textContent}`, 14, 150);
+    doc.text(`Taxes: K ${document.getElementById("summaryTaxes").textContent}`, 14, 160);
+    doc.text(`Net Profit: K ${document.getElementById("summaryProfit").textContent}`, 14, 170);
+    doc.text(`ROI: ${document.getElementById("summaryROI").textContent}%`, 14, 180);
+    doc.text(`Operating Margin: ${document.getElementById("summaryMargin").textContent}%`, 14, 190);
+
+    doc.save("Fiscal_Report.pdf");
+}
+
+  function exportFiscalToExcel() {
+    const data = [
+      ["Year", "Revenue", "Expenses", "Taxes", "Net Profit", "ROI", "Operating Margin"]
+    ];
+
+    const rows = document.querySelectorAll("#fiscalTable tbody tr");
+    rows.forEach(row => {
+      const cells = row.querySelectorAll("td");
+      const rowData = Array.from(cells).map(cell => cell.textContent.replace("K ", "").replace("%", ""));
+      data.push(rowData);
+});
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Fiscal Summary");
+    XLSX.writeFile(wb, "Fiscal_Report.xlsx");
+}
+
+function styleBadge(id, value, options = {}) {
+  const el = document.getElementById(id);
+  if (!el) {
+    console.warn(`Element with ID '${id}' not found.`);
+    return;
+}
+
+  // Handle undefined or null values
+  if (value === undefined || value === null || isNaN(value)) {
+    el.textContent = "—";
+    el.style.backgroundColor = "#9ca3af"; // gray
+    el.style.color = "#fff";
+    return;
+}
+
+  // Format value
+  let formatted = value;
+  if (options.format === "currency") {
+    formatted = "K " + value.toLocaleString();
+} else if (options.format === "percent") {
+    formatted = value.toFixed(2) + "%";
+} else {
+    formatted = value.toLocaleString();
+}
+
+  // Apply text and color
+  el.textContent = formatted;
+  el.style.backgroundColor = value>= 0? "#10b981": "#ef4444";
+  el.style.color = "#fff";
+  el.style.padding = "0.25rem 0.5rem";
+  el.style.borderRadius = "0.375rem";
+  el.style.fontWeight = "600";
+}
+
+
+styleBadge("summaryProfit", profit, { format: "currency"});
+styleBadge("summaryROI", parseFloat(roi), { format: "percent"});
+styleBadge("summaryDebtRatio", parseFloat(debtRatio), { format: "percent"});
+styleBadge("summaryEBITDA", ebitda, { format: "currency"});
+
+}
+});
+</script>
+</body>
+</html>

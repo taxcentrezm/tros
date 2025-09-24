@@ -1,0 +1,517 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SALES Management - EnterpriseERP</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            blue: '#3b82f6',
+                            indigo: '#6366f1',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="flex justify-between items-center py-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center">
+                        <i data-feather="grid" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <span class="text-xl font-semibold text-primary-900">SMAIT ERP</span>
+                </div>
+                
+                <div class="hidden lg:flex space-x-1">
+                    <a href="index.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Dashboard</a>
+                    <a href="hr.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">HR</a>
+                    <a href="inventory.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Inventory</a>
+                    <a href="finance.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Finance</a>
+                    <a href="sales.html" class="px-4 py-2 text-primary-700 bg-primary-100 rounded-lg transition-colors font-medium">Sales & CRM</a>
+                    <a href="reports.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Reports</a>
+                    <a href="payroll.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Payroll</a>
+                    <a href="fiscal.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Fiscal</a>
+                </div>
+</div>
+</div>
+</nav>
+
+  <!-- Summary Cards -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <p class="text-gray-600">Total Sales</p>
+      <h3 id="totalSales" class="text-3xl font-bold text-green-700">$0</h3>
+    </div>
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <p class="text-gray-600">Active Leads</p>
+      <h3 id="activeLeads" class="text-3xl font-bold text-blue-700">0</h3>
+    </div>
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <p class="text-gray-600">Conversion Rate</p>
+      <h3 id="conversionRate" class="text-3xl font-bold text-purple-700">0%</h3>
+    </div>
+  </section>
+
+  <!-- Charts -->
+  <section class="flex flex-wrap justify-between gap-6 p-6">
+    <div class="flex-1 min-w-[300px] max-w-[33%]">
+      <canvas id="salesChart" class="bg-white rounded-xl p-4 shadow-md w-full h-64"></canvas>
+    </div>
+    <div class="flex-1 min-w-[300px] max-w-[33%]">
+      <canvas id="leadSourceChart" class="bg-white rounded-xl p-4 shadow-md w-full h-64"></canvas>
+    </div>
+    <div class="flex-1 min-w-[300px] max-w-[33%]">
+      <canvas id="customerSegmentChart" class="bg-white rounded-xl p-4 shadow-md w-full h-64"></canvas>
+    </div>
+  </section>
+
+  <!-- Tabs + Add Button -->
+  <div class="flex justify-between items-center p-6">
+    <div class="flex space-x-4">
+      <button id="tabLeads" class="tab-btn text-blue-600 font-semibold border-b-2 border-blue-600">Leads</button>
+      <button id="tabOpportunities" class="tab-btn text-gray-600 hover:text-blue-600">Opportunities</button>
+    </div>
+    <button id="openModal" class="bg-green-600 text-white px-4 py-2 rounded">Add New</button>
+  </div>
+
+  <!-- Leads Section -->
+  <section id="leadsSection" class="p-6">
+    <h2 class="text-xl font-semibold mb-4">Leads</h2>
+    <table class="w-full text-sm">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="px-4 py-2 text-left">Name</th>
+          <th class="px-4 py-2 text-left">Company</th>
+          <th class="px-4 py-2 text-left">Status</th>
+          <th class="px-4 py-2 text-left">Value</th>
+          <th class="px-4 py-2 text-left">Stage</th>
+          <th class="px-4 py-2 text-left">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="leadsTable" class="divide-y divide-gray-200"></tbody>
+    </table>
+  </section>
+
+  <!-- Opportunities Section -->
+  <section id="opportunitiesSection" class="p-6 hidden">
+    <h2 class="text-xl font-semibold mb-4">Opportunities</h2>
+    <div class="flex space-x-2 mb-4">
+  <button id="exportCSV" class="bg-blue-600 text-white px-4 py-2 rounded">Export CSV</button>
+  <button id="exportExcel" class="bg-green-600 text-white px-4 py-2 rounded">Export Excel</button>
+  <button id="exportPDF" class="bg-red-600 text-white px-4 py-2 rounded">Export PDF</button>
+</div>
+    <table class="w-full text-sm">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="px-4 py-2 text-left">Name</th>
+          <th class="px-4 py-2 text-left">Company</th>
+          <th class="px-4 py-2 text-left">Value</th>
+          <th class="px-4 py-2 text-left">Stage</th>
+          <th class="px-4 py-2 text-left">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="opportunitiesTable" class="divide-y divide-gray-200"></tbody>
+    </table>
+  </section>
+
+  <!-- Modal Form -->
+ <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+  <div class="bg-white p-6 rounded-xl w-full max-w-md">
+    <h2 class="text-xl font-semibold mb-4">Add New Lead or Opportunity</h2>
+    <form id="modalForm" class="space-y-4">
+      <select id="entryType" class="w-full px-4 py-2 border rounded">
+        <option value="lead">Lead</option>
+        <option value="opportunity">Opportunity</option>
+      </select>
+
+      <input type="text" id="name" placeholder="Name" class="w-full px-4 py-2 border rounded" />
+      <input type="text" id="company" placeholder="Company" class="w-full px-4 py-2 border rounded" />
+      <input type="number" id="value" placeholder="Value" class="w-full px-4 py-2 border rounded" />
+      <input type="text" id="stage" placeholder="Stage" class="w-full px-4 py-2 border rounded" />
+
+      <!-- ✅ Added fields for source and segment -->
+      <select id="source" class="w-full px-4 py-2 border rounded">
+        <option value="Web">Web</option>
+        <option value="Referral">Referral</option>
+        <option value="Email">Email</option>
+        <option value="Phone">Phone</option>
+      </select>
+
+      <select id="segment" class="w-full px-4 py-2 border rounded">
+        <option value="Retail">Retail</option>
+        <option value="Tech">Tech</option>
+        <option value="Finance">Finance</option>
+        <option value="Healthcare">Healthcare</option>
+      </select>
+
+      <div class="flex justify-end space-x-2">
+        <button type="button" id="cancelModal" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+ 
+<!-- External Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- CRM Dashboard Script -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // DOM elements
+  const tabLeads = document.getElementById("tabLeads");
+  const tabOpportunities = document.getElementById("tabOpportunities");
+  const leadsSection = document.getElementById("leadsSection");
+  const opportunitiesSection = document.getElementById("opportunitiesSection");
+  const openModal = document.getElementById("openModal");
+  const cancelModal = document.getElementById("cancelModal");
+  const modal = document.getElementById("modal");
+  const form = document.getElementById("modalForm");
+
+  const totalSalesEl = document.getElementById("totalSales");
+  const activeLeadsEl = document.getElementById("activeLeads");
+  const conversionRateEl = document.getElementById("conversionRate");
+
+  const exportCSV = document.getElementById("exportCSV");
+  const exportExcel = document.getElementById("exportExcel");
+  const exportPDF = document.getElementById("exportPDF");
+
+  let leads = [];
+  let opportunities = [];
+
+  let salesChart, leadSourceChart, customerSegmentChart;
+
+  // Tab switching
+  tabLeads.addEventListener("click", () => {
+    tabLeads.classList.add("text-blue-600", "border-b-2", "border-blue-600");
+    tabOpportunities.classList.remove("text-blue-600", "border-b-2", "border-blue-600");
+    leadsSection.classList.remove("hidden");
+    opportunitiesSection.classList.add("hidden");
+});
+
+  tabOpportunities.addEventListener("click", () => {
+    tabOpportunities.classList.add("text-blue-600", "border-b-2", "border-blue-600");
+    tabLeads.classList.remove("text-blue-600", "border-b-2", "border-blue-600");
+    opportunitiesSection.classList.remove("hidden");
+    leadsSection.classList.add("hidden");
+});
+
+  // Modal controls
+  openModal.addEventListener("click", () => modal.classList.remove("hidden"));
+  cancelModal.addEventListener("click", () => modal.classList.add("hidden"));
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const type = document.getElementById("entryType").value;
+    const name = document.getElementById("name").value;
+    const company = document.getElementById("company").value;
+    const value = parseFloat(document.getElementById("value").value);
+    const stage = document.getElementById("stage").value;
+    const source = document.getElementById("source").value;
+    const segment = document.getElementById("segment").value;
+
+    const entry = { name, company, value, stage, source, segment};
+
+    if (type === "lead") {
+      entry.status = "New";
+      leads.push(entry);
+      renderLeads();
+} else {
+      opportunities.push(entry);
+      renderOpportunities();
+}
+
+    form.reset();
+    modal.classList.add("hidden");
+    updateSummary();
+    renderCharts();
+});
+
+  function renderLeads() {
+  const table = document.getElementById("leadsTable");
+  if (!table) return;
+
+  table.innerHTML = "";
+
+  leads.forEach((lead, i) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="px-4 py-2">${lead.name || ""}</td>
+      <td class="px-4 py-2">${lead.company || ""}</td>
+      <td class="px-4 py-2">${lead.status || ""}</td>
+      <td class="px-4 py-2">$${lead.value?.toFixed(2) || "0.00"}</td>
+      <td class="px-4 py-2">${lead.stage || ""}</td>
+      <td class="px-4 py-2">${lead.source || ""}</td>
+      <td class="px-4 py-2">${lead.segment || ""}</td>
+
+      <td class="px-4 py-2 text-red-600 cursor-pointer" onclick="deleteLead(${i})">Delete</td>
+    `;
+    table.appendChild(row);
+});
+}
+
+
+  // Render opportunities
+  function renderOpportunities() {
+  const table = document.getElementById("opportunitiesTable");
+  if (!table) return;
+
+  table.innerHTML = "";
+
+  opportunities.forEach((opp, i) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="px-4 py-2">${opp.name || ""}</td>
+      <td class="px-4 py-2">${opp.company || ""}</td>
+      <td class="px-4 py-2">$${opp.value?.toFixed(2) || "0.00"}</td>
+      <td class="px-4 py-2">${opp.stage || ""}</td>
+      <td class="px-4 py-2 text-red-600 cursor-pointer" onclick="deleteOpportunity(${i})">Delete</td>
+    `;
+    table.appendChild(row);
+});
+}
+
+
+  // Delete functions
+  window.deleteLead = (i) => {
+    leads.splice(i, 1);
+    renderLeads();
+    updateSummary();
+    renderCharts();
+};
+
+  window.deleteOpportunity = (i) => {
+    opportunities.splice(i, 1);
+    renderOpportunities();
+    updateSummary();
+    renderCharts();
+};
+
+  // Summary cards
+  function updateSummary() {
+    const totalSales = opportunities.reduce((sum, o) => sum + o.value, 0);
+    const activeLeads = leads.length;
+    const conversionRate = leads.length? ((opportunities.length / leads.length) * 100).toFixed(1): 0;
+
+      totalSalesEl.textContent = `$${totalSales.toFixed(2)}`;
+activeLeadsEl.textContent = `${activeLeads}`;
+conversionRateEl.textContent = `${conversionRate}%`;
+}
+
+  // Charts
+  function renderCharts() {
+    renderSalesChart();
+    renderLeadSourceChart();
+    renderCustomerSegmentChart();
+}
+
+  function renderSalesChart() {
+    const ctx = document.getElementById("salesChart").getContext("2d");
+    const monthlySales = [0, 0, 0, 0, 0]; // Jan–May
+    opportunities.forEach(opp => {
+      const monthIndex = Math.floor(Math.random() * 5); // Replace with real month logic
+      monthlySales[monthIndex] += opp.value;
+});
+
+    if (salesChart) salesChart.destroy();
+    salesChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: ["Jan", "Feb", "Mar", "Apr", "May"],
+        datasets: [{
+          label: "Sales",
+          data: monthlySales,
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.2)",
+          fill: true,
+          tension: 0.4
+}]
+}
+});
+}
+
+function renderLeadSourceChart() {
+  const ctx = document.getElementById("leadSourceChart").getContext("2d");
+  const sources = { Web: 0, Referral: 0, Email: 0, Phone: 0};
+
+  leads.forEach(lead => {
+    if (lead.source in sources) sources[lead.source]++;
+});
+
+  if (leadSourceChart) leadSourceChart.destroy();
+  leadSourceChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: Object.keys(sources),
+      datasets: [{
+        label: "Lead Sources",
+        data: Object.values(sources),
+        backgroundColor: "#3b82f6"
+}]
+},
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false}
+}
+}
+});
+}
+
+
+function renderCustomerSegmentChart() {
+  const ctx = document.getElementById("customerSegmentChart").getContext("2d");
+  const segments = { Retail: 0, Tech: 0, Finance: 0, Healthcare: 0};
+
+  leads.forEach(lead => {
+    if (lead.segment in segments) segments[lead.segment]++;
+});
+
+  if (customerSegmentChart) customerSegmentChart.destroy();
+  customerSegmentChart = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: Object.keys(segments),
+      datasets: [{
+        data: Object.values(segments),
+        backgroundColor: ["#fbbf24", "#60a5fa", "#34d399", "#f87171"]
+}]
+},
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom"}
+}
+}
+});
+}
+
+
+ 
+// Export buttons
+exportCSV.addEventListener("click", () => {
+  const rows = [["Name", "Company", "Status", "Value", "Stage", "Source", "Segment"]];
+  leads.forEach(l => {
+    rows.push([
+      l.name,
+      l.company,
+      l.status,
+      l.value,
+      l.stage,
+      l.source || "",
+      l.segment || ""
+    ]);
+});
+
+  const csv = rows.map(r => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv"});
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "leads.csv";
+  link.click();
+});
+
+exportExcel.addEventListener("click", () => {
+  const data = leads.map(l => ({
+    Name: l.name,
+    Company: l.company,
+    Status: l.status,
+    Value: l.value,
+    Stage: l.stage,
+    Source: l.source || "",
+    Segment: l.segment || ""
+}));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+  XLSX.writeFile(workbook, "leads.xlsx");
+});
+
+exportPDF.addEventListener("click", async () => {
+  const { jsPDF} = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(16);
+  doc.text("Leads Report", 14, 20);
+
+  const headers = ["Name", "Company", "Status", "Value", "Stage", "Source", "Segment"];
+  const rows = leads.map(l => [
+    l.name,
+    l.company,
+    l.status,
+    `$${l.value}`,
+    l.stage,
+    l.source || "",
+    l.segment || ""
+  ]);
+
+  let y = 30;
+  headers.forEach((header, i) => {
+    doc.text(header, 14 + i * 25, y);
+});
+
+  y += 10;
+  rows.forEach(row => {
+    row.forEach((cell, i) => {
+      doc.text(String(cell), 14 + i * 25, y);
+});
+    y += 10;
+});
+
+  doc.save("leads-report.pdf");
+});
+
+// Initial render
+renderCharts();
+updateSummary();
+});
+</script>
+ 
+</body>
+</html>
