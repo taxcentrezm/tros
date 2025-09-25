@@ -1,4 +1,5 @@
-import { client } from "../../db.js"; // Turso db.js
+// api/hr/employees.js
+import { client } from "../../db.js";
 
 export default async function handler(req, res) {
   try {
@@ -10,12 +11,35 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { first_name, last_name, gender, date_of_birth, department, hire_date, status, salary_grade, tpin, pacra_number } = req.body;
+      const {
+        first_name,
+        last_name,
+        gender,
+        date_of_birth,
+        department,
+        hire_date,
+        status,
+        salary_grade,
+        tpin,
+        pacra_number,
+      } = req.body;
 
       const insert = await client.execute({
-        sql: `INSERT INTO employees (first_name, last_name, gender, date_of_birth, department, hire_date, status, salary_grade, tpin, pacra_number)
+        sql: `INSERT INTO employees 
+              (first_name, last_name, gender, date_of_birth, department, hire_date, status, salary_grade, tpin, pacra_number)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [first_name, last_name, gender, date_of_birth, department, hire_date, status, salary_grade, tpin, pacra_number],
+        args: [
+          first_name,
+          last_name,
+          gender,
+          date_of_birth,
+          department,
+          hire_date,
+          status,
+          salary_grade,
+          tpin,
+          pacra_number,
+        ],
       });
 
       res.status(201).json({ success: true, id: insert.lastInsertRowid });
