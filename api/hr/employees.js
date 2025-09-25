@@ -1,36 +1,42 @@
-import express from "express";
-import { db } from "../../db.js";
+// api/hr/employees.js
+import { query } from "../../db.js";
 
-const router = express.Router();
-
-// GET employees
-router.get("/", async (req, res) => {
+export default async function handler(req, res) {
   try {
-    const result = await db.execute("SELECT * FROM hr_employees");
-    res.json({ data: result.rows });
+    if (req.method === "GET") {
+      const rows = await query(`
+        SELECT employee_id, first_name, last_name, tpin, pacra_number, department, status, hire_date
+        FROM employees
+        ORDER BY employee_id
+      `);
+      return res.status(200).json({ data: rows });
+    }
+
+    if (req.method === "POST") {
+      const body = req.body;
+      const insert = await query(
+        `INSERT INTO employees 
+         (first_name, last_name, gender, date_of_birth, department, hire_date, status, salary_grade, tpin, pacra_number)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          body.first_name,
+          body.last_name,
+          body.gender,
+          body.date_of_birth,
+          body.department,
+          body.hire_date,
+          body.status,
+          body.salary_grade,
+          body.tpin,
+          body.pacra_number,
+        ]
+      );
+      return res.status(201).json({ success: true, insert });
+    }
+
+    res.status(405).json({ error: "Method not allowed" });
   } catch (err) {
-    console.error("❌ Error fetching employees:", err);
-    res.status(500).json({ error: "Database error" });
+    console.error("Error in /api/hr/employees:", err);
+    res.status(500).json({ error: "Database error", details: err.message });
   }
-});
-
-// POST new employee
-router.post("/", async (req, res) => {
-  try {
-    const { first_name, last_name, date_of_birth, gender, department, hire_date, status, salary_grade, tpin, pacra_number } = req.body;
-
-    await db.execute(
-      `INSERT INTO hr_employees 
-      (first_name, last_name, date_of_birth, gender, department, hire_date, status, salary_grade, tpin, pacra_number) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [first_name, last_name, date_of_birth, gender, department, hire_date, status, salary_grade, tpin, pacra_number]
-    );
-
-    res.status(201).json({ message: "✅ Employee added successfully" });
-  } catch (err) {
-    console.error("❌ Error adding employee:", err);
-    res.status(500).json({ error: "Database error" });
-  }
-});
-
-export default router;
+}
