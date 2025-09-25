@@ -1,22 +1,22 @@
 // db.js
 import { createClient } from "@libsql/client";
 
-// Turso (SQLite over HTTP) connection
-export const db = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN,
+// ✅ Use environment variables (Vercel Dashboard → Settings → Environment Variables)
+const url = process.env.TURSO_DATABASE_URL;
+const authToken = process.env.TURSO_AUTH_TOKEN;
+
+// ✅ Create Turso client
+export const client = createClient({
+  url,
+  authToken,
 });
 
-// Example query wrapper
-export async function query(sql, params = []) {
+// ✅ Simple test function (runs on startup)
+(async () => {
   try {
-    const result = await db.execute({
-      sql,
-      args: params,
-    });
-    return result.rows;
+    const result = await client.execute("SELECT 1 as ok");
+    console.log("✅ Turso DB connected:", result.rows);
   } catch (err) {
-    console.error("❌ DB query error:", err);
-    throw err;
+    console.error("❌ Turso DB connection failed:", err.message);
   }
-}
+})();
