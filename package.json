@@ -1,6 +1,8 @@
 {
+  "name": "tros-db",
+  "version": "1.0.0",
+  "type": "module",
   "dependencies": {
-    "@libsql/client": "^0.15.15"
-    "express": "^4.19.2"
+    "@libsql/client": "^0.6.0"
   }
 }
