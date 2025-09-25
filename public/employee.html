@@ -133,63 +133,82 @@
   </div>
 
   <!-- Scripts -->
-  <script>
-    feather.replace();
-    AOS.init();
+<script>
+  feather.replace();
+  AOS.init();
 
-    const modal = document.getElementById("employeeModal");
-    document.getElementById("openModal").addEventListener("click", () => modal.classList.remove("hidden"));
-    document.getElementById("cancelModal").addEventListener("click", () => modal.classList.add("hidden"));
+  const modal = document.getElementById("employeeModal");
+  document.getElementById("openModal").addEventListener("click", () =>
+    modal.classList.remove("hidden")
+  );
+  document.getElementById("cancelModal").addEventListener("click", () =>
+    modal.classList.add("hidden")
+  );
 
-    // Load employees
-    async function loadEmployees() {
-  try {
-    const res = await fetch("/api/hr/employees");
-    if (!res.ok) throw new Error("API request failed");
+  // ✅ Load employees from hr_employees
+  async function loadEmployees() {
+    try {
+      const res = await fetch("/api/hr/employees");
+      if (!res.ok) throw new Error("API request failed");
+      const { data } = await res.json();
+      const tbody = document.getElementById("employeeTable");
+      tbody.innerHTML = "";
 
-    const { data } = await res.json();
-    const tbody = document.getElementById("employeeTable");
-    tbody.innerHTML = "";
+      data.forEach((emp) => {
+        const initials = (
+          (emp.first_name?.[0] || "") + (emp.last_name?.[0] || "")
+        ).toUpperCase();
 
-    (data || []).forEach(emp => {
-      const initials = (emp.first_name[0] + emp.last_name[0]).toUpperCase();
-      tbody.insertAdjacentHTML("beforeend", `
-        <tr>
-          <td class="px-4 py-4">
-            <div class="flex items-center">
-              <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white font-medium">${initials}</div>
-              <div class="ml-4">
-                <div class="text-sm font-medium text-gray-900">${emp.first_name} ${emp.last_name}</div>
+        tbody.insertAdjacentHTML(
+          "beforeend",
+          `
+          <tr>
+            <td class="px-4 py-4">
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white font-medium">${initials}</div>
+                <div class="ml-4">
+                  <div class="text-sm font-medium text-gray-900">${emp.first_name} ${emp.last_name}</div>
+                  <div class="text-xs text-gray-500">TPIN: ${emp.tpin || "-"}</div>
+                  <div class="text-xs text-gray-500">PACRA: ${emp.pacra_number || "-"}</div>
+                </div>
               </div>
-            </div>
-          </td>
-          <td class="px-4 py-4 text-sm text-gray-500">${emp.department || "-"}</td>
-          <td class="px-4 py-4 text-sm">
-            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-              emp.status === "Active" ? "bg-green-100 text-green-800"
-              : emp.status === "On Leave" ? "bg-yellow-100 text-yellow-800"
-              : "bg-red-100 text-red-800"
-            }">${emp.status}</span>
-          </td>
-          <td class="px-4 py-4 text-sm text-gray-500">${emp.hire_date ? new Date(emp.hire_date).toLocaleDateString() : "-"}</td>
-          <td class="px-4 py-4 text-sm font-medium">
-            <button class="text-primary-600 hover:text-primary-900 mr-3">Edit</button>
-            <button class="text-red-600 hover:text-red-900">Delete</button>
-          </td>
-        </tr>
-      `);
-    });
-  } catch (err) {
-    console.error("❌ loadEmployees failed:", err);
-    alert("Failed to load employees. Check server logs.");
+            </td>
+            <td class="px-4 py-4 text-sm text-gray-500">${emp.department || "-"}</td>
+            <td class="px-4 py-4 text-sm">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                emp.status === "Active"
+                  ? "bg-green-100 text-green-800"
+                  : emp.status === "On Leave"
+                  ? "bg-yellow-100 text-yellow-800"
+                  : "bg-red-100 text-red-800"
+              }">${emp.status}</span>
+            </td>
+            <td class="px-4 py-4 text-sm text-gray-500">${
+              emp.hire_date
+                ? new Date(emp.hire_date).toLocaleDateString()
+                : "-"
+            }</td>
+            <td class="px-4 py-4 text-sm font-medium">
+              <button class="text-primary-600 hover:text-primary-900 mr-3">Edit</button>
+              <button class="text-red-600 hover:text-red-900">Delete</button>
+            </td>
+          </tr>
+        `
+        );
+      });
+    } catch (err) {
+      console.error("❌ loadEmployees failed:", err);
+      alert("Failed to load employees. Check server logs.");
+    }
   }
-}
 
+  // ✅ Initial load
+  loadEmployees();
 
-    loadEmployees();
-
-    // Add employee
-    document.getElementById("addEmployeeForm").addEventListener("submit", async (e) => {
+  // ✅ Add employee into hr_employees
+  document
+    .getElementById("addEmployeeForm")
+    .addEventListener("submit", async (e) => {
       e.preventDefault();
       const body = {
         first_name: document.getElementById("first_name").value,
@@ -201,20 +220,29 @@
         status: document.getElementById("status").value,
         salary_grade: document.getElementById("salary_grade").value,
         tpin: document.getElementById("tpin").value,
-        pacra_number: document.getElementById("pacra_number").value
+        pacra_number: document.getElementById("pacra_number").value,
       };
 
-      await fetch("/api/hr/employees", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
+      try {
+        const res = await fetch("/api/hr/employees", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
 
-      modal.classList.add("hidden");
-      e.target.reset();
-      loadEmployees();
+        if (!res.ok) throw new Error("Failed to save employee");
+
+        modal.classList.add("hidden");
+        e.target.reset();
+        loadEmployees();
+      } catch (err) {
+        console.error("❌ Error saving employee:", err);
+        alert("Could not save employee. Check server logs.");
+      }
     });
-  </script>
+</script>
+
 </body>
 </html>
+
 
