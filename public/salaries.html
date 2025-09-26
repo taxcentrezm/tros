@@ -114,41 +114,63 @@
 </div>
 
 <script>
-let salaryStructures = [];
+async function loadSalaries() {
+  try {
+    const res = await fetch("/api/payroll/salaries");
+    if (!res.ok) throw new Error("API request failed");
+    const { data } = await res.json();
+    renderSalaryTable(data);
+  } catch (err) {
+    console.error("❌ loadSalaries failed:", err);
+    alert("Failed to load salaries. Check server logs.");
+  }
+}
 
-document.getElementById("salaryForm").addEventListener("submit", (e) => {
+document.getElementById("salaryForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const dept = document.getElementById("department").value;
   const basic = parseFloat(document.getElementById("basicSalary").value);
   const allowances = parseFloat(document.getElementById("allowances").value);
   const bonuses = parseFloat(document.getElementById("bonuses").value);
 
-  // Replace if department already exists
-  const index = salaryStructures.findIndex(s => s.department === dept);
-  if (index >= 0) {
-    salaryStructures[index] = { department: dept, basic, allowances, bonuses };
-  } else {
-    salaryStructures.push({ department: dept, basic, allowances, bonuses });
-  }
+  try {
+    const res = await fetch("/api/payroll/salaries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        department: dept,
+        basic_salary: basic,
+        allowances,
+        bonuses,
+      }),
+    });
+    if (!res.ok) throw new Error("API request failed");
 
-  renderSalaryTable();
-  e.target.reset();
+    e.target.reset();
+    loadSalaries();
+  } catch (err) {
+    console.error("❌ Error saving salary:", err);
+    alert("Failed to save salary. Check server logs.");
+  }
 });
 
-function renderSalaryTable() {
+function renderSalaryTable(salaries) {
   const tbody = document.querySelector("#salaryTable tbody");
   tbody.innerHTML = "";
-  salaryStructures.forEach(s => {
+  salaries.forEach((s) => {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td class="px-4 py-2">${s.department}</td>
-      <td class="px-4 py-2">$${s.basic.toFixed(2)}</td>
-      <td class="px-4 py-2">$${s.allowances.toFixed(2)}</td>
-      <td class="px-4 py-2">$${s.bonuses.toFixed(2)}</td>
+      <td class="px-4 py-2">$${Number(s.basic_salary).toFixed(2)}</td>
+      <td class="px-4 py-2">$${Number(s.allowances).toFixed(2)}</td>
+      <td class="px-4 py-2">$${Number(s.bonuses).toFixed(2)}</td>
     `;
     tbody.appendChild(row);
   });
 }
+
+loadSalaries();
 </script>
 </body>
 </html>
+
