@@ -84,34 +84,36 @@
 <section class="bg-white p-6 rounded-xl shadow mb-12">
   <h2 class="text-lg font-semibold mb-4">Manage Salary Structure by Department</h2>
   <form id="salaryForm" class="space-y-4">
-    <select id="department" required class="w-full px-4 py-2 border rounded-lg">
-      <option value="">-- Select Department --</option>
-      <option value="Finance">Finance</option>
-      <option value="HR">HR</option>
-      <option value="IT">IT</option>
-    </select>
-    <input type="number" id="basicSalary" placeholder="Basic Salary" required class="w-full px-4 py-2 border rounded-lg" />
-    <input type="number" id="allowances" placeholder="Allowances" required class="w-full px-4 py-2 border rounded-lg" />
-    <input type="number" id="bonuses" placeholder="Bonuses" required class="w-full px-4 py-2 border rounded-lg" />
-    <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save</button>
-  </form>
+  <select id="department" required class="w-full px-4 py-2 border rounded-lg">
+    <option value="">-- Select Department --</option>
+    <option value="Finance">Finance</option>
+    <option value="HR">HR</option>
+    <option value="IT">IT</option>
+  </select>
+  <input type="number" id="basic" placeholder="Basic Salary" required class="w-full px-4 py-2 border rounded-lg" />
+  <input type="number" id="housing" placeholder="Housing Allowance" class="w-full px-4 py-2 border rounded-lg" />
+  <input type="number" id="transport" placeholder="Transport Allowance" class="w-full px-4 py-2 border rounded-lg" />
+  <input type="number" id="bonus" placeholder="Bonus" class="w-full px-4 py-2 border rounded-lg" />
+  <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Save</button>
+</form>
 
-  <div class="mt-6">
-    <h3 class="text-lg font-semibold mb-2">Defined Salary Structures</h3>
-    <table class="w-full text-sm" id="salaryTable">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="px-4 py-2">Department</th>
-          <th class="px-4 py-2">Basic Salary</th>
-          <th class="px-4 py-2">Allowances</th>
-          <th class="px-4 py-2">Bonuses</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</section>
+<div class="mt-6">
+  <h3 class="text-lg font-semibold mb-2">Defined Salary Structures</h3>
+  <table class="w-full text-sm" id="salaryTable">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-4 py-2">Department</th>
+        <th class="px-4 py-2">Basic</th>
+        <th class="px-4 py-2">Housing</th>
+        <th class="px-4 py-2">Transport</th>
+        <th class="px-4 py-2">Bonus</th>
+        <th class="px-4 py-2">Effective Date</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </div>
+
 
 <script>
 async function loadSalaries() {
@@ -128,21 +130,20 @@ async function loadSalaries() {
 
 document.getElementById("salaryForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const dept = document.getElementById("department").value;
-  const basic = parseFloat(document.getElementById("basicSalary").value);
-  const allowances = parseFloat(document.getElementById("allowances").value);
-  const bonuses = parseFloat(document.getElementById("bonuses").value);
+  const body = {
+    department: document.getElementById("department").value,
+    basic: parseFloat(document.getElementById("basic").value),
+    housing: parseFloat(document.getElementById("housing").value) || 0,
+    transport: parseFloat(document.getElementById("transport").value) || 0,
+    bonus: parseFloat(document.getElementById("bonus").value) || 0,
+    effective_date: new Date().toISOString().split("T")[0],
+  };
 
   try {
     const res = await fetch("/api/payroll/salaries", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        department: dept,
-        basic_salary: basic,
-        allowances,
-        bonuses,
-      }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error("API request failed");
 
@@ -161,9 +162,11 @@ function renderSalaryTable(salaries) {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td class="px-4 py-2">${s.department}</td>
-      <td class="px-4 py-2">$${Number(s.basic_salary).toFixed(2)}</td>
-      <td class="px-4 py-2">$${Number(s.allowances).toFixed(2)}</td>
-      <td class="px-4 py-2">$${Number(s.bonuses).toFixed(2)}</td>
+      <td class="px-4 py-2">$${Number(s.basic).toFixed(2)}</td>
+      <td class="px-4 py-2">$${Number(s.housing).toFixed(2)}</td>
+      <td class="px-4 py-2">$${Number(s.transport).toFixed(2)}</td>
+      <td class="px-4 py-2">$${Number(s.bonus).toFixed(2)}</td>
+      <td class="px-4 py-2">${s.effective_date}</td>
     `;
     tbody.appendChild(row);
   });
@@ -173,4 +176,5 @@ loadSalaries();
 </script>
 </body>
 </html>
+
 
