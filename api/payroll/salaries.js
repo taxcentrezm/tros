@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const result = await client.execute(`
         SELECT id, department, basic_salary, allowances, bonuses
-        FROM payroll_salaries
+        FROM payroll_salary_structures
         ORDER BY department
       `);
 
