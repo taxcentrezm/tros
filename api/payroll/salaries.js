@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
       await client.execute({
         sql: `
-          INSERT INTO payroll_salaries (department, basic_salary, allowances, bonuses)
+          INSERT INTO payroll_salary_structures (department, basic_salary, allowances, bonuses)
           VALUES (?, ?, ?, ?)
           ON CONFLICT(department) DO UPDATE SET
             basic_salary = excluded.basic_salary,
