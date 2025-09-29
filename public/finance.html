@@ -586,16 +586,16 @@ async function loadTransactions() {
 transactionForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const formData = {
-    date: transactionForm[0].value,
-    description: transactionForm[1].value,
-    category: transactionForm[2].value, // category select holds account_id
-    amount: parseFloat(transactionForm[3].value),
-    type: transactionForm[4].value,
-    account_id: transactionForm[2].value // ✅ directly from select
-  };
-
   try {
+    const formData = {
+      date: transactionForm[0].value,
+      description: transactionForm[1].value,
+      category: transactionForm[2].value,       // select value (account_id)
+      amount: parseFloat(transactionForm[3].value),
+      type: transactionForm[4].value,
+      account_id: transactionForm[2].value      // ✅ explicitly mapped
+    };
+
     const res = await fetch("/api/finance/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -608,10 +608,15 @@ transactionForm.addEventListener("submit", async (e) => {
     alert(result.message || "Transaction added!");
     transactionForm.reset();
     transactionModal.classList.add("hidden");
-    loadTransactions();
+
+    // ✅ only call loadTransactions if it exists
+    if (typeof loadTransactions === "function") {
+      loadTransactions();
+    }
   } catch (err) {
     console.error("Error adding transaction:", err);
     alert("Failed to add transaction");
+ 
   }
 });
 
@@ -830,6 +835,7 @@ console.log("Selected Category:", formData.category);
 
 </body>
 </html>
+
 
 
 
