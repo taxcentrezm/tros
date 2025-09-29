@@ -1,5 +1,5 @@
 // api/finance/categories.js
-import { client } from "../../lib/db.js";
+import { client } from "../../db.js";
 
 export default async function handler(req, res) {
   try {
