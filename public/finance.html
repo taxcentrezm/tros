@@ -437,7 +437,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================
   // Transaction Submission
   // =========================
-  transactionForm.addEventListener("submit", async (e) => {
+   transactionForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const date = transactionForm.querySelector('input[name="date"]').value;
@@ -450,7 +450,21 @@ document.addEventListener("DOMContentLoaded", () => {
       return alert("Please fill in all required fields and select a valid category!");
     }
 
-    const formData = { date, description, amount, type, category: account_id };
+    // Look up the category name from chartOfAccounts
+    const selectedAccount = chartOfAccounts.find(acc => acc.account_id === account_id);
+    if (!selectedAccount) {
+      return alert("Selected category is invalid!");
+    }
+    const categoryName = selectedAccount.name;
+
+    const formData = {
+      date,
+      description,
+      amount,
+      type,
+      account_id,     // integer FK
+      category: categoryName  // name for reference
+    };
 
     try {
       const res = await fetch("/api/finance/transactions", {
@@ -458,6 +472,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
       });
+
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Failed to add transaction");
 
@@ -696,6 +711,7 @@ document.getElementById("exportPDF").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
