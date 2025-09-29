@@ -455,42 +455,14 @@ document.addEventListener("DOMContentLoaded", () => {
   txnTypeSelect.addEventListener("change", filterCategories);
 
   // ----------------------
-  // Handle form submission
-  // ----------------------
-  transactionForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const formData = {
-      date: transactionForm[0].value,
-      description: transactionForm[1].value,
-      category: transactionForm[2].value,
-      amount: parseFloat(transactionForm[3].value),
-      type: transactionForm[4].value
-    };
-
-    try {
-      const res = await fetch("/api/finance/transactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      });
-      const result = await res.json();
-      alert(result.message || "Transaction added!");
-      transactionForm.reset();
-      transactionModal.classList.add("hidden");
-      loadTransactions(); // optional: refresh table
-    } catch (err) {
-      console.error("Error adding transaction:", err);
-      alert("Failed to add transaction");
-    }
-  });
+  
 
   // ----------------------
   // Initial load
   // ----------------------
   loadChartOfAccounts();
 });
-</script>
-<script>
+
 document.addEventListener("DOMContentLoaded", () => {
   feather.replace();
   AOS.init();
@@ -568,7 +540,34 @@ document.addEventListener("DOMContentLoaded", () => {
       assetLifecycleBody.appendChild(row);
     });
   }
+// Handle form submission
+  // ----------------------
+  transactionForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = {
+      date: transactionForm[0].value,
+      description: transactionForm[1].value,
+      category: transactionForm[2].value,
+      amount: parseFloat(transactionForm[3].value),
+      type: transactionForm[4].value
+    };
 
+    try {
+      const res = await fetch("/api/finance/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+      const result = await res.json();
+      alert(result.message || "Transaction added!");
+      transactionForm.reset();
+      transactionModal.classList.add("hidden");
+      loadTransactions(); // optional: refresh table
+    } catch (err) {
+      console.error("Error adding transaction:", err);
+      alert("Failed to add transaction");
+    }
+  });
   // =========================
   // Render Transactions
   // =========================
@@ -872,6 +871,7 @@ function refreshAfterImport() {
 </script>
 </body>
 </html>
+
 
 
 
