@@ -28,54 +28,43 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, data });
     }
 
-    if (req.method === "POST") {
-      const { date, description, category, amount, type } = req.body;
+ if (req.method === "POST") {
+  const { date, description, category, amount, type } = req.body;
 
-      // Validate required fields
-      if (!date || !description || !category || !amount || !type) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
+  if (!date || !description || !amount || !type || !category) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
 
-      // Validate account_id exists
-      const accountRes = await client.execute({
-        sql: `SELECT account_id FROM chart_of_accounts WHERE account_id = ? LIMIT 1`,
-        args: [category],
-      });
+  // Validate account_id exists
+  const accountRes = await client.execute({
+    sql: `SELECT account_id FROM chart_of_accounts WHERE account_id = ? LIMIT 1`,
+    args: [category],
+  });
 
-      if (accountRes.rows.length === 0) {
-        return res.status(400).json({ error: "Invalid category selected" });
-      }
+  if (accountRes.rows.length === 0) {
+    return res.status(400).json({ error: "Invalid category selected" });
+  }
 
-      // Assign debit/credit based on type
-      let debit = 0;
-      let credit = 0;
-      if (type === "expense" || type === "capital_expense") {
-        debit = amount;
-      } else if (type === "income" || type === "capital_revenue") {
-        credit = amount;
-      }
+  // Insert transaction (category is actually account_id)
+  await client.execute({
+    sql: `
+      INSERT INTO finance_transactions
+      (account_id, date, description, debit, credit, amount, type)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+    args: [
+      category,
+      date,
+      description,
+      type === "expense" ? amount : 0,
+      type === "income" ? amount : 0,
+      amount,
+      type,
+    ],
+  });
 
-      // Insert transaction
-      await client.execute({
-        sql: `
-          INSERT INTO finance_transactions
-          (account_id, date, description, debit, credit, category, amount, type)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-        args: [
-          category, // account_id
-          date,
-          description,
-          debit,
-          credit,
-          category, // still save as 'category' for compatibility
-          amount,
-          type,
-        ],
-      });
-
-      return res.status(201).json({ success: true, message: "Transaction added" });
-    }
+  return res.status(201).json({ success: true, message: "Transaction added" });
+}
 
     return res.status(405).json({ error: "Method not allowed" });
   } catch (err) {
