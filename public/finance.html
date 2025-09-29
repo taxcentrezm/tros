@@ -295,7 +295,9 @@
       <form id="transactionForm" class="space-y-4">
         <input type="date" required class="w-full px-4 py-2 border rounded-lg" />
         <input type="text" placeholder="Description" required class="w-full px-4 py-2 border rounded-lg" />
-        <input type="text" placeholder="Category : e.g 'Vehicle'" required class="w-full px-4 py-2 border rounded-lg" />
+  <select id="category" name="category" required class="w-full px-4 py-2 border rounded-lg">
+    <option value="">Loading...</option>
+  </select>
         <input type="number" placeholder="Amount" required class="w-full px-4 py-2 border rounded-lg" />
         <select id="txnType" required class="w-full px-4 py-2 border rounded-lg">
   <option value="">Select Type</option>
@@ -717,4 +719,5 @@ function refreshAfterImport() {
 </script>
 </body>
 </html>
+
 
