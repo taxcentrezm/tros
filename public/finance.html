@@ -401,47 +401,49 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-// Populate category select based on transaction type
+// Populate category select based on type
 function filterCategories() {
   const type = txnTypeSelect.value;
+  categorySelect.innerHTML = '<option value="">Select Category</option>';
+
   if (!type || !chartOfAccounts.length) return;
 
   let accountType;
-  switch (type) {
+  switch(type) {
     case "income":
     case "capital_revenue":
-      accountType = "revenue";
-      break;
+      accountType = "revenue"; break;
     case "expense":
     case "capital_expense":
-      accountType = "expense";
-      break;
+      accountType = "expense"; break;
     case "liability":
-      accountType = "liability";
-      break;
+      accountType = "liability"; break;
     case "asset_sale":
-      accountType = "asset";
-      break;
-    default:
-      accountType = null;
+      accountType = "asset"; break;
+    default: return;
   }
-
-  // Reset select
-  categorySelect.innerHTML = '<option value="">Select Category</option>';
 
   chartOfAccounts
     .filter(acc => acc.type === accountType)
     .forEach(acc => {
       const option = document.createElement("option");
-      option.value = acc.account_id;      // must be account_id
+      option.value = acc.account_id; // number
       option.textContent = `${acc.code} - ${acc.name}`;
       categorySelect.appendChild(option);
     });
 }
 
-// Make sure filterCategories runs whenever txnType changes
-txnTypeSelect.addEventListener("change", filterCategories);
+// Always run once when modal opens
+openModalBtn.addEventListener("click", async () => {
+  transactionModal.classList.remove("hidden");
+  transactionForm.reset();
+  txnTypeSelect.value = "";
+  categorySelect.innerHTML = '<option value="">Select Category</option>';
 
+  if (!chartOfAccounts.length) await loadChartOfAccounts();
+});
+
+// Submit handler
 transactionForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -451,7 +453,7 @@ transactionForm.addEventListener("submit", async (e) => {
   const type = txnTypeSelect.value;
   const account_id = parseInt(categorySelect.value);
 
-  if (!date || !description || !amount || !type || !account_id) {
+  if (!date || !description || !amount || !type || !Number.isFinite(account_id)) {
     return alert("Please fill in all required fields and select a valid category!");
   }
 
@@ -851,6 +853,7 @@ liabilitiesEl.textContent = `K${liabilities.toFixed(2)}`;
 
 </body>
 </html>
+
 
 
 
