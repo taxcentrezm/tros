@@ -365,41 +365,45 @@ document.addEventListener("DOMContentLoaded", () => {
   let transactions = []; // cache for imports
 
   // =========================
-  // Modal Logic
-  // =========================
- openModalBtn.addEventListener("click", () => {
+// Modal Logic
+// =========================
+openModalBtn.addEventListener("click", async () => {
   transactionModal.classList.remove("hidden");
-  txnTypeSelect.value = ""; // reset type
+  transactionForm.reset();
+  txnTypeSelect.value = "";
   categorySelect.innerHTML = '<option value="">Select Category</option>';
-  loadChartOfAccounts();
+
+  // Load chart of accounts if not already loaded
+  if (!chartOfAccounts.length) await loadChartOfAccounts();
 });
 
+// Cancel button
+cancelModalBtn.addEventListener("click", () => {
+  transactionModal.classList.add("hidden");
+  transactionForm.reset();
+});
 
-  cancelModalBtn.addEventListener("click", () => {
+// Close modal if clicking outside
+transactionModal.addEventListener("click", (e) => {
+  if (e.target === transactionModal) {
     transactionModal.classList.add("hidden");
-    transactionForm.reset();
-  });
-
-  transactionModal.addEventListener("click", (e) => {
-    if (e.target === transactionModal) {
-      transactionModal.classList.add("hidden");
-    }
-  });
-
-  // =========================
-  // Chart of Accounts
-  // =========================
-  async function loadChartOfAccounts() {
-    try {
-      const res = await fetch("/api/finance/chart_of_accounts");
-      const data = await res.json();
-      chartOfAccounts = data.data || [];
-      filterCategories();
-    } catch (err) {
-      console.error("Failed to load chart of accounts:", err);
-      categorySelect.innerHTML = '<option value="">Failed to load</option>';
-    }
   }
+});
+
+// =========================
+// Chart of Accounts
+// =========================
+async function loadChartOfAccounts() {
+  try {
+    const res = await fetch("/api/finance/chart_of_accounts");
+    const data = await res.json();
+    chartOfAccounts = data.data || [];
+  } catch (err) {
+    console.error("Failed to load chart of accounts:", err);
+    categorySelect.innerHTML = '<option value="">Failed to load</option>';
+  }
+  filterCategories(); // populate categories AFTER data is loaded
+}
 
 // Populate category select based on type
 function filterCategories() {
@@ -411,15 +415,11 @@ function filterCategories() {
   let accountType;
   switch(type) {
     case "income":
-    case "capital_revenue":
-      accountType = "revenue"; break;
+    case "capital_revenue": accountType = "revenue"; break;
     case "expense":
-    case "capital_expense":
-      accountType = "expense"; break;
-    case "liability":
-      accountType = "liability"; break;
-    case "asset_sale":
-      accountType = "asset"; break;
+    case "capital_expense": accountType = "expense"; break;
+    case "liability": accountType = "liability"; break;
+    case "asset_sale": accountType = "asset"; break;
     default: return;
   }
 
@@ -427,23 +427,18 @@ function filterCategories() {
     .filter(acc => acc.type === accountType)
     .forEach(acc => {
       const option = document.createElement("option");
-      option.value = acc.account_id; // number
+      option.value = acc.account_id; // numeric ID
       option.textContent = `${acc.code} - ${acc.name}`;
       categorySelect.appendChild(option);
     });
 }
 
-// Always run once when modal opens
-openModalBtn.addEventListener("click", async () => {
-  transactionModal.classList.remove("hidden");
-  transactionForm.reset();
-  txnTypeSelect.value = "";
-  categorySelect.innerHTML = '<option value="">Select Category</option>';
+// Re-run whenever transaction type changes
+txnTypeSelect.addEventListener("change", filterCategories);
 
-  if (!chartOfAccounts.length) await loadChartOfAccounts();
-});
-
+// =========================
 // Submit handler
+// =========================
 transactionForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -477,7 +472,6 @@ transactionForm.addEventListener("submit", async (e) => {
     alert("Failed to add transaction: " + err.message);
   }
 });
-
 
   // =========================
   // API Loads
@@ -853,6 +847,7 @@ liabilitiesEl.textContent = `K${liabilities.toFixed(2)}`;
 
 </body>
 </html>
+
 
 
 
