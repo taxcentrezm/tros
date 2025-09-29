@@ -359,10 +359,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================
   // Modal Logic
   // =========================
-  openModalBtn.addEventListener("click", () => {
-    transactionModal.classList.remove("hidden");
-    loadChartOfAccounts();
-  });
+ openModalBtn.addEventListener("click", () => {
+  transactionModal.classList.remove("hidden");
+  txnTypeSelect.value = ""; // reset type
+  categorySelect.innerHTML = '<option value="">Select Category</option>';
+  loadChartOfAccounts();
+});
+
 
   cancelModalBtn.addEventListener("click", () => {
     transactionModal.classList.add("hidden");
@@ -409,7 +412,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .filter(acc => acc.type === accountType)
       .forEach(acc => {
         const option = document.createElement("option");
-        option.value = acc.name;
+        option.value = acc.id;
         option.textContent = `${acc.code} - ${acc.name}`;
         categorySelect.appendChild(option);
       });
@@ -588,13 +591,13 @@ transactionForm.addEventListener("submit", async (e) => {
 
   try {
     const formData = {
-      date: transactionForm[0].value,
-      description: transactionForm[1].value,
-      category: transactionForm[2].value,       // select value (account_id)
-      amount: parseFloat(transactionForm[3].value),
-      type: transactionForm[4].value,
-      account_id: transactionForm[2].value      // ✅ explicitly mapped
-    };
+  date: transactionForm[0].value,
+  description: transactionForm[1].value,
+  amount: parseFloat(transactionForm[3].value),
+  type: transactionForm[4].value,
+  account_id: transactionForm[2].value
+};
+
 
     const res = await fetch("/api/finance/transactions", {
       method: "POST",
@@ -830,6 +833,7 @@ transactionForm.addEventListener("submit", async (e) => {
 
 </body>
 </html>
+
 
 
 
