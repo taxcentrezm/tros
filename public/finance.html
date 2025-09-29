@@ -589,18 +589,11 @@ transactionForm.addEventListener("submit", async (e) => {
   const formData = {
     date: transactionForm[0].value,
     description: transactionForm[1].value,
-    category: transactionForm[2].value,
+    category: transactionForm[2].value, // category select holds account_id
     amount: parseFloat(transactionForm[3].value),
-    type: transactionForm[4].value
+    type: transactionForm[4].value,
+    account_id: transactionForm[2].value // ✅ directly from select
   };
-
-  // 🔑 find account_id from chartOfAccounts
-  const account = chartOfAccounts.find(acc => acc.name === formData.category);
-  if (!account) {
-    alert("Invalid category selected");
-    return;
-  }
-  formData.account_id = account.id;
 
   try {
     const res = await fetch("/api/finance/transactions", {
@@ -615,12 +608,16 @@ transactionForm.addEventListener("submit", async (e) => {
     alert(result.message || "Transaction added!");
     transactionForm.reset();
     transactionModal.classList.add("hidden");
-    loadTransactions(); // refresh
+    loadTransactions();
   } catch (err) {
     console.error("Error adding transaction:", err);
     alert("Failed to add transaction");
   }
 });
+
+console.log("Chart of Accounts:", chartOfAccounts);
+console.log("Selected Category:", formData.category);
+
 
 
   // =========================
@@ -833,6 +830,7 @@ transactionForm.addEventListener("submit", async (e) => {
 
 </body>
 </html>
+
 
 
 
