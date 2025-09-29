@@ -590,13 +590,14 @@ transactionForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   try {
-    const formData = {
-  date: transactionForm[0].value,
-  description: transactionForm[1].value,
-  amount: parseFloat(transactionForm[3].value),
-  type: transactionForm[4].value,
-  account_id: transactionForm[2].value
+const formData = {
+  date: transactionForm.date.value,         // use input name
+  description: transactionForm.description.value,
+  amount: parseFloat(transactionForm.amount.value),
+  type: transactionForm.txnType.value,      // must match API types exactly
+  account_id: transactionForm.category.value // must be a valid account_id
 };
+
 
 
     const res = await fetch("/api/finance/transactions", {
@@ -833,6 +834,7 @@ transactionForm.addEventListener("submit", async (e) => {
 
 </body>
 </html>
+
 
 
 
