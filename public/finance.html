@@ -401,31 +401,31 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function filterCategories() {
-    const type = txnTypeSelect.value;
-    if (!type || chartOfAccounts.length === 0) return;
+ function filterCategories() {
+  const type = txnTypeSelect.value;
+  if (!type || chartOfAccounts.length === 0) return;
 
-    let accountType;
-    switch (type) {
-      case "income":
-      case "capital_revenue": accountType = "revenue"; break;
-      case "expense":
-      case "capital_expense": accountType = "expense"; break;
-      case "liability": accountType = "liability"; break;
-      default: accountType = null;
-    }
-
-    categorySelect.innerHTML = '<option value="">Select Category</option>';
-  chartOfAccounts
-  .filter(acc => acc.type === accountType)
-  .forEach(acc => {
-    const option = document.createElement("option");
-    option.value = acc.id; // <-- must be ID, not name
-    option.textContent = `${acc.code} - ${acc.name}`;
-    categorySelect.appendChild(option);
-  });
-
+  let accountType;
+  switch (type) {
+    case "income":
+    case "capital_revenue": accountType = "revenue"; break;
+    case "expense":
+    case "capital_expense": accountType = "expense"; break;
+    case "liability": accountType = "liability"; break;
+    default: accountType = null;
   }
+
+  categorySelect.innerHTML = '<option value="">Select Category</option>';
+  chartOfAccounts
+    .filter(acc => acc.type === accountType)
+    .forEach(acc => {
+      const option = document.createElement("option");
+      option.value = acc.id;           // <-- use the ID
+      option.textContent = `${acc.code} - ${acc.name}`;
+      categorySelect.appendChild(option);
+    });
+}
+
   txnTypeSelect.addEventListener("change", filterCategories);
 
   // =========================
@@ -600,17 +600,13 @@ transactionForm.addEventListener("submit", async (e) => {
 
   try {
 const formData = {
-  date: document.getElementById("transactionForm").querySelector('input[type="date"]').value,
-  description: document.getElementById("transactionForm").querySelector('input[type="text"]').value,
-  amount: parseFloat(document.getElementById("transactionForm").querySelector('input[type="number"]').value),
+  date: document.querySelector('#transactionForm input[type="date"]').value,
+  description: document.querySelector('#transactionForm input[type="text"]').value,
+  amount: parseFloat(document.querySelector('#transactionForm input[type="number"]').value),
   type: document.getElementById("txnType").value,
-  category: document.getElementById("category").value,
+  category: document.getElementById("category").value,   // will now be account_id
   account_id: document.getElementById("category").value
 };
-
-
-
-
 if (!formData.date || !formData.description || !formData.amount || !formData.type || !formData.account_id) {
   alert("Please fill all required fields");
   return;
@@ -851,6 +847,7 @@ if (!formData.date || !formData.description || !formData.amount || !formData.typ
 
 </body>
 </html>
+
 
 
 
