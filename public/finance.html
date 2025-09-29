@@ -425,10 +425,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
   txnTypeSelect.addEventListener("change", filterCategories);
-if (!formData.date || !formData.description || !formData.amount || !formData.type || !formData.account_id) {
-  alert("Please fill all fields correctly");
-  return;
-}
 
   // =========================
   // API Loads
@@ -851,6 +847,7 @@ if (!formData.date || !formData.description || !formData.amount || !formData.typ
 
 </body>
 </html>
+
 
 
 
