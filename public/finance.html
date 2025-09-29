@@ -364,88 +364,112 @@ document.addEventListener("DOMContentLoaded", () => {
   let lineChartInstance, pieChartInstance;
   let transactions = []; // cache for imports
 
+ 
+
   // =========================
-// Modal Logic
-// =========================
-openModalBtn.addEventListener("click", async () => {
-  transactionModal.classList.remove("hidden");
-  transactionForm.reset();
-  txnTypeSelect.value = "";
-  categorySelect.innerHTML = '<option value="">Select Category</option>';
+  // Hardcoded chart of accounts fallback
+  // =========================
+  const chartOfAccounts = [
+    { account_id: 1, name: "Cash", type: "asset", code: "1000" },
+    { account_id: 2, name: "Accounts Receivable", type: "asset", code: "1100" },
+    { account_id: 3, name: "Accounts Payable", type: "liability", code: "2000" },
+    { account_id: 4, name: "Equity Capital", type: "equity", code: "3000" },
+    { account_id: 5, name: "Sales Revenue", type: "revenue", code: "4000" },
+    { account_id: 6, name: "Salaries Expense", type: "expense", code: "5000" },
+    { account_id: 7, name: "Supplies Expense", type: "expense", code: "5100" },
+    { account_id: 8, name: "Vehicle Asset", type: "asset", code: "1200" }
+  ];
 
-  // Load chart of accounts if not already loaded
-  if (!chartOfAccounts.length) await loadChartOfAccounts();
-});
-
-// Cancel button
-cancelModalBtn.addEventListener("click", () => {
-  transactionModal.classList.add("hidden");
-  transactionForm.reset();
-});
-
-// Close modal if clicking outside
-transactionModal.addEventListener("click", (e) => {
-  if (e.target === transactionModal) {
-    transactionModal.classList.add("hidden");
-  }
-});
-
-// =========================
-// Chart of Accounts
-// =========================
-async function initChartOfAccounts() {
-  try {
-    const res = await fetch("/api/finance/chart_of_accounts");
-    const data = await res.json();
-    chartOfAccounts = data.data || [];
-  } catch (err) {
-    console.error("Failed to load chart of accounts:", err);
-    chartOfAccounts = [];
-  }
-}
-
-
-// Populate categories after accounts are loaded
-function filterCategories() {
-  const type = txnTypeSelect.value;
-  categorySelect.innerHTML = '<option value="">Select Category</option>';
-  if (!type || !chartOfAccounts.length) return;
-
-  let accountType;
-  switch (type) {
-    case "income":
-    case "capital_revenue": accountType = "revenue"; break;
-    case "expense":
-    case "capital_expense": accountType = "expense"; break;
-    case "liability": accountType = "liability"; break;
-    case "asset_sale": accountType = "asset"; break;
-    default: return;
-  }
-
-  const filtered = chartOfAccounts.filter(acc => acc.type === accountType);
-  filtered.forEach(acc => {
-    const option = document.createElement("option");
-    option.value = acc.account_id; // numeric
-    option.textContent = `${acc.code} - ${acc.name}`;
-    categorySelect.appendChild(option);
+  // =========================
+  // Modal Logic
+  // =========================
+  openModalBtn.addEventListener("click", () => {
+    transactionModal.classList.remove("hidden");
+    transactionForm.reset();
+    txnTypeSelect.value = "";
+    categorySelect.innerHTML = '<option value="">Select Category</option>';
   });
 
-  // Auto-select first category to avoid undefined
-  if (filtered.length) categorySelect.value = filtered[0].account_id;
-}
+  cancelModalBtn.addEventListener("click", () => {
+    transactionModal.classList.add("hidden");
+    transactionForm.reset();
+  });
 
-// Run once on page load
-initChartOfAccounts();
-txnTypeSelect.addEventListener("change", filterCategories);
+  transactionModal.addEventListener("click", (e) => {
+    if (e.target === transactionModal) {
+      transactionModal.classList.add("hidden");
+    }
+  });
 
-// When modal opens
-openModalBtn.addEventListener("click", () => {
-  transactionModal.classList.remove("hidden");
-  transactionForm.reset();
-  txnTypeSelect.value = "";
-  categorySelect.innerHTML = '<option value="">Select Category</option>';
-  filterCategories(); // now guaranteed accounts exist
-});
+  // =========================
+  // Populate categories based on type
+  // =========================
+  function filterCategories() {
+    const type = txnTypeSelect.value;
+    categorySelect.innerHTML = '<option value="">Select Category</option>';
+    if (!type) return;
+
+    let accountType;
+    switch(type) {
+      case "income":
+      case "capital_revenue": accountType = "revenue"; break;
+      case "expense":
+      case "capital_expense": accountType = "expense"; break;
+      case "liability": accountType = "liability"; break;
+      case "asset_sale": accountType = "asset"; break;
+      default: return;
+    }
+
+    const filtered = chartOfAccounts.filter(acc => acc.type === accountType);
+    filtered.forEach(acc => {
+      const option = document.createElement("option");
+      option.value = acc.account_id; // guaranteed numeric
+      option.textContent = `${acc.code} - ${acc.name}`;
+      categorySelect.appendChild(option);
+    });
+
+    // Auto-select first category to prevent undefined
+    if (filtered.length) categorySelect.value = filtered[0].account_id;
+  }
+
+  txnTypeSelect.addEventListener("change", filterCategories);
+
+  // =========================
+  // Transaction submit
+  // =========================
+  transactionForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const date = transactionForm.querySelector('input[type="date"]').value;
+    const description = transactionForm.querySelector('input[type="text"]').value;
+    const amount = parseFloat(transactionForm.querySelector('input[type="number"]').value);
+    const type = txnTypeSelect.value;
+    const account_id = parseInt(categorySelect.value);
+
+    if (!date || !description || !amount || !type || !Number.isFinite(account_id)) {
+      return alert("Please fill in all required fields and select a valid category!");
+    }
+
+    const formData = { date, description, amount, type, account_id };
+
+    try {
+      const res = await fetch("/api/finance/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to add transaction");
+
+      alert(result.message || "Transaction added!");
+      transactionForm.reset();
+      transactionModal.classList.add("hidden");
+      loadTransactions(); // reload transactions
+    } catch (err) {
+      console.error("Error adding transaction:", err);
+      alert("Failed to add transaction: " + err.message);
+    }
+  });
     
 // =========================
 // Submit handler
@@ -858,6 +882,7 @@ liabilitiesEl.textContent = `K${liabilities.toFixed(2)}`;
 
 </body>
 </html>
+
 
 
 
