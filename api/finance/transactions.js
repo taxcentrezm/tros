@@ -29,30 +29,21 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { date, description, category, amount, type, account_id } = req.body;
+      const { date, description, category, amount, type } = req.body;
 
       // Validate required fields
-      if (!date || !description || !amount || !type) {
+      if (!date || !description || !category || !amount || !type) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Determine final account_id
-      let finalAccountId = account_id;
-      if (!finalAccountId && category) {
-        const accountRes = await client.execute({
-          sql: `SELECT account_id FROM chart_of_accounts WHERE name = ? LIMIT 1`,
-          args: [category],
-        });
+      // Validate account_id exists
+      const accountRes = await client.execute({
+        sql: `SELECT account_id FROM chart_of_accounts WHERE account_id = ? LIMIT 1`,
+        args: [category],
+      });
 
-        if (accountRes.rows.length === 0) {
-          return res.status(400).json({ error: "Invalid category selected" });
-        }
-
-        finalAccountId = accountRes.rows[0].account_id;
-      }
-
-      if (!finalAccountId) {
-        return res.status(400).json({ error: "Account not found" });
+      if (accountRes.rows.length === 0) {
+        return res.status(400).json({ error: "Invalid category selected" });
       }
 
       // Assign debit/credit based on type
@@ -72,12 +63,12 @@ export default async function handler(req, res) {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `,
         args: [
-          finalAccountId,
+          category, // account_id
           date,
           description,
           debit,
           credit,
-          category || null,
+          category, // still save as 'category' for compatibility
           amount,
           type,
         ],
