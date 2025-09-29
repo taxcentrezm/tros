@@ -414,16 +414,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     categorySelect.innerHTML = '<option value="">Select Category</option>';
-    chartOfAccounts
-      .filter(acc => acc.type === accountType)
-      .forEach(acc => {
-        const option = document.createElement("option");
-        option.value = acc.id;
-        option.textContent = `${acc.code} - ${acc.name}`;
-        categorySelect.appendChild(option);
-      });
+  chartOfAccounts
+  .filter(acc => acc.type === accountType)
+  .forEach(acc => {
+    const option = document.createElement("option");
+    option.value = acc.id; // <-- must be ID, not name
+    option.textContent = `${acc.code} - ${acc.name}`;
+    categorySelect.appendChild(option);
+  });
+
   }
   txnTypeSelect.addEventListener("change", filterCategories);
+if (!formData.date || !formData.description || !formData.amount || !formData.type || !formData.account_id) {
+  alert("Please fill all fields correctly");
+  return;
+}
 
   // =========================
   // API Loads
@@ -601,8 +606,9 @@ const formData = {
   description: transactionForm.description.value,
   amount: parseFloat(transactionForm.amount.value),
   type: transactionForm.type.value,
-  account_id: transactionForm.category.value
+  account_id: transactionForm.category.value  // now will send ID
 };
+
 
 
 if (!formData.date || !formData.description || !formData.amount || !formData.type || !formData.account_id) {
@@ -845,6 +851,7 @@ if (!formData.date || !formData.description || !formData.amount || !formData.typ
 
 </body>
 </html>
+
 
 
 
