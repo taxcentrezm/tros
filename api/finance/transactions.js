@@ -28,52 +28,48 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, data });
     }
 
-    if (req.method === "POST") {
-      let { date, description, category, amount, type, account_id } = req.body;
+ if (req.method === "POST") {
+  const { date, description, amount, type, account_id, category } = req.body;
 
-      if (!date || !description || !amount || !type || (!account_id && !category)) {
-        return res.status(400).json({ error: "Missing required fields or account/category" });
-      }
+  if (!date || !description || !amount || !type || !account_id) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
 
-      // If account_id not provided, look it up by category name
-      if (!account_id) {
-        const accountRes = await client.execute({
-          sql: `SELECT account_id FROM chart_of_accounts WHERE name = ? LIMIT 1`,
-          args: [category],
-        });
-        if (accountRes.rows.length === 0) {
-          return res.status(400).json({ error: "Invalid category selected" });
-        }
-        account_id = accountRes.rows[0].account_id;
-      }
+  // Validate account_id exists
+  const accountRes = await client.execute({
+    sql: `SELECT account_id FROM chart_of_accounts WHERE account_id = ? LIMIT 1`,
+    args: [account_id],
+  });
 
-      // Look up category name if not provided
-      if (!category) {
-        const accountRes = await client.execute({
-          sql: `SELECT name FROM chart_of_accounts WHERE account_id = ? LIMIT 1`,
-          args: [account_id],
-        });
-        if (accountRes.rows.length === 0) {
-          return res.status(400).json({ error: "Invalid account_id selected" });
-        }
-        category = accountRes.rows[0].name;
-      }
+  if (accountRes.rows.length === 0) {
+    return res.status(400).json({ error: "Invalid account_id" });
+  }
 
-      let debit = 0, credit = 0;
-      if (type === "expense" || type === "capital_expense") debit = amount;
-      else if (type === "income" || type === "capital_revenue") credit = amount;
+  let debit = 0, credit = 0;
+  if (type === "expense" || type === "capital_expense") debit = amount;
+  else if (type === "income" || type === "capital_revenue") credit = amount;
 
-      await client.execute({
-        sql: `
-          INSERT INTO finance_transactions
-          (account_id, date, description, debit, credit, category, amount, type)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-        args: [account_id, date, description, debit, credit, category, amount, type],
-      });
+  await client.execute({
+    sql: `
+      INSERT INTO finance_transactions
+      (account_id, date, description, debit, credit, category, amount, type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    args: [
+      account_id,         // FK must exist
+      date,
+      description,
+      debit,
+      credit,
+      category || null,   // optional display string
+      amount,
+      type,
+    ],
+  });
 
-      return res.status(201).json({ success: true, message: "Transaction added" });
-    }
+  return res.status(201).json({ success: true, message: "Transaction added" });
+}
+
 
     return res.status(405).json({ error: "Method not allowed" });
   } catch (err) {
