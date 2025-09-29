@@ -1,9 +1,10 @@
-import { client } from "../../lib/db"; // your Turso client
+// api/finance/categories.js
+import { client } from "../../lib/db.js";
 
 export default async function handler(req, res) {
   try {
     const result = await client.execute("SELECT DISTINCT category FROM finance_transactions");
-    const categories = result.rows.map(row => row.category);
+    const categories = result.rows.map(row => row.category).filter(Boolean);
     res.status(200).json(categories);
   } catch (err) {
     console.error(err);
