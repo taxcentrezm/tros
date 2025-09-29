@@ -411,6 +411,35 @@ function filterCategories() {
       categorySelect.appendChild(option);
     });
 }
+const categorySelect = document.getElementById("category");
+
+// Example function to fetch categories from your API
+async function loadCategories() {
+  try {
+    const res = await fetch("/api/finance/categories"); // replace with your actual endpoint
+    const categories = await res.json();
+
+    // Clear current options
+    categorySelect.innerHTML = '<option value="">Select Category</option>';
+
+    // Populate the dropdown
+    categories.forEach(cat => {
+      const option = document.createElement("option");
+      option.value = cat.id || cat.name; // depending on your data structure
+      option.textContent = cat.name;
+      categorySelect.appendChild(option);
+    });
+  } catch (err) {
+    console.error("Failed to load categories:", err);
+    categorySelect.innerHTML = '<option value="">Failed to load categories</option>';
+  }
+}
+
+// Load categories whenever modal opens
+openModalBtn.addEventListener("click", () => {
+  transactionModal.classList.remove("hidden");
+  loadCategories(); // populate categories
+});
 
 // Modal show/hide
 const modal = document.getElementById("transactionModal");
@@ -837,6 +866,7 @@ function refreshAfterImport() {
 </script>
 </body>
 </html>
+
 
 
 
