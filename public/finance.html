@@ -419,18 +419,25 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================
   // API Loads
   // =========================
-  async function loadTransactions() {
-    try {
-      const res = await fetch("/api/finance/transactions");
-      const { data } = await res.json();
-      transactions = data;
-      renderTransactions(data);
-      updateCharts(data);
-      updateSummary(data);
-    } catch (err) {
-      console.error("Error loading transactions:", err);
+async function loadTransactions() {
+  try {
+    const res = await fetch("/api/finance/transactions");
+    const result = await res.json();
+
+    if (!res.ok) {
+      console.error("Failed to load transactions:", result.error || result);
+      return;
     }
+
+    const data = result.data || [];
+    renderTransactions(data);
+    updateCharts(data);
+    updateSummary(data);
+  } catch (err) {
+    console.error("Error loading transactions:", err);
   }
+}
+
 
   async function loadTrialBalance() {
     const res = await fetch("/api/finance/trial-balance");
@@ -522,8 +529,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-function updateCharts(transactions) {
-  if (!lineChartInstance || !pieChartInstance) return; // prevent crash if not ready
+
+ function updateCharts(transactions) {
+  if (!lineChartInstance || !pieChartInstance) {
+    console.warn("Charts not initialized yet");
+    return;
+  }
+
 
   const monthly = {};
   transactions.forEach(tx => {
@@ -571,32 +583,45 @@ function updateCharts(transactions) {
   // =========================
   // Transaction Form
   // =========================
-  transactionForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const formData = {
-      date: transactionForm[0].value,
-      description: transactionForm[1].value,
-      category: transactionForm[2].value,
-      amount: parseFloat(transactionForm[3].value),
-      type: transactionForm[4].value
-    };
+transactionForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    try {
-      const res = await fetch("/api/finance/transactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      });
-      const result = await res.json();
-      alert(result.message || "Transaction added!");
-      transactionForm.reset();
-      transactionModal.classList.add("hidden");
-      loadTransactions();
-    } catch (err) {
-      console.error("Error adding transaction:", err);
-      alert("Failed to add transaction");
-    }
-  });
+  const formData = {
+    date: transactionForm[0].value,
+    description: transactionForm[1].value,
+    category: transactionForm[2].value,
+    amount: parseFloat(transactionForm[3].value),
+    type: transactionForm[4].value
+  };
+
+  // 🔑 find account_id from chartOfAccounts
+  const account = chartOfAccounts.find(acc => acc.name === formData.category);
+  if (!account) {
+    alert("Invalid category selected");
+    return;
+  }
+  formData.account_id = account.id;
+
+  try {
+    const res = await fetch("/api/finance/transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Failed to add transaction");
+
+    alert(result.message || "Transaction added!");
+    transactionForm.reset();
+    transactionModal.classList.add("hidden");
+    loadTransactions(); // refresh
+  } catch (err) {
+    console.error("Error adding transaction:", err);
+    alert("Failed to add transaction");
+  }
+});
+
 
   // =========================
   // Import
@@ -807,6 +832,7 @@ function updateCharts(transactions) {
 
 </body>
 </html>
+
 
 
 
