@@ -787,15 +787,24 @@ document.addEventListener("DOMContentLoaded", () => {
   // Final Init
   // =========================
   document.addEventListener("DOMContentLoaded", () => {
-    feather.replace();
-    AOS.init();
-  });
+  feather.replace();
+  AOS.init();
+
+  // Initialize charts before any data loads
+  initCharts();
+
+  // Now load data
+  loadTransactions();
+  loadTrialBalance();
+  loadBalanceSheet();
+  loadAssets();
 });
 </script>
 
 
 </body>
 </html>
+
 
 
 
