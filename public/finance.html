@@ -420,7 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .filter(acc => acc.type === accountType)
     .forEach(acc => {
       const option = document.createElement("option");
-      option.value = acc.id;           // <-- use the ID
+      option.value = acc.account_id;  
       option.textContent = `${acc.code} - ${acc.name}`;
       categorySelect.appendChild(option);
     });
@@ -847,6 +847,7 @@ if (!formData.date || !formData.description || !formData.amount || !formData.typ
 
 </body>
 </html>
+
 
 
 
