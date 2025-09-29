@@ -351,8 +351,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const transactionModal = document.getElementById("transactionModal");
   const openModalBtn = document.getElementById("openModal");
   const cancelModalBtn = document.getElementById("cancelModal");
- 
- 
+  const transactionForm = document.getElementById("transactionForm");
+  const txnTypeSelect = document.getElementById("txnType");
+  const categorySelect = document.getElementById("category");
 
   const revenueEl = document.getElementById("totalRevenue");
   const expensesEl = document.getElementById("totalExpenses");
@@ -370,14 +371,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const importFile = document.getElementById("importFile");
   const feedback = document.getElementById("feedback");
 
- 
   let lineChartInstance, pieChartInstance;
-  let transactions = []; // cache for imports
-
- 
+  let transactions = [];
 
   // =========================
-  // Hardcoded chart of accounts fallback
+  // Hardcoded chart of accounts
   // =========================
   const chartOfAccounts = [
     { account_id: 1, name: "Cash", type: "asset", code: "1000" },
@@ -412,7 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // =========================
-  // Populate categories based on type
+  // Filter categories by transaction type
   // =========================
   function filterCategories() {
     const type = txnTypeSelect.value;
@@ -433,96 +431,56 @@ document.addEventListener("DOMContentLoaded", () => {
     const filtered = chartOfAccounts.filter(acc => acc.type === accountType);
     filtered.forEach(acc => {
       const option = document.createElement("option");
-      option.value = acc.account_id; // guaranteed numeric
+      option.value = acc.account_id;
       option.textContent = `${acc.code} - ${acc.name}`;
       categorySelect.appendChild(option);
     });
 
-    // Auto-select first category to prevent undefined
     if (filtered.length) categorySelect.value = filtered[0].account_id;
   }
 
   txnTypeSelect.addEventListener("change", filterCategories);
 
   // =========================
-  // Transaction submit
+  // Transaction Form Submit
   // =========================
-const categorySelect = document.getElementById("category");
-const txnTypeSelect = document.getElementById("txnType");
-const transactionForm = document.getElementById("transactionForm");
+  transactionForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-transactionForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
+    const date = transactionForm.querySelector('input[type="date"]').value;
+    const description = transactionForm.querySelector('input[type="text"]').value;
+    const amount = parseFloat(transactionForm.querySelector('input[type="number"]').value);
+    const type = txnTypeSelect.value;
+    const account_id = parseInt(categorySelect.value);
 
-  const date = transactionForm.querySelector('input[type="date"]').value;
-  const description = transactionForm.querySelector('input[type="text"]').value;
-  const amount = parseFloat(transactionForm.querySelector('input[type="number"]').value);
-  const type = txnTypeSelect.value;
-  const account_id = parseInt(categorySelect.value);
+    if (!date || !description || !amount || !type || !Number.isFinite(account_id)) {
+      return alert("Please fill in all required fields and select a valid category!");
+    }
 
-  if (!date || !description || !amount || !type || !Number.isFinite(account_id)) {
-    return alert("Please fill in all required fields and select a valid category!");
-  }
+    const formData = { date, description, amount, type, account_id };
 
-  const formData = { date, description, amount, type, account_id };
+    try {
+      const res = await fetch("/api/finance/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to add transaction");
 
-  try {
-    const res = await fetch("/api/finance/transactions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData)
-    });
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.error || "Failed to add transaction");
+      alert(result.message || "Transaction added!");
+      transactionForm.reset();
+      transactionModal.classList.add("hidden");
 
-    alert(result.message || "Transaction added!");
-    transactionForm.reset();
-    transactionModal.classList.add("hidden");
-    loadTransactions(); // refresh
-  } catch (err) {
-    console.error("Error adding transaction:", err);
-    alert("Failed to add transaction: " + err.message);
-  }
-});
+      if (typeof loadTransactions === "function") loadTransactions();
+    } catch (err) {
+      console.error("Error adding transaction:", err);
+      alert("Failed to add transaction: " + err.message);
+    }
+  });
 
-    
-// =========================
-// Submit handler
-// =========================
-transactionForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const date = transactionForm.querySelector('input[type="date"]').value;
-  const description = transactionForm.querySelector('input[type="text"]').value;
-  const amount = parseFloat(transactionForm.querySelector('input[type="number"]').value);
-  const type = txnTypeSelect.value;
-  const account_id = parseInt(categorySelect.value);
-
-  if (!date || !description || !amount || !type || !Number.isFinite(account_id)) {
-    return alert("Please fill in all required fields and select a valid category!");
-  }
-
-  const formData = { date, description, amount, type, account_id };
-
-  try {
-    const res = await fetch("/api/finance/transactions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData)
-    });
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.error || "Failed to add transaction");
-
-    alert(result.message || "Transaction added!");
-    transactionForm.reset();
-    transactionModal.classList.add("hidden");
-    loadTransactions();
-  } catch (err) {
-    console.error("Error adding transaction:", err);
-    alert("Failed to add transaction: " + err.message);
-  }
-});
-
+ 
+ 
   // =========================
   // API Loads
   // =========================
@@ -897,6 +855,7 @@ liabilitiesEl.textContent = `K${liabilities.toFixed(2)}`;
 
 </body>
 </html>
+
 
 
 
