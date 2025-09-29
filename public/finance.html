@@ -522,30 +522,33 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function updateCharts(data) {
-    const monthly = {};
-    data.forEach(tx => {
-      const month = tx.date.slice(0, 7);
-      if (!monthly[month]) monthly[month] = { income: 0, expense: 0 };
-      if (tx.type === "income") monthly[month].income += tx.amount;
-      if (tx.type === "expense") monthly[month].expense += tx.amount;
-    });
+function updateCharts(transactions) {
+  if (!lineChartInstance || !pieChartInstance) return; // prevent crash if not ready
 
-    const months = Object.keys(monthly).sort();
-    lineChartInstance.data.labels = months;
-    lineChartInstance.data.datasets[0].data = months.map(m => monthly[m].income);
-    lineChartInstance.data.datasets[1].data = months.map(m => monthly[m].expense);
-    lineChartInstance.update();
+  const monthly = {};
+  transactions.forEach(tx => {
+    const month = tx.date.slice(0, 7);
+    if (!monthly[month]) monthly[month] = { income: 0, expense: 0 };
+    if (tx.type === "income") monthly[month].income += tx.amount;
+    if (tx.type === "expense") monthly[month].expense += tx.amount;
+  });
 
-    const categoryMap = {};
-    data.filter(tx => tx.type === "expense").forEach(tx => {
-      categoryMap[tx.category] = (categoryMap[tx.category] || 0) + tx.amount;
-    });
+  const months = Object.keys(monthly).sort();
+  lineChartInstance.data.labels = months;
+  lineChartInstance.data.datasets[0].data = months.map(m => monthly[m].income);
+  lineChartInstance.data.datasets[1].data = months.map(m => monthly[m].expense);
+  lineChartInstance.update();
 
-    pieChartInstance.data.labels = Object.keys(categoryMap);
-    pieChartInstance.data.datasets[0].data = Object.values(categoryMap);
-    pieChartInstance.update();
-  }
+  const categoryMap = {};
+  transactions.filter(tx => tx.type === "expense").forEach(tx => {
+    categoryMap[tx.category] = (categoryMap[tx.category] || 0) + tx.amount;
+  });
+
+  pieChartInstance.data.labels = Object.keys(categoryMap);
+  pieChartInstance.data.datasets[0].data = Object.values(categoryMap);
+  pieChartInstance.update();
+}
+
 
   // =========================
   // Summary
@@ -804,6 +807,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+
 
 
 
