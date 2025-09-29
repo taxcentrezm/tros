@@ -598,6 +598,10 @@ const formData = {
   account_id: transactionForm.category.value // must be a valid account_id
 };
 
+if (!formData.date || !formData.description || !formData.amount || !formData.type || !formData.account_id) {
+  alert("Please fill all required fields");
+  return;
+}
 
 
     const res = await fetch("/api/finance/transactions", {
@@ -834,6 +838,7 @@ const formData = {
 
 </body>
 </html>
+
 
 
 
