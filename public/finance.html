@@ -597,12 +597,13 @@ transactionForm.addEventListener("submit", async (e) => {
 
   try {
 const formData = {
-  date: transactionForm.date.value,         // use input name
+  date: transactionForm.date.value,
   description: transactionForm.description.value,
   amount: parseFloat(transactionForm.amount.value),
-  type: transactionForm.txnType.value,      // must match API types exactly
-  account_id: transactionForm.category.value // must be a valid account_id
+  type: transactionForm.type.value,
+  account_id: transactionForm.category.value
 };
+
 
 if (!formData.date || !formData.description || !formData.amount || !formData.type || !formData.account_id) {
   alert("Please fill all required fields");
@@ -844,6 +845,7 @@ if (!formData.date || !formData.description || !formData.amount || !formData.typ
 
 </body>
 </html>
+
 
 
 
