@@ -45,6 +45,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Invalid account_id" });
   }
 
+   const accountCheck = await client.execute({
+  sql: "SELECT 1 FROM chart_of_accounts WHERE account_id = ?",
+  args: [account_id]
+});
+if (accountCheck.rows.length === 0) {
+  return res.status(400).json({ error: "Invalid account_id" });
+}
+
   let debit = 0, credit = 0;
   if (type === "expense" || type === "capital_expense") debit = amount;
   else if (type === "income" || type === "capital_revenue") credit = amount;
