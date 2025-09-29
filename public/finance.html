@@ -322,6 +322,28 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+    // Modal elements
+const transactionModal = document.getElementById("transactionModal");
+const openModalBtn = document.getElementById("openModal");
+const cancelModalBtn = document.getElementById("cancelModal");
+
+// Open modal
+openModalBtn.addEventListener("click", () => {
+  transactionModal.classList.remove("hidden");
+});
+
+// Close modal via cancel button
+cancelModalBtn.addEventListener("click", () => {
+  transactionModal.classList.add("hidden");
+});
+
+// Close modal by clicking outside the modal content
+transactionModal.addEventListener("click", (e) => {
+  if (e.target === transactionModal) {
+    transactionModal.classList.add("hidden");
+  }
+});
+
 fetch('/api/finance/summary')
   .then(res => res.json())
   .then(data => {
@@ -815,6 +837,7 @@ function refreshAfterImport() {
 </script>
 </body>
 </html>
+
 
 
 
