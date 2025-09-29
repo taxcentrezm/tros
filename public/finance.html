@@ -582,12 +582,12 @@ async function loadTransactions() {
     const caprev = data.filter(tx => tx.type === "capital_revenue").reduce((s, tx) => s + tx.amount, 0);
     const liabilities = data.filter(tx => tx.type === "liability").reduce((s, tx) => s + tx.amount, 0);
 
-    revenueEl.textContent = `$${income.toFixed(2)}`;
-    expensesEl.textContent = `$${expenses.toFixed(2)}`;
-    profitEl.textContent = `$${(income - expenses).toFixed(2)}`;
-    capexEl.textContent = `$${capex.toFixed(2)}`;
-    caprevEl.textContent = `$${caprev.toFixed(2)}`;
-    liabilitiesEl.textContent = `$${liabilities.toFixed(2)}`;
+revenueEl.textContent = `K${income.toFixed(2)}`;
+expensesEl.textContent = `K${expenses.toFixed(2)}`;
+profitEl.textContent = `K${(income - expenses).toFixed(2)}`;
+capexEl.textContent = `K${capex.toFixed(2)}`;
+caprevEl.textContent = `K${caprev.toFixed(2)}`;
+liabilitiesEl.textContent = `K${liabilities.toFixed(2)}`;
   }
 
   // =========================
@@ -598,12 +598,14 @@ transactionForm.addEventListener("submit", async (e) => {
 
   try {
 const formData = {
-  date: transactionForm.date.value,
-  description: transactionForm.description.value,
-  amount: parseFloat(transactionForm.amount.value),
-  type: transactionForm.type.value,
-  account_id: transactionForm.category.value  // now will send ID
+  date: document.getElementById("transactionForm").querySelector('input[type="date"]').value,
+  description: document.getElementById("transactionForm").querySelector('input[type="text"]').value,
+  amount: parseFloat(document.getElementById("transactionForm").querySelector('input[type="number"]').value),
+  type: document.getElementById("txnType").value,
+  category: document.getElementById("category").value,
+  account_id: document.getElementById("category").value
 };
+
 
 
 
@@ -847,6 +849,7 @@ if (!formData.date || !formData.description || !formData.amount || !formData.typ
 
 </body>
 </html>
+
 
 
 
