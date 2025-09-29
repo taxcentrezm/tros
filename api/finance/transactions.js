@@ -49,23 +49,23 @@ export default async function handler(req, res) {
   if (type === "expense" || type === "capital_expense") debit = amount;
   else if (type === "income" || type === "capital_revenue") credit = amount;
 
-  await client.execute({
-    sql: `
-      INSERT INTO finance_transactions
-      (account_id, date, description, debit, credit, category, amount, type)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    args: [
-      account_id,         // FK must exist
-      date,
-      description,
-      debit,
-      credit,
-      category || null,   // optional display string
-      amount,
-      type,
-    ],
-  });
+ await client.execute({
+  sql: `
+    INSERT INTO finance_transactions
+    (account_id, date, description, debit, credit, category, amount, type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `,
+  args: [
+    account_id,        // FK — must exist
+    date,
+    description,
+    debit,
+    credit,
+    category_name,     // just a string, optional
+    amount,
+    type,
+  ],
+});
 
   return res.status(201).json({ success: true, message: "Transaction added" });
 }
