@@ -442,20 +442,20 @@ function filterCategories() {
 // Make sure filterCategories runs whenever txnType changes
 txnTypeSelect.addEventListener("change", filterCategories);
 
-// Transaction form submit
 transactionForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const accountId = categorySelect.value;
-  if (!accountId) return alert("Please select a valid category!");
+  const date = transactionForm.querySelector('input[type="date"]').value;
+  const description = transactionForm.querySelector('input[type="text"]').value;
+  const amount = parseFloat(transactionForm.querySelector('input[type="number"]').value);
+  const type = txnTypeSelect.value;
+  const account_id = parseInt(categorySelect.value);
 
-  const formData = {
-    date: transactionForm.querySelector('input[type="date"]').value,
-    description: transactionForm.querySelector('input[type="text"]').value,
-    amount: parseFloat(transactionForm.querySelector('input[type="number"]').value),
-    type: txnTypeSelect.value,
-    account_id: parseInt(accountId) // backend expects numeric ID
-  };
+  if (!date || !description || !amount || !type || !account_id) {
+    return alert("Please fill in all required fields and select a valid category!");
+  }
+
+  const formData = { date, description, amount, type, account_id };
 
   try {
     const res = await fetch("/api/finance/transactions", {
@@ -469,10 +469,10 @@ transactionForm.addEventListener("submit", async (e) => {
     alert(result.message || "Transaction added!");
     transactionForm.reset();
     transactionModal.classList.add("hidden");
-    loadTransactions(); // refresh
+    loadTransactions();
   } catch (err) {
     console.error("Error adding transaction:", err);
-    alert("Failed to add transaction");
+    alert("Failed to add transaction: " + err.message);
   }
 });
 
@@ -851,6 +851,7 @@ liabilitiesEl.textContent = `K${liabilities.toFixed(2)}`;
 
 </body>
 </html>
+
 
 
 
