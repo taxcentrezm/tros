@@ -334,6 +334,105 @@ fetch('/api/finance/summary')
   })
   .catch(err => console.error("❌ Failed to load summary:", err));
 </script>
+    <script>
+let chartOfAccounts = [];
+
+// Fetch Chart of Accounts once
+async function loadChartOfAccounts() {
+  try {
+    const res = await fetch("/api/finance/chart_of_accounts.js");
+    const data = await res.json();
+    chartOfAccounts = data.data; // cache accounts
+    filterCategories(); // populate initially if type selected
+  } catch (err) {
+    console.error("Failed to load chart of accounts:", err);
+    const select = document.getElementById("category");
+    select.innerHTML = '<option value="">Failed to load</option>';
+  }
+}
+
+// Filter categories based on transaction type
+function filterCategories() {
+  const typeSelect = document.getElementById("txnType");
+  const categorySelect = document.getElementById("category");
+  const selectedType = typeSelect.value;
+
+  if (!selectedType) {
+    categorySelect.innerHTML = '<option value="">Select Type First</option>';
+    return;
+  }
+
+  let accountType;
+  switch (selectedType) {
+    case "income":
+    case "capital_revenue":
+      accountType = "revenue";
+      break;
+    case "expense":
+    case "capital_expense":
+      accountType = "expense";
+      break;
+    case "liability":
+      accountType = "liability";
+      break;
+    default:
+      accountType = null;
+  }
+
+  categorySelect.innerHTML = '<option value="">Select Category</option>';
+  chartOfAccounts
+    .filter(acc => acc.type === accountType)
+    .forEach(acc => {
+      const option = document.createElement("option");
+      option.value = acc.name; // you can use code instead if preferred
+      option.textContent = `${acc.code} - ${acc.name}`;
+      categorySelect.appendChild(option);
+    });
+}
+
+// Modal show/hide
+const modal = document.getElementById("transactionModal");
+document.getElementById("openModalBtn")?.addEventListener("click", () => {
+  modal.classList.remove("hidden");
+  loadChartOfAccounts();
+});
+document.getElementById("cancelModal").addEventListener("click", () => {
+  modal.classList.add("hidden");
+});
+
+// Update category dropdown when transaction type changes
+document.getElementById("txnType").addEventListener("change", filterCategories);
+
+// Handle form submission
+document.getElementById("transactionForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const formData = {
+    date: form[0].value,
+    description: form[1].value,
+    category: form[2].value,
+    amount: parseFloat(form[3].value),
+    type: form[4].value
+  };
+
+  try {
+    const res = await fetch("/api/finance/transactions.js", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    });
+
+    const result = await res.json();
+    alert(result.message || "Transaction added!");
+    form.reset();
+    modal.classList.add("hidden");
+  } catch (err) {
+    console.error("Error adding transaction:", err);
+    alert("Failed to add transaction");
+  }
+});
+</script>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   feather.replace();
@@ -719,5 +818,6 @@ function refreshAfterImport() {
 </script>
 </body>
 </html>
+
 
 
