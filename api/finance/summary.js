@@ -7,21 +7,35 @@ const client = sql({
 
 export default async function handler(req, res) {
   try {
-    // Aggregate debit, credit, and balance per account
-    const result = await client.execute(`
+    // Get the summary: total debit, total credit, balance per account
+    const result = await client.execute(
+      `
       SELECT 
-        account_id,
-        SUM(debit) AS debit,
-        SUM(credit) AS credit,
-        SUM(debit) - SUM(credit) AS balance
-      FROM finance_transactions
-      GROUP BY account_id
-      ORDER BY account_id
-    `);
+        a.account_id,
+        COALESCE(SUM(t.debit), 0) AS total_debit,
+        COALESCE(SUM(t.credit), 0) AS total_credit,
+        COALESCE(SUM(t.debit) - SUM(t.credit), 0) AS balance
+      FROM finance_transactions t
+      INNER JOIN accounts a ON t.account_id = a.account_id
+      GROUP BY a.account_id
+      ORDER BY a.account_id
+      `
+    );
 
-    res.status(200).json({ summary: result.rows });
+    // Transform result to JSON
+    const summary = result.rows.map((row) => ({
+      account_id: row.account_id,
+      total_debit: row.total_debit,
+      total_credit: row.total_credit,
+      balance: row.balance,
+    }));
+
+    res.status(200).json({ summary });
   } catch (err) {
     console.error("❌ Error in /api/finance/summary:", err);
-    res.status(500).json({ error: "Failed to fetch summary", details: err.message });
+    res.status(500).json({
+      error: "Failed to fetch finance summary",
+      details: err.message,
+    });
   }
 }
