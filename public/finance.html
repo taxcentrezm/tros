@@ -463,7 +463,7 @@ document.addEventListener("DOMContentLoaded", () => {
       amount,
       type,
       account_id,     // integer FK
-      category: categoryName  // name for reference
+      category: selectedAccount.name  // name for reference
     };
 
     try {
@@ -711,6 +711,7 @@ document.getElementById("exportPDF").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
