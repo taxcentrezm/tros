@@ -196,13 +196,15 @@
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-semibold text-primary-800">Transactions</h2>
       <div class="flex space-x-2 mb-4">
-  <input type="file" id="importFile" accept=".csv,.xlsx" class="hidden" />
-  <button id="importBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
-    Import Transactions
-  </button>
-  <button id="exportCSV" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Export CSV</button>
-  <button id="exportExcel" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Export Excel</button>
-  <button id="exportPDF" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Export PDF</button>
+<input type="file" id="importFile" accept=".csv,.xlsx" class="hidden" />
+    <button id="importBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+        Import Transactions
+    </button>
+    <button id="exportCSV" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Export CSV</button> 
+    
+    <button id="exportBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Export Excel</button> 
+    
+    <button id="exportPDFBtn" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Export PDF</button> 
 </div>
 </div>
 
@@ -358,23 +360,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const txnTypeSelect = document.getElementById("txnType");
   const categorySelect = document.getElementById("category");
 
-  const revenueEl = document.getElementById("totalRevenue");
-  const expensesEl = document.getElementById("totalExpenses");
-  const profitEl = document.getElementById("netProfit");
-  const capexEl = document.getElementById("totalCapex");
-  const caprevEl = document.getElementById("totalCaprev");
-  const liabilitiesEl = document.getElementById("totalLiabilities");
-
   const transactionBody = document.getElementById("transactionBody");
-  const trialBalanceBody = document.getElementById("trialBalanceBody");
-  const balanceSheetBody = document.getElementById("balanceSheetBody");
-  const assetLifecycleBody = document.getElementById("assetLifecycleBody");
 
-  const importBtn = document.getElementById("importBtn");
-  const importFile = document.getElementById("importFile");
-  const feedback = document.getElementById("feedback");
-
-  let lineChartInstance, pieChartInstance;
   let transactions = [];
   let chartOfAccounts = [];
 
@@ -389,17 +376,7 @@ document.addEventListener("DOMContentLoaded", () => {
       chartOfAccounts = result.data || [];
     } catch (err) {
       console.error("Error loading chart of accounts:", err);
-      alert("Failed to load chart of accounts. Hardcoded fallback will be used.");
-      chartOfAccounts = [
-        { account_id: 1, name: "Cash", type: "asset", code: "1000" },
-        { account_id: 2, name: "Accounts Receivable", type: "asset", code: "1100" },
-        { account_id: 3, name: "Accounts Payable", type: "liability", code: "2000" },
-        { account_id: 4, name: "Equity Capital", type: "equity", code: "3000" },
-        { account_id: 5, name: "Sales Revenue", type: "revenue", code: "4000" },
-        { account_id: 6, name: "Salaries Expense", type: "expense", code: "5000" },
-        { account_id: 7, name: "Supplies Expense", type: "expense", code: "5100" },
-        { account_id: 8, name: "Vehicle Asset", type: "asset", code: "1200" }
-      ];
+      alert("Failed to load chart of accounts. Please refresh the page.");
     }
   }
 
@@ -432,26 +409,35 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!type || !chartOfAccounts.length) return;
 
     let accountType;
-    switch(type) {
+    switch (type) {
       case "income":
-      case "capital_revenue": accountType = "revenue"; break;
+      case "capital_revenue":
+        accountType = "revenue";
+        break;
       case "expense":
-      case "capital_expense": accountType = "expense"; break;
-      case "liability": accountType = "liability"; break;
-      case "asset_sale": accountType = "asset"; break;
-      default: return;
+      case "capital_expense":
+        accountType = "expense";
+        break;
+      case "liability":
+        accountType = "liability";
+        break;
+      case "asset_sale":
+        accountType = "asset";
+        break;
+      default:
+        return;
     }
 
     chartOfAccounts
       .filter(acc => acc.type === accountType)
       .forEach(acc => {
         const option = document.createElement("option");
-        option.value = acc.account_id;
+        option.value = acc.account_id; // use backend ID
         option.textContent = `${acc.code} - ${acc.name}`;
         categorySelect.appendChild(option);
       });
 
-    if (categorySelect.options.length > 1) categorySelect.selectedIndex = 1; // auto-select first
+    if (categorySelect.options.length > 1) categorySelect.selectedIndex = 1;
   }
 
   txnTypeSelect.addEventListener("change", filterCategories);
@@ -492,6 +478,43 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Failed to add transaction: " + err.message);
     }
   });
+
+  // =========================
+  // Load Transactions
+  // =========================
+  async function loadTransactions() {
+    try {
+      const res = await fetch("/api/finance/transactions");
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to load transactions");
+      transactions = result.data || [];
+      renderTransactions(transactions);
+    } catch (err) {
+      console.error("Error loading transactions:", err);
+    }
+  }
+
+  function renderTransactions(data) {
+    transactionBody.innerHTML = "";
+    data.forEach(tx => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${tx.date}</td>
+        <td>${tx.description}</td>
+        <td>${tx.category_name || tx.category}</td>
+        <td>$${Number(tx.amount).toFixed(2)}</td>
+        <td>${tx.type}</td>
+      `;
+      transactionBody.appendChild(row);
+    });
+  }
+
+  // =========================
+  // Initialize
+  // =========================
+  loadChartOfAccounts().then(loadTransactions);
+});
+ 
 
   // =========================
   // Load Transactions
@@ -649,21 +672,23 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================
-  // Exports
-  // =========================
-  document.getElementById("exportBtn").addEventListener("click", () => {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(transactions);
-    XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-    XLSX.writeFile(wb, "transactions.xlsx");
-  });
+// =========================
+// Exports
+// =========================
+// NOTE: Assuming your "Export Excel" button should run the XLSX export logic
+document.getElementById("exportExcel").addEventListener("click", () => { 
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(transactions);
+  XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+  XLSX.writeFile(wb, "transactions.xlsx");
+});
 
-  document.getElementById("exportPDFBtn").addEventListener("click", () => {
-    const doc = new jsPDF.jsPDF();
-    doc.autoTable({ html: "#transactionTable" });
-    doc.save("transactions.pdf");
-  });
+// NOTE: Using the ID "exportPDF" from your HTML
+document.getElementById("exportPDF").addEventListener("click", () => { 
+  const doc = new jsPDF.jsPDF();
+  doc.autoTable({ html: "#transactionTable" });
+  doc.save("transactions.pdf");
+});
 
   // =========================
   // Initialize
@@ -680,6 +705,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+
 
 
 
