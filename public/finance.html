@@ -393,27 +393,26 @@ transactionModal.addEventListener("click", (e) => {
 // =========================
 // Chart of Accounts
 // =========================
-async function loadChartOfAccounts() {
+async function initChartOfAccounts() {
   try {
     const res = await fetch("/api/finance/chart_of_accounts");
     const data = await res.json();
     chartOfAccounts = data.data || [];
   } catch (err) {
     console.error("Failed to load chart of accounts:", err);
-    categorySelect.innerHTML = '<option value="">Failed to load</option>';
+    chartOfAccounts = [];
   }
-  filterCategories(); // populate categories AFTER data is loaded
 }
 
-// Populate category select based on type
+
+// Populate categories after accounts are loaded
 function filterCategories() {
   const type = txnTypeSelect.value;
   categorySelect.innerHTML = '<option value="">Select Category</option>';
-
   if (!type || !chartOfAccounts.length) return;
 
   let accountType;
-  switch(type) {
+  switch (type) {
     case "income":
     case "capital_revenue": accountType = "revenue"; break;
     case "expense":
@@ -423,19 +422,31 @@ function filterCategories() {
     default: return;
   }
 
-  chartOfAccounts
-    .filter(acc => acc.type === accountType)
-    .forEach(acc => {
-      const option = document.createElement("option");
-      option.value = acc.account_id; // numeric ID
-      option.textContent = `${acc.code} - ${acc.name}`;
-      categorySelect.appendChild(option);
-    });
+  const filtered = chartOfAccounts.filter(acc => acc.type === accountType);
+  filtered.forEach(acc => {
+    const option = document.createElement("option");
+    option.value = acc.account_id; // numeric
+    option.textContent = `${acc.code} - ${acc.name}`;
+    categorySelect.appendChild(option);
+  });
+
+  // Auto-select first category to avoid undefined
+  if (filtered.length) categorySelect.value = filtered[0].account_id;
 }
 
-// Re-run whenever transaction type changes
+// Run once on page load
+initChartOfAccounts();
 txnTypeSelect.addEventListener("change", filterCategories);
 
+// When modal opens
+openModalBtn.addEventListener("click", () => {
+  transactionModal.classList.remove("hidden");
+  transactionForm.reset();
+  txnTypeSelect.value = "";
+  categorySelect.innerHTML = '<option value="">Select Category</option>';
+  filterCategories(); // now guaranteed accounts exist
+});
+    
 // =========================
 // Submit handler
 // =========================
@@ -847,6 +858,7 @@ liabilitiesEl.textContent = `K${liabilities.toFixed(2)}`;
 
 </body>
 </html>
+
 
 
 
