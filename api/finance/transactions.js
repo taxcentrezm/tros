@@ -29,28 +29,35 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { date, description, category, amount, type } = req.body;
+      const { date, description, category, amount, type, account_id } = req.body;
 
-      if (!date || !description || !category || !amount || !type) {
+      // Validate required fields
+      if (!date || !description || !amount || !type) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Look up account_id by category
-      const accountRes = await client.execute({
-        sql: `SELECT account_id FROM chart_of_accounts WHERE name = ? LIMIT 1`,
-        args: [category],
-      });
+      // Determine final account_id
+      let finalAccountId = account_id;
+      if (!finalAccountId && category) {
+        const accountRes = await client.execute({
+          sql: `SELECT account_id FROM chart_of_accounts WHERE name = ? LIMIT 1`,
+          args: [category],
+        });
 
-      if (accountRes.rows.length === 0) {
-        return res.status(400).json({ error: "Invalid category selected" });
+        if (accountRes.rows.length === 0) {
+          return res.status(400).json({ error: "Invalid category selected" });
+        }
+
+        finalAccountId = accountRes.rows[0].account_id;
       }
 
-      const account_id = accountRes.rows[0].account_id;
+      if (!finalAccountId) {
+        return res.status(400).json({ error: "Account not found" });
+      }
 
-      // Assign debit/credit depending on type
+      // Assign debit/credit based on type
       let debit = 0;
       let credit = 0;
-
       if (type === "expense" || type === "capital_expense") {
         debit = amount;
       } else if (type === "income" || type === "capital_revenue") {
@@ -65,12 +72,12 @@ export default async function handler(req, res) {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `,
         args: [
-          account_id,
+          finalAccountId,
           date,
           description,
           debit,
           credit,
-          category,
+          category || null,
           amount,
           type,
         ],
@@ -85,4 +92,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
-
