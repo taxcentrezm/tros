@@ -320,152 +320,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-    // Modal elements
-const transactionModal = document.getElementById("transactionModal");
-const openModalBtn = document.getElementById("openModal");
-const cancelModalBtn = document.getElementById("cancelModal");
 
-// Open modal
-openModalBtn.addEventListener("click", () => {
-  transactionModal.classList.remove("hidden");
-});
-
-// Close modal via cancel button
-cancelModalBtn.addEventListener("click", () => {
-  transactionModal.classList.add("hidden");
-});
-
-// Close modal by clicking outside the modal content
-transactionModal.addEventListener("click", (e) => {
-  if (e.target === transactionModal) {
-    transactionModal.classList.add("hidden");
-  }
-});
-
-fetch('/api/finance/summary')
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById('totalRevenue').textContent = `$${Number(data.total_revenue).toFixed(2)}`;
-    document.getElementById('totalExpenses').textContent = `$${Number(data.total_expenses).toFixed(2)}`;
-    document.getElementById('netProfit').textContent = `$${Number(data.net_profit).toFixed(2)}`;
-    document.getElementById('totalCapex').textContent = `$${Number(data.total_capex).toFixed(2)}`;
-    document.getElementById('totalCaprev').textContent = `$${Number(data.total_caprev).toFixed(2)}`;
-    document.getElementById('totalLiabilities').textContent = `$${Number(data.total_liabilities).toFixed(2)}`;
-  })
-  .catch(err => console.error("❌ Failed to load summary:", err));
-</script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // ----------------------
-  // Modal elements
-  // ----------------------
+  feather.replace();
+  AOS.init();
+
+  // =========================
+  // DOM Elements
+  // =========================
   const transactionModal = document.getElementById("transactionModal");
   const openModalBtn = document.getElementById("openModal");
   const cancelModalBtn = document.getElementById("cancelModal");
   const transactionForm = document.getElementById("transactionForm");
   const txnTypeSelect = document.getElementById("txnType");
   const categorySelect = document.getElementById("category");
-
-  // ----------------------
-  // Show / hide modal
-  // ----------------------
-  openModalBtn.addEventListener("click", () => {
-    transactionModal.classList.remove("hidden");
-    loadCategories();
-  });
-
-  cancelModalBtn.addEventListener("click", () => {
-    transactionModal.classList.add("hidden");
-    transactionForm.reset();
-  });
-
-  // ----------------------
-  // Chart of accounts cache
-  // ----------------------
-  let chartOfAccounts = [];
-
-  async function loadChartOfAccounts() {
-    try {
-      const res = await fetch("/api/finance/chart_of_accounts"); // JSON endpoint
-      const data = await res.json();
-      chartOfAccounts = data.data || [];
-      filterCategories(); // populate based on current type
-    } catch (err) {
-      console.error("Failed to load chart of accounts:", err);
-      categorySelect.innerHTML = '<option value="">Failed to load</option>';
-    }
-  }
-
-  // ----------------------
-  // Load categories dynamically
-  // ----------------------
-  async function loadCategories() {
-    try {
-      const res = await fetch("/api/finance/categories");
-      const categories = await res.json();
-      categorySelect.innerHTML = '<option value="">Select Category</option>';
-      categories.forEach(cat => {
-        const option = document.createElement("option");
-        option.value = cat.id || cat.name;
-        option.textContent = cat.name || cat;
-        categorySelect.appendChild(option);
-      });
-    } catch (err) {
-      console.error("Failed to load categories:", err);
-      categorySelect.innerHTML = '<option value="">Failed to load</option>';
-    }
-  }
-
-  // ----------------------
-  // Filter chart of accounts by transaction type
-  // ----------------------
-  function filterCategories() {
-    const type = txnTypeSelect.value;
-    if (!type || chartOfAccounts.length === 0) return;
-
-    let accountType;
-    switch (type) {
-      case "income":
-      case "capital_revenue":
-        accountType = "revenue";
-        break;
-      case "expense":
-      case "capital_expense":
-        accountType = "expense";
-        break;
-      case "liability":
-        accountType = "liability";
-        break;
-      default:
-        accountType = null;
-    }
-
-    categorySelect.innerHTML = '<option value="">Select Category</option>';
-    chartOfAccounts
-      .filter(acc => acc.type === accountType)
-      .forEach(acc => {
-        const option = document.createElement("option");
-        option.value = acc.name; // or acc.code if you want
-        option.textContent = `${acc.code} - ${acc.name}`;
-        categorySelect.appendChild(option);
-      });
-  }
-
-  txnTypeSelect.addEventListener("change", filterCategories);
-
-  // ----------------------
-  
-
-  // ----------------------
-  // Initial load
-  // ----------------------
-  loadChartOfAccounts();
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-  feather.replace();
-  AOS.init();
 
   const revenueEl = document.getElementById("totalRevenue");
   const expensesEl = document.getElementById("totalExpenses");
@@ -479,17 +348,88 @@ document.addEventListener("DOMContentLoaded", () => {
   const balanceSheetBody = document.getElementById("balanceSheetBody");
   const assetLifecycleBody = document.getElementById("assetLifecycleBody");
 
+  const importBtn = document.getElementById("importBtn");
+  const importFile = document.getElementById("importFile");
+  const feedback = document.getElementById("feedback");
+
+  let chartOfAccounts = [];
   let lineChartInstance, pieChartInstance;
+  let transactions = []; // cache for imports
 
   // =========================
-  // Load Data from APIs
+  // Modal Logic
+  // =========================
+  openModalBtn.addEventListener("click", () => {
+    transactionModal.classList.remove("hidden");
+    loadChartOfAccounts();
+  });
+
+  cancelModalBtn.addEventListener("click", () => {
+    transactionModal.classList.add("hidden");
+    transactionForm.reset();
+  });
+
+  transactionModal.addEventListener("click", (e) => {
+    if (e.target === transactionModal) {
+      transactionModal.classList.add("hidden");
+    }
+  });
+
+  // =========================
+  // Chart of Accounts
+  // =========================
+  async function loadChartOfAccounts() {
+    try {
+      const res = await fetch("/api/finance/chart_of_accounts");
+      const data = await res.json();
+      chartOfAccounts = data.data || [];
+      filterCategories();
+    } catch (err) {
+      console.error("Failed to load chart of accounts:", err);
+      categorySelect.innerHTML = '<option value="">Failed to load</option>';
+    }
+  }
+
+  function filterCategories() {
+    const type = txnTypeSelect.value;
+    if (!type || chartOfAccounts.length === 0) return;
+
+    let accountType;
+    switch (type) {
+      case "income":
+      case "capital_revenue": accountType = "revenue"; break;
+      case "expense":
+      case "capital_expense": accountType = "expense"; break;
+      case "liability": accountType = "liability"; break;
+      default: accountType = null;
+    }
+
+    categorySelect.innerHTML = '<option value="">Select Category</option>';
+    chartOfAccounts
+      .filter(acc => acc.type === accountType)
+      .forEach(acc => {
+        const option = document.createElement("option");
+        option.value = acc.name;
+        option.textContent = `${acc.code} - ${acc.name}`;
+        categorySelect.appendChild(option);
+      });
+  }
+  txnTypeSelect.addEventListener("change", filterCategories);
+
+  // =========================
+  // API Loads
   // =========================
   async function loadTransactions() {
-    const res = await fetch("/api/finance/transactions");
-    const { data } = await res.json();
-    renderTransactions(data);
-    updateCharts(data);
-    updateSummary(data);
+    try {
+      const res = await fetch("/api/finance/transactions");
+      const { data } = await res.json();
+      transactions = data;
+      renderTransactions(data);
+      updateCharts(data);
+      updateSummary(data);
+    } catch (err) {
+      console.error("Error loading transactions:", err);
+    }
   }
 
   async function loadTrialBalance() {
@@ -540,40 +480,13 @@ document.addEventListener("DOMContentLoaded", () => {
       assetLifecycleBody.appendChild(row);
     });
   }
-// Handle form submission
-  // ----------------------
-  transactionForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const formData = {
-      date: transactionForm[0].value,
-      description: transactionForm[1].value,
-      category: transactionForm[2].value,
-      amount: parseFloat(transactionForm[3].value),
-      type: transactionForm[4].value
-    };
 
-    try {
-      const res = await fetch("/api/finance/transactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      });
-      const result = await res.json();
-      alert(result.message || "Transaction added!");
-      transactionForm.reset();
-      transactionModal.classList.add("hidden");
-      loadTransactions(); // optional: refresh table
-    } catch (err) {
-      console.error("Error adding transaction:", err);
-      alert("Failed to add transaction");
-    }
-  });
   // =========================
-  // Render Transactions
+  // Transactions Rendering
   // =========================
-  function renderTransactions(transactions) {
+  function renderTransactions(data) {
     transactionBody.innerHTML = "";
-    transactions.forEach(tx => {
+    data.forEach(tx => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td class="px-4 py-2">${tx.date}</td>
@@ -609,9 +522,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function updateCharts(transactions) {
+  function updateCharts(data) {
     const monthly = {};
-    transactions.forEach(tx => {
+    data.forEach(tx => {
       const month = tx.date.slice(0, 7);
       if (!monthly[month]) monthly[month] = { income: 0, expense: 0 };
       if (tx.type === "income") monthly[month].income += tx.amount;
@@ -625,7 +538,7 @@ document.addEventListener("DOMContentLoaded", () => {
     lineChartInstance.update();
 
     const categoryMap = {};
-    transactions.filter(tx => tx.type === "expense").forEach(tx => {
+    data.filter(tx => tx.type === "expense").forEach(tx => {
       categoryMap[tx.category] = (categoryMap[tx.category] || 0) + tx.amount;
     });
 
@@ -635,14 +548,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =========================
-  // Summary Cards
+  // Summary
   // =========================
-  function updateSummary(transactions) {
-    const income = transactions.filter(tx => tx.type === "income").reduce((s, tx) => s + tx.amount, 0);
-    const expenses = transactions.filter(tx => tx.type === "expense").reduce((s, tx) => s + tx.amount, 0);
-    const capex = transactions.filter(tx => tx.type === "capital_expense").reduce((s, tx) => s + tx.amount, 0);
-    const caprev = transactions.filter(tx => tx.type === "capital_revenue").reduce((s, tx) => s + tx.amount, 0);
-    const liabilities = transactions.filter(tx => tx.type === "liability").reduce((s, tx) => s + tx.amount, 0);
+  function updateSummary(data) {
+    const income = data.filter(tx => tx.type === "income").reduce((s, tx) => s + tx.amount, 0);
+    const expenses = data.filter(tx => tx.type === "expense").reduce((s, tx) => s + tx.amount, 0);
+    const capex = data.filter(tx => tx.type === "capital_expense").reduce((s, tx) => s + tx.amount, 0);
+    const caprev = data.filter(tx => tx.type === "capital_revenue").reduce((s, tx) => s + tx.amount, 0);
+    const liabilities = data.filter(tx => tx.type === "liability").reduce((s, tx) => s + tx.amount, 0);
 
     revenueEl.textContent = `$${income.toFixed(2)}`;
     expensesEl.textContent = `$${expenses.toFixed(2)}`;
@@ -653,90 +566,101 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =========================
-  // Init
+  // Transaction Form
   // =========================
-  initCharts();
-  loadTransactions();
-  loadTrialBalance();
-  loadBalanceSheet();
-  loadAssets();
-});
-</script>
-<script>
-
-// =========================
-// Import Transactions
-// =========================
-document.getElementById("importBtn").addEventListener("click", () => {
-  document.getElementById("importFile").click();
-});
-
-document.getElementById("importFile").addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  const ext = file.name.split(".").pop().toLowerCase();
-
-  if (ext === "csv") {
-    reader.onload = (evt) => {
-      const lines = evt.target.result.split("\n").map(l => l.split(","));
-      lines.slice(1).forEach(row => {
-        if (row.length >= 5) {
-          const [date, desc, category, amount, type] = row;
-          if (date && amount && type) {
-            transactions.push({
-              date: date.trim(),
-              desc: desc.trim(),
-              category: category.trim(),
-              amount: parseFloat(amount),
-              type: type.trim().toLowerCase()
-            });
-          }
-        }
-      });
-      refreshAfterImport();
+  transactionForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = {
+      date: transactionForm[0].value,
+      description: transactionForm[1].value,
+      category: transactionForm[2].value,
+      amount: parseFloat(transactionForm[3].value),
+      type: transactionForm[4].value
     };
-    reader.readAsText(file);
-  } else if (ext === "xlsx") {
-    reader.onload = (evt) => {
-      const data = new Uint8Array(evt.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
 
-      sheet.slice(1).forEach(row => {
-        if (row.length >= 5) {
-          const [date, desc, category, amount, type] = row;
-          if (date && amount && type) {
-            transactions.push({
-              date: date.toString().trim(),
-              desc: desc.toString().trim(),
-              category: category.toString().trim(),
-              amount: parseFloat(amount),
-              type: type.toString().toLowerCase()
-            });
-          }
-        }
+    try {
+      const res = await fetch("/api/finance/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
       });
-      refreshAfterImport();
-    };
-    reader.readAsArrayBuffer(file);
-  } else {
-    showExportFeedback("Unsupported file type. Use CSV or XLSX.");
+      const result = await res.json();
+      alert(result.message || "Transaction added!");
+      transactionForm.reset();
+      transactionModal.classList.add("hidden");
+      loadTransactions();
+    } catch (err) {
+      console.error("Error adding transaction:", err);
+      alert("Failed to add transaction");
+    }
+  });
+
+  // =========================
+  // Import
+  // =========================
+  importBtn.addEventListener("click", () => importFile.click());
+  importFile.addEventListener("change", handleImport);
+
+  function handleImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    const ext = file.name.split(".").pop().toLowerCase();
+
+    if (ext === "csv") {
+      reader.onload = (evt) => {
+        const lines = evt.target.result.split("\n").map(l => l.split(","));
+        lines.slice(1).forEach(row => {
+          if (row.length >= 5) {
+            const [date, desc, category, amount, type] = row;
+            if (date && amount && type) {
+              transactions.push({
+                date: date.trim(),
+                description: desc.trim(),
+                category: category.trim(),
+                amount: parseFloat(amount),
+                type: type.trim().toLowerCase()
+              });
+            }
+          }
+        });
+        refreshAfterImport();
+      };
+      reader.readAsText(file);
+    } else if (ext === "xlsx") {
+      reader.onload = (evt) => {
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+
+        sheet.slice(1).forEach(row => {
+          if (row.length >= 5) {
+            const [date, desc, category, amount, type] = row;
+            if (date && amount && type) {
+              transactions.push({
+                date: date.toString().trim(),
+                description: desc.toString().trim(),
+                category: category.toString().trim(),
+                amount: parseFloat(amount),
+                type: type.toString().toLowerCase()
+              });
+            }
+          }
+        });
+        refreshAfterImport();
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      showExportFeedback("Unsupported file type. Use CSV or XLSX.");
+    }
   }
-});
 
-// Helper after import
-function refreshAfterImport() {
-  renderTransactions();
-  updateSummary();
-  autoPopulateBalanceSheet();
-  autoPopulateTrialBalance();
-  updateCharts();
-  renderAssetLifecycle();
-  showExportFeedback("Transactions imported!", true);
-}
+  function refreshAfterImport() {
+    renderTransactions(transactions);
+    updateSummary(transactions);
+    updateCharts(transactions);
+    showExportFeedback("Transactions imported!", true);
+  }
 
   // =========================
   // Export Helpers
@@ -768,7 +692,7 @@ function refreshAfterImport() {
   }
 
   // =========================
-  // Export CSV
+  // Exports
   // =========================
   document.getElementById("exportCSV").addEventListener("click", () => {
     const sections = [
@@ -777,7 +701,6 @@ function refreshAfterImport() {
       { id: "balanceSheetTable", title: "Balance Sheet" },
       { id: "assetLifecycleTable", title: "Asset Lifecycle" }
     ];
-
     const csvRows = [];
     sections.forEach(section => {
       const data = extractTableData(section.id);
@@ -787,7 +710,6 @@ function refreshAfterImport() {
         csvRows.push([""]);
       }
     });
-
     if (!csvRows.length) return showExportFeedback("No data to export.");
     const csvContent = csvRows.map(r => r.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -798,9 +720,6 @@ function refreshAfterImport() {
     showExportFeedback("CSV downloaded!", true);
   });
 
-  // =========================
-  // Export Excel
-  // =========================
   document.getElementById("exportExcel").addEventListener("click", () => {
     const workbook = XLSX.utils.book_new();
     const sections = [
@@ -823,9 +742,6 @@ function refreshAfterImport() {
     showExportFeedback("Excel file downloaded!", true);
   });
 
-  // =========================
-  // Export PDF
-  // =========================
   document.getElementById("exportPDF").addEventListener("click", () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -834,14 +750,12 @@ function refreshAfterImport() {
     doc.text("Finance Report", 14, y);
     y += 10;
     showExportFeedback("Generating PDF...");
-
     const sections = [
       { id: "transactionTable", title: "Transactions" },
       { id: "trialBalanceTable", title: "Trial Balance" },
       { id: "balanceSheetTable", title: "Balance Sheet" },
       { id: "assetLifecycleTable", title: "Asset Lifecycle" }
     ];
-
     sections.forEach(section => {
       const data = extractTableData(section.id);
       if (data.length > 1) {
@@ -856,7 +770,10 @@ function refreshAfterImport() {
           styles: { fontSize: 10, cellPadding: 4 }
         });
         y = doc.lastAutoTable.finalY + 10;
-        if (y > 260) { doc.addPage(); y = 20; }
+                if (y > 260) {
+          doc.addPage();
+          y = 20;
+        }
       }
     });
 
@@ -867,10 +784,19 @@ function refreshAfterImport() {
   });
 
   // =========================
- 
+  // Final Init
+  // =========================
+  document.addEventListener("DOMContentLoaded", () => {
+    feather.replace();
+    AOS.init();
+  });
+});
 </script>
+
+
 </body>
 </html>
+
 
 
 
