@@ -28,10 +28,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, data });
     }
 
- if (req.method === "POST") {
+if (req.method === "POST") {
   const { date, description, category, amount, type } = req.body;
 
-  if (!date || !description || !amount || !type || !category) {
+  if (!date || !description || !category || !amount || !type) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
@@ -45,19 +45,23 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Invalid category selected" });
   }
 
-  // Insert transaction (category is actually account_id)
+  let debit = 0, credit = 0;
+  if (type === "expense" || type === "capital_expense") debit = amount;
+  else if (type === "income" || type === "capital_revenue") credit = amount;
+
   await client.execute({
     sql: `
       INSERT INTO finance_transactions
-      (account_id, date, description, debit, credit, amount, type)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      (account_id, date, description, debit, credit, category, amount, type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `,
     args: [
-      category,
+      category,        // account_id (MUST be a valid integer)
       date,
       description,
-      type === "expense" ? amount : 0,
-      type === "income" ? amount : 0,
+      debit,
+      credit,
+      String(category), // If you want to store account_id as text in category, otherwise NULL or a code/name
       amount,
       type,
     ],
