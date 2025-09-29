@@ -1,46 +1,35 @@
-// /api/finance/summary.js
-import { createClient } from "@libsql/client";
-
-const db = createClient({
-  url: process.env.TURSO_DB_URL,
-  authToken: process.env.TURSO_DB_AUTH_TOKEN
-});
+import { client } from "../../db.js";
 
 export default async function handler(req, res) {
   try {
-    // Revenue (sum of credits for revenue accounts)
-    const revenue = await db.execute(`
+    const revenue = await client.execute(`
       SELECT IFNULL(SUM(credit - debit), 0) AS total_revenue
       FROM trial_balance
-      WHERE type = 'revenue';
+      WHERE type='revenue';
     `);
 
-    // Expenses (sum of debits for expense accounts)
-    const expenses = await db.execute(`
+    const expenses = await client.execute(`
       SELECT IFNULL(SUM(debit - credit), 0) AS total_expenses
       FROM trial_balance
-      WHERE type = 'expense';
+      WHERE type='expense';
     `);
 
-    // Liabilities (balance of liability accounts)
-    const liabilities = await db.execute(`
+    const liabilities = await client.execute(`
       SELECT IFNULL(SUM(credit - debit), 0) AS total_liabilities
       FROM trial_balance
-      WHERE type = 'liability';
+      WHERE type='liability';
     `);
 
-    // Capital Expenses (transactions tagged as capex)
-    const capex = await db.execute(`
-      SELECT IFNULL(SUM(amount), 0) AS total_capex
+    const capex = await client.execute(`
+      SELECT IFNULL(SUM(amount),0) AS total_capex
       FROM finance_transactions
-      WHERE type = 'capital_expense';
+      WHERE type='capital_expense';
     `);
 
-    // Capital Revenue (transactions tagged as caprev)
-    const caprev = await db.execute(`
-      SELECT IFNULL(SUM(amount), 0) AS total_caprev
+    const caprev = await client.execute(`
+      SELECT IFNULL(SUM(amount),0) AS total_caprev
       FROM finance_transactions
-      WHERE type = 'capital_revenue';
+      WHERE type='capital_revenue';
     `);
 
     const totalRevenue = revenue.rows[0].total_revenue || 0;
