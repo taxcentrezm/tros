@@ -1,51 +1,41 @@
-import { client } from "../../db.js";
+import { sql } from "@libsql/client";
+
+const client = sql({
+  url: process.env.TURSO_DB_URL,
+  authToken: process.env.TURSO_DB_AUTH_TOKEN,
+});
 
 export default async function handler(req, res) {
   try {
-    const revenue = await client.execute(`
-      SELECT IFNULL(SUM(credit - debit), 0) AS total_revenue
-      FROM trial_balance
-      WHERE type='revenue';
-    `);
+    // Get the summary: total debit, total credit, balance per account
+    const result = await client.execute(
+      `
+      SELECT 
+        a.account_id,
+        COALESCE(SUM(t.debit), 0) AS total_debit,
+        COALESCE(SUM(t.credit), 0) AS total_credit,
+        COALESCE(SUM(t.debit) - SUM(t.credit), 0) AS balance
+      FROM finance_transactions t
+      INNER JOIN accounts a ON t.account_id = a.account_id
+      GROUP BY a.account_id
+      ORDER BY a.account_id
+      `
+    );
 
-    const expenses = await client.execute(`
-      SELECT IFNULL(SUM(debit - credit), 0) AS total_expenses
-      FROM trial_balance
-      WHERE type='expense';
-    `);
+    // Transform result to JSON
+    const summary = result.rows.map((row) => ({
+      account_id: row.account_id,
+      total_debit: row.total_debit,
+      total_credit: row.total_credit,
+      balance: row.balance,
+    }));
 
-    const liabilities = await client.execute(`
-      SELECT IFNULL(SUM(credit - debit), 0) AS total_liabilities
-      FROM trial_balance
-      WHERE type='liability';
-    `);
-
-    const capex = await client.execute(`
-      SELECT IFNULL(SUM(amount),0) AS total_capex
-      FROM finance_transactions
-      WHERE type='capital_expense';
-    `);
-
-    const caprev = await client.execute(`
-      SELECT IFNULL(SUM(amount),0) AS total_caprev
-      FROM finance_transactions
-      WHERE type='capital_revenue';
-    `);
-
-    const totalRevenue = revenue.rows[0].total_revenue || 0;
-    const totalExpenses = expenses.rows[0].total_expenses || 0;
-    const netProfit = totalRevenue - totalExpenses;
-
-    res.status(200).json({
-      total_revenue: totalRevenue,
-      total_expenses: totalExpenses,
-      net_profit: netProfit,
-      total_capex: capex.rows[0].total_capex || 0,
-      total_caprev: caprev.rows[0].total_caprev || 0,
-      total_liabilities: liabilities.rows[0].total_liabilities || 0
-    });
+    res.status(200).json({ summary });
   } catch (err) {
     console.error("❌ Error in /api/finance/summary:", err);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      error: "Failed to fetch finance summary",
+      details: err.message,
+    });
   }
 }
