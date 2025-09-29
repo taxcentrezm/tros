@@ -319,33 +319,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!--Each of these cards and charts pulls from aggregated totals in the database:
- frontend can now fetch data from these views via AJAX or server-side rendering<script>fetch('/api/summary_cards')
-.then(res => res.json())
-.then(data => {
-    document.getElementById('totalRevenue').textContent = `$${data.total_revenue}`;
-    document.getElementById('totalExpenses').textContent = `$${data.total_expenses}`;
-    document.getElementById('netProfit').textContent = `$${data.net_profit}`;
-    document.getElementById('totalCapex').textContent = `$${data.total_capex}`;
-    document.getElementById('totalCaprev').textContent = `$${data.total_caprev}`;
-});
-</script>-->
+<script>
+fetch('/api/finance/summary')
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('totalRevenue').textContent = `$${Number(data.total_revenue).toFixed(2)}`;
+    document.getElementById('totalExpenses').textContent = `$${Number(data.total_expenses).toFixed(2)}`;
+    document.getElementById('netProfit').textContent = `$${Number(data.net_profit).toFixed(2)}`;
+    document.getElementById('totalCapex').textContent = `$${Number(data.total_capex).toFixed(2)}`;
+    document.getElementById('totalCaprev').textContent = `$${Number(data.total_caprev).toFixed(2)}`;
+    document.getElementById('totalLiabilities').textContent = `$${Number(data.total_liabilities).toFixed(2)}`;
+  })
+  .catch(err => console.error("❌ Failed to load summary:", err));
+</script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   feather.replace();
   AOS.init();
 
-  // =========================
-  // Data Stores
-  // =========================
-  let transactions = [];
-  let trialBalanceEntries = [];
-  let balanceSheetEntries = [];
-  let assetLifecycleEntries = [];
-
-  // =========================
-  // DOM Elements
-  // =========================
   const revenueEl = document.getElementById("totalRevenue");
   const expensesEl = document.getElementById("totalExpenses");
   const profitEl = document.getElementById("netProfit");
@@ -358,97 +349,62 @@ document.addEventListener("DOMContentLoaded", () => {
   const balanceSheetBody = document.getElementById("balanceSheetBody");
   const assetLifecycleBody = document.getElementById("assetLifecycleBody");
 
-  const modal = document.getElementById("transactionModal");
-  const openBtn = document.getElementById("openModal");
-  const cancelBtn = document.getElementById("cancelModal");
-  const form = document.getElementById("transactionForm");
-
-  const feedback = document.getElementById("exportFeedback");
-
   let lineChartInstance, pieChartInstance;
 
   // =========================
-  // Modal Controls
+  // Load Data from APIs
   // =========================
-  openBtn.addEventListener("click", () => modal.classList.remove("hidden"));
-  cancelBtn.addEventListener("click", () => modal.classList.add("hidden"));
-
-  // =========================
-  // Add Transaction
-  // =========================
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const inputs = form.querySelectorAll("input, select");
-    const [date, desc, category, amountInput, type] = Array.from(inputs).map(i => i.value);
-    const amount = parseFloat(amountInput);
-
-    transactions.push({ date, desc, category, amount, type });
-    form.reset();
-    modal.classList.add("hidden");
-
-    renderTransactions();
-    updateSummary();
-    autoPopulateBalanceSheet();
-    autoPopulateTrialBalance();
-    updateCharts();
-    renderAssetLifecycle();
-  });
-
-  // =========================
-  // Render Functions
-  // =========================
-  function renderTransactions() {
-    transactionBody.innerHTML = "";
-    transactions.forEach(tx => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td class="px-4 py-2">${tx.date}</td>
-        <td class="px-4 py-2">${tx.desc}</td>
-        <td class="px-4 py-2">${tx.category}</td>
-        <td class="px-4 py-2">$${tx.amount.toFixed(2)}</td>
-        <td class="px-4 py-2">${tx.type.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase())}</td>
-      `;
-      transactionBody.appendChild(row);
-    });
+  async function loadTransactions() {
+    const res = await fetch("/api/finance/transactions");
+    const { data } = await res.json();
+    renderTransactions(data);
+    updateCharts(data);
+    updateSummary(data);
   }
 
-  function renderTrialBalance() {
+  async function loadTrialBalance() {
+    const res = await fetch("/api/finance/trial-balance");
+    const { data } = await res.json();
     trialBalanceBody.innerHTML = "";
-    trialBalanceEntries.forEach(entry => {
+    data.forEach(entry => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td class="px-4 py-2">${entry.account}</td>
-        <td class="px-4 py-2">$${entry.debit.toFixed(2)}</td>
-        <td class="px-4 py-2">$${entry.credit.toFixed(2)}</td>
-        <td class="px-4 py-2">${entry.year}</td>
+        <td class="px-4 py-2">$${Number(entry.debit).toFixed(2)}</td>
+        <td class="px-4 py-2">$${Number(entry.credit).toFixed(2)}</td>
+        <td class="px-4 py-2">${entry.fiscal_year}</td>
       `;
       trialBalanceBody.appendChild(row);
     });
   }
 
-  function renderBalanceSheet() {
+  async function loadBalanceSheet() {
+    const res = await fetch("/api/finance/balance-sheet");
+    const { data } = await res.json();
     balanceSheetBody.innerHTML = "";
-    balanceSheetEntries.forEach(entry => {
+    data.forEach(entry => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td class="px-4 py-2">${entry.fiscal_year}</td>
-        <td class="px-4 py-2">$${entry.assets.toFixed(2)}</td>
-        <td class="px-4 py-2">$${entry.liabilities.toFixed(2)}</td>
-        <td class="px-4 py-2">$${entry.equity.toFixed(2)}</td>
+        <td class="px-4 py-2">$${Number(entry.assets).toFixed(2)}</td>
+        <td class="px-4 py-2">$${Number(entry.liabilities).toFixed(2)}</td>
+        <td class="px-4 py-2">$${Number(entry.equity).toFixed(2)}</td>
       `;
       balanceSheetBody.appendChild(row);
     });
   }
 
-  function renderAssetLifecycle() {
+  async function loadAssets() {
+    const res = await fetch("/api/finance/assets");
+    const { data } = await res.json();
     assetLifecycleBody.innerHTML = "";
-    calculateAssetGainsLosses().forEach(asset => {
+    data.forEach(asset => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td class="px-4 py-2">${asset.category}</td>
-        <td class="px-4 py-2">$${asset.purchase.toFixed(2)}</td>
-        <td class="px-4 py-2">$${asset.sale.toFixed(2)}</td>
-        <td class="px-4 py-2">$${asset.result.toFixed(2)}</td>
+        <td class="px-4 py-2">$${Number(asset.purchase).toFixed(2)}</td>
+        <td class="px-4 py-2">$${Number(asset.sale).toFixed(2)}</td>
+        <td class="px-4 py-2">$${Number(asset.gain_loss).toFixed(2)}</td>
         <td class="px-4 py-2">${asset.status}</td>
       `;
       assetLifecycleBody.appendChild(row);
@@ -456,81 +412,21 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =========================
-  // Calculations
+  // Render Transactions
   // =========================
-  function calculateAssetGainsLosses() {
-    const purchasedAssets = transactions
-      .filter(tx => tx.type === "capital_expense")
-      .map(tx => ({ category: tx.category, amount: tx.amount }));
-
-    const soldAssets = transactions
-      .filter(tx => tx.type === "asset_sale")
-      .map(tx => ({ category: tx.category, amount: tx.amount }));
-
-    const results = [];
-    soldAssets.forEach(sale => {
-      const match = purchasedAssets.find(p => p.category === sale.category);
-      if (match) {
-        const gainLoss = sale.amount - match.amount;
-        results.push({
-          category: sale.category,
-          purchase: match.amount,
-          sale: sale.amount,
-          result: gainLoss,
-          status: gainLoss > 0 ? "Gain" : gainLoss < 0 ? "Loss" : "Break-even"
-        });
-      }
-    });
-    return results;
-  }
-
-  function updateSummary() {
-    const income = transactions.filter(tx => tx.type === "income").reduce((s, tx) => s + tx.amount, 0);
-    const expenses = transactions.filter(tx => tx.type === "expense").reduce((s, tx) => s + tx.amount, 0);
-    const capex = transactions.filter(tx => tx.type === "capital_expense").reduce((s, tx) => s + tx.amount, 0);
-    const caprev = transactions.filter(tx => tx.type === "capital_revenue").reduce((s, tx) => s + tx.amount, 0);
-    const liabilities = transactions.filter(tx => tx.type === "liability").reduce((s, tx) => s + tx.amount, 0);
-
-    const profit = income - expenses;
-
-    revenueEl.textContent = `$${income.toFixed(2)}`;
-    expensesEl.textContent = `$${expenses.toFixed(2)}`;
-    profitEl.textContent = `$${profit.toFixed(2)}`;
-    capexEl.textContent = `$${capex.toFixed(2)}`;
-    caprevEl.textContent = `$${caprev.toFixed(2)}`;
-    liabilitiesEl.textContent = `$${liabilities.toFixed(2)}`;
-  }
-
-  function autoPopulateBalanceSheet() {
-    const fiscalYear = new Date().getFullYear();
-    const assets = transactions.filter(tx => tx.type === "capital_expense").reduce((s, tx) => s + tx.amount, 0);
-    const liabilities = transactions.filter(tx => tx.type === "liability").reduce((s, tx) => s + tx.amount, 0);
-    const caprev = transactions.filter(tx => tx.type === "capital_revenue").reduce((s, tx) => s + tx.amount, 0);
-
-    balanceSheetEntries = [{
-      fiscal_year: fiscalYear,
-      assets,
-      liabilities,
-      equity: assets - liabilities + caprev
-    }];
-    renderBalanceSheet();
-  }
-
-  function autoPopulateTrialBalance() {
-    const fiscalYear = new Date().getFullYear();
-    trialBalanceEntries = [];
-
+  function renderTransactions(transactions) {
+    transactionBody.innerHTML = "";
     transactions.forEach(tx => {
-      if (tx.type === "capital_expense") {
-        trialBalanceEntries.push({ account: "Fixed Assets", debit: tx.amount, credit: 0, year: fiscalYear });
-      } else if (tx.type === "capital_revenue") {
-        trialBalanceEntries.push({ account: "Capital Revenue", debit: 0, credit: tx.amount, year: fiscalYear });
-      } else if (tx.type === "liability") {
-        trialBalanceEntries.push({ account: "Liabilities", debit: 0, credit: tx.amount, year: fiscalYear });
-      }
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td class="px-4 py-2">${tx.date}</td>
+        <td class="px-4 py-2">${tx.description}</td>
+        <td class="px-4 py-2">${tx.category}</td>
+        <td class="px-4 py-2">$${Number(tx.amount).toFixed(2)}</td>
+        <td class="px-4 py-2">${tx.type}</td>
+      `;
+      transactionBody.appendChild(row);
     });
-
-    renderTrialBalance();
   }
 
   // =========================
@@ -554,16 +450,13 @@ document.addEventListener("DOMContentLoaded", () => {
       data: { labels: [], datasets: [{ data: [], backgroundColor: ["#fbbf24","#f87171","#60a5fa","#34d399","#c084fc"] }]},
       options: { responsive: true, plugins: { legend: { position: "bottom" } } }
     });
-
-    updateCharts();
   }
 
-  function updateCharts() {
+  function updateCharts(transactions) {
     const monthly = {};
     transactions.forEach(tx => {
       const month = tx.date.slice(0, 7);
       if (!monthly[month]) monthly[month] = { income: 0, expense: 0 };
-
       if (tx.type === "income") monthly[month].income += tx.amount;
       if (tx.type === "expense") monthly[month].expense += tx.amount;
     });
@@ -583,6 +476,36 @@ document.addEventListener("DOMContentLoaded", () => {
     pieChartInstance.data.datasets[0].data = Object.values(categoryMap);
     pieChartInstance.update();
   }
+
+  // =========================
+  // Summary Cards
+  // =========================
+  function updateSummary(transactions) {
+    const income = transactions.filter(tx => tx.type === "income").reduce((s, tx) => s + tx.amount, 0);
+    const expenses = transactions.filter(tx => tx.type === "expense").reduce((s, tx) => s + tx.amount, 0);
+    const capex = transactions.filter(tx => tx.type === "capital_expense").reduce((s, tx) => s + tx.amount, 0);
+    const caprev = transactions.filter(tx => tx.type === "capital_revenue").reduce((s, tx) => s + tx.amount, 0);
+    const liabilities = transactions.filter(tx => tx.type === "liability").reduce((s, tx) => s + tx.amount, 0);
+
+    revenueEl.textContent = `$${income.toFixed(2)}`;
+    expensesEl.textContent = `$${expenses.toFixed(2)}`;
+    profitEl.textContent = `$${(income - expenses).toFixed(2)}`;
+    capexEl.textContent = `$${capex.toFixed(2)}`;
+    caprevEl.textContent = `$${caprev.toFixed(2)}`;
+    liabilitiesEl.textContent = `$${liabilities.toFixed(2)}`;
+  }
+
+  // =========================
+  // Init
+  // =========================
+  initCharts();
+  loadTransactions();
+  loadTrialBalance();
+  loadBalanceSheet();
+  loadAssets();
+});
+</script>
+<script>
 
 // =========================
 // Import Transactions
@@ -794,3 +717,4 @@ function refreshAfterImport() {
 </script>
 </body>
 </html>
+
