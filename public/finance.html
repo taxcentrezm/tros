@@ -457,7 +457,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return alert("Please fill in all required fields and select a valid category!");
     }
 
-    const formData = { date, description, amount, type, account_id };
+  const formData = { date, description, amount, type, category: account_id };
+
 
     try {
       const res = await fetch("/api/finance/transactions", {
@@ -855,6 +856,7 @@ liabilitiesEl.textContent = `K${liabilities.toFixed(2)}`;
 
 </body>
 </html>
+
 
 
 
