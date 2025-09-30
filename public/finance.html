@@ -482,43 +482,14 @@ const formData = { date, description, amount, type, account_id, category };
     }
   });
 
-  // =========================
-  // Load Transactions
-  // =========================
-  async function loadTransactions() {
-    try {
-      const res = await fetch("/api/finance/transactions");
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Failed to load transactions");
-      transactions = result.data || [];
-      renderTransactions(transactions);
-    } catch (err) {
-      console.error("Error loading transactions:", err);
-    }
-  }
-
-  function renderTransactions(data) {
-    transactionBody.innerHTML = "";
-    data.forEach(tx => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${tx.date}</td>
-        <td>${tx.description}</td>
-        <td>${tx.category || tx.category}</td>
-        <td>$${Number(tx.amount).toFixed(2)}</td>
-        <td>${tx.type}</td>
-      `;
-      transactionBody.appendChild(row);
-    });
-  }
-
-  // =========================
-  // Initialize
-  // =========================
-  loadChartOfAccounts().then(loadTransactions);
-
-
 document.addEventListener("DOMContentLoaded", () => {
+  // =========================
+  // Global Variables
+  // =========================
+  let transactions = [];
+  let lineChartInstance;
+  let pieChartInstance;
+
   // =========================
   // DOM References
   // =========================
@@ -534,14 +505,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const caprevEl = document.getElementById("totalCaprev");
   const liabilitiesEl = document.getElementById("totalLiabilities");
 
-  let transactions = [];
-
   // =========================
   // Chart Initialization
   // =========================
-  let lineChartInstance;
-  let pieChartInstance;
-
   function initCharts() {
     const lineCtx = document.getElementById("lineChart").getContext("2d");
     const pieCtx = document.getElementById("pieChart").getContext("2d");
@@ -591,6 +557,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // =========================
+  // Update Charts
+  // =========================
   function updateCharts(data) {
     if (!lineChartInstance || !pieChartInstance) return;
 
@@ -618,6 +587,28 @@ document.addEventListener("DOMContentLoaded", () => {
     pieChartInstance.data.datasets[0].data = Object.values(categoryMap);
     pieChartInstance.update();
   }
+
+  // =========================
+  // Update Summary Cards
+  // =========================
+  function updateSummary(data) {
+    const income = data.filter(tx => ["income", "capital_revenue"].includes(tx.type)).reduce((s, tx) => s + tx.amount, 0);
+    const expenses = data.filter(tx => ["expense", "capital_expense"].includes(tx.type)).reduce((s, tx) => s + tx.amount, 0);
+    const capex = data.filter(tx => tx.type === "capital_expense").reduce((s, tx) => s + tx.amount, 0);
+    const caprev = data.filter(tx => tx.type === "capital_revenue").reduce((s, tx) => s + tx.amount, 0);
+    const liabilities = data.filter(tx => tx.type === "liability").reduce((s, tx) => s + tx.amount, 0);
+
+    if (revenueEl) revenueEl.textContent = `ZMW ${income.toFixed(2)}`;
+    if (expensesEl) expensesEl.textContent = `ZMW ${expenses.toFixed(2)}`;
+    if (profitEl) profitEl.textContent = `ZMW ${(income - expenses).toFixed(2)}`;
+    if (capexEl) capexEl.textContent = `ZMW ${capex.toFixed(2)}`;
+    if (caprevEl) caprevEl.textContent = `ZMW ${caprev.toFixed(2)}`;
+    if (liabilitiesEl) liabilitiesEl.textContent = `ZMW ${liabilities.toFixed(2)}`;
+  }
+
+  // =========================
+  // Render Transactions
+  // =========================
   function renderTransactions(data) {
     transactionBody.innerHTML = "";
     data.forEach(tx => {
@@ -634,36 +625,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =========================
-  // Update Summary Cards
-  // =========================
-  function updateSummary(data) {
-    const income = data.filter(tx => ["income", "capital_revenue"].includes(tx.type))
-                       .reduce((s, tx) => s + tx.amount, 0);
-    const expenses = data.filter(tx => ["expense", "capital_expense"].includes(tx.type))
-                         .reduce((s, tx) => s + tx.amount, 0);
-    const capex = data.filter(tx => tx.type === "capital_expense")
-                      .reduce((s, tx) => s + tx.amount, 0);
-    const caprev = data.filter(tx => tx.type === "capital_revenue")
-                       .reduce((s, tx) => s + tx.amount, 0);
-    const liabilities = data.filter(tx => tx.type === "liability")
-                            .reduce((s, tx) => s + tx.amount, 0);
-
-    if (revenueEl) revenueEl.textContent = `ZMW ${income.toFixed(2)}`;
-    if (expensesEl) expensesEl.textContent = `ZMW ${expenses.toFixed(2)}`;
-    if (profitEl) profitEl.textContent = `ZMW ${(income - expenses).toFixed(2)}`;
-    if (capexEl) capexEl.textContent = `ZMW ${capex.toFixed(2)}`;
-    if (caprevEl) caprevEl.textContent = `ZMW ${caprev.toFixed(2)}`;
-    if (liabilitiesEl) liabilitiesEl.textContent = `ZMW ${liabilities.toFixed(2)}`;
-  }
-
-  // =========================
-  // Load & Render Transactions
+  // Load Transactions
   // =========================
   async function loadTransactions() {
     try {
       const res = await fetch("/api/finance/transactions");
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Failed to load transactions");
       transactions = result.data || [];
       renderTransactions(transactions);
       updateCharts(transactions);
@@ -672,7 +639,6 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error loading transactions:", err);
     }
   }
-
 
   // =========================
   // Load Financial Tables
@@ -726,58 +692,64 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // =========================
+  // =========================
+  // Export to Excel
+  // =========================
+  const exportExcelBtn = document.getElementById("exportExcel");
+  if (exportExcelBtn) {
+    exportExcelBtn.addEventListener("click", () => {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(transactions);
+      XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+      XLSX.writeFile(wb, "transactions.xlsx");
+    });
+  }
 
-// =========================
-// Exports
-// =========================
-  document.getElementById("exportExcel").addEventListener("click", () => {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(transactions);
-    XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-    XLSX.writeFile(wb, "transactions.xlsx");
-  });
+  // =========================
+  // Export to PDF
+  // =========================
+  const exportPDFBtn = document.getElementById("exportPDF");
+  if (exportPDFBtn) {
+    exportPDFBtn.addEventListener("click", () => {
+      const doc = new jsPDF.jsPDF();
+      doc.autoTable({ html: "#transactionTable" });
+      doc.save("transactions.pdf");
+    });
+  }
 
-  document.getElementById("exportPDF").addEventListener("click", () => {
-    const doc = new jsPDF.jsPDF();
-    doc.autoTable({ html: "#transactionTable" });
-    doc.save("transactions.pdf");
-  });
+  // =========================
+  // Import CSV
+  // =========================
+  const importFileInput = document.getElementById("importFile");
+  if (importFileInput) {
+    importFileInput.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-      document.getElementById("exportCSV").addEventListener("click", () => {
-    const rows = transactions.map(tx => [
-      tx.date,
-      tx.description,
-      tx.category_name || tx.category,
-      tx.amount,
-      tx.type
-    ]);
-    const csvContent = "Date,Description,Category,Amount,Type\n" + rows.map(r => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "transactions.csv";
-    link.click();
-  });
+      const text = await file.text();
+      const rows = text.split("\n").map(r => r.split(","));
+      console.log("Imported CSV rows:", rows);
+      // You can now send rows to your backend or render them
+    });
+  }
 
-
-   // =========================
-  document.addEventListener("DOMContentLoaded", () => {
+  // =========================
+  // Final Dashboard Initialization
+  // =========================
   initCharts();
   loadChartOfAccounts().then(loadTransactions);
   loadTrialBalance();
   loadBalanceSheet();
   loadAssets();
 });
-
 });
-});
-
 </script>
-
 
 
 </body>
 </html>
+
 
 
 
