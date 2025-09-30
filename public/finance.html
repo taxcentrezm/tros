@@ -673,6 +673,7 @@ const formData = { date, description, amount, type, account_id, category };
       assetLifecycleBody.appendChild(row);
     });
   }
+document.addEventListener("DOMContentLoaded", () => {
 
 // =========================
 // Exports
@@ -701,12 +702,15 @@ document.getElementById("exportPDF").addEventListener("click", () => {
   loadBalanceSheet();
   loadAssets();
 });
+});
+
 </script>
 
 
 
 </body>
 </html>
+
 
 
 
