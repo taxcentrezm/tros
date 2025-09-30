@@ -653,24 +653,6 @@ document.addEventListener("DOMContentLoaded", () => {
     pieChartInstance.data.datasets[0].data = Object.values(categoryMap);
     pieChartInstance.update();
   }
-
-  // =========================
-  // Load & Render Transactions
-  // =========================
-  async function loadTransactions() {
-    try {
-      const res = await fetch("/api/finance/transactions");
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Failed to load transactions");
-      transactions = result.data || [];
-      renderTransactions(transactions);
-      updateCharts(transactions);
-      updateSummary(transactions);
-    } catch (err) {
-      console.error("Error loading transactions:", err);
-    }
-  }
-
   function renderTransactions(data) {
     transactionBody.innerHTML = "";
     data.forEach(tx => {
@@ -708,6 +690,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (caprevEl) caprevEl.textContent = `ZMW ${caprev.toFixed(2)}`;
     if (liabilitiesEl) liabilitiesEl.textContent = `ZMW ${liabilities.toFixed(2)}`;
   }
+
+  // =========================
+  // Load & Render Transactions
+  // =========================
+  async function loadTransactions() {
+    try {
+      const res = await fetch("/api/finance/transactions");
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to load transactions");
+      transactions = result.data || [];
+      renderTransactions(transactions);
+      updateCharts(transactions);
+      updateSummary(transactions);
+    } catch (err) {
+      console.error("Error loading transactions:", err);
+    }
+  }
+
 
   // =========================
   // Load Financial Tables
@@ -796,14 +796,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
    // =========================
-  // Initialize Dashboard
-  // =========================
+  document.addEventListener("DOMContentLoaded", () => {
   initCharts();
-  loadTransactions();
+  loadChartOfAccounts().then(loadTransactions);
   loadTrialBalance();
   loadBalanceSheet();
   loadAssets();
 });
+
 });
 
 </script>
@@ -812,6 +812,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+
 
 
 
