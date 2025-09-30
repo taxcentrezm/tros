@@ -458,7 +458,8 @@ document.addEventListener("DOMContentLoaded", () => {
      
 const category_name = categorySelect.options[categorySelect.selectedIndex].text; // optional for display
 
-const formData = { date, description, amount, type, account_id, category_name };
+const formData = { date, description, amount, type, account_id, category };
+
     try {
       const res = await fetch("/api/finance/transactions", {
         method: "POST",
@@ -704,6 +705,7 @@ document.getElementById("exportPDF").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
