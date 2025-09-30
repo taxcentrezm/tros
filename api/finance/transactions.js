@@ -5,12 +5,13 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       // Fetch all transactions with account name from chart_of_accounts
       const result = await client.execute(`
-        SELECT t.transaction_id, t.date, t.description, 
-               t.category, t.amount, t.type, 
-               t.debit, t.credit, a.name AS account_name
-        FROM transactions t
-        JOIN chart_of_accounts a ON t.account_id = a.account_id
-        ORDER BY t.date DESC
+       SELECT t.transaction_id, t.date, t.description, 
+       t.category, t.type, 
+       t.debit, t.credit, a.name AS account_name
+FROM transactions t
+JOIN chart_of_accounts a ON t.account_id = a.account_id
+ORDER BY t.date DESC
+
       `);
 
       const data = result.rows.map(row => ({
