@@ -444,7 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const description = transactionForm.querySelector('input[name="description"]').value;
     const amount = parseFloat(transactionForm.querySelector('input[name="amount"]').value);
     const type = txnTypeSelect.value;
-    const account_id = parseInt(categorySelect.value);
+    const account_id = parseInt(categorySelect.value); // must match chart_of_accounts.account_id
 
     if (!date || !description || !amount || !type || !Number.isFinite(account_id)) {
       return alert("Please fill in all required fields and select a valid category!");
@@ -455,7 +455,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!selectedAccount) {
       return alert("Selected category is invalid!");
     }
-    const account_id = parseInt(categorySelect.value); // must match chart_of_accounts.account_id
+     
 const category_name = categorySelect.options[categorySelect.selectedIndex].text; // optional for display
 
 const formData = { date, description, amount, type, account_id, category_name };
@@ -704,6 +704,7 @@ document.getElementById("exportPDF").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
