@@ -504,7 +504,7 @@ const formData = { date, description, amount, type, account_id, category };
       row.innerHTML = `
         <td>${tx.date}</td>
         <td>${tx.description}</td>
-        <td>${tx.category_name || tx.category}</td>
+        <td>${tx.category || tx.category}</td>
         <td>$${Number(tx.amount).toFixed(2)}</td>
         <td>${tx.type}</td>
       `;
@@ -707,6 +707,7 @@ document.getElementById("exportPDF").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
