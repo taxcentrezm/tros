@@ -69,7 +69,7 @@ if (accountCheck.rows.length === 0) {
     description,
     debit,
     credit,
-    category_name,     // just a string, optional
+    category,     // just a string, optional
     amount,
     type,
   ],
