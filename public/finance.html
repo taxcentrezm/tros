@@ -553,75 +553,89 @@ const formData = { date, description, amount, type, account_id, category };
     });
   }
 
+ <script>
+document.addEventListener("DOMContentLoaded", () => {
   // =========================
-  // Charts Initialization
+  // DOM References
   // =========================
-let lineChartInstance;
-let pieChartInstance;
+  const transactionBody = document.getElementById("transactionBody");
+  const trialBalanceBody = document.getElementById("trialBalanceBody");
+  const balanceSheetBody = document.getElementById("balanceSheetBody");
+  const assetLifecycleBody = document.getElementById("assetLifecycleBody");
 
-function initCharts() {
-  const lineCtx = document.getElementById("lineChart").getContext("2d");
-  const pieCtx = document.getElementById("pieChart").getContext("2d");
+  const revenueEl = document.getElementById("totalRevenue");
+  const expensesEl = document.getElementById("totalExpenses");
+  const profitEl = document.getElementById("netProfit");
+  const capexEl = document.getElementById("totalCapex");
+  const caprevEl = document.getElementById("totalCaprev");
+  const liabilitiesEl = document.getElementById("totalLiabilities");
 
-  lineChartInstance = new Chart(lineCtx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "Revenue",
-          data: [],
-          borderColor: "#10b981",
-          backgroundColor: "rgba(16,185,129,0.2)",
-          fill: true,
-          tension: 0.4
-        },
-        {
-          label: "Expenses",
-          data: [],
-          borderColor: "#ef4444",
-          backgroundColor: "rgba(239,68,68,0.2)",
-          fill: true,
-          tension: 0.4
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: "bottom" }
+  let transactions = [];
+
+  // =========================
+  // Chart Initialization
+  // =========================
+  let lineChartInstance;
+  let pieChartInstance;
+
+  function initCharts() {
+    const lineCtx = document.getElementById("lineChart").getContext("2d");
+    const pieCtx = document.getElementById("pieChart").getContext("2d");
+
+    lineChartInstance = new Chart(lineCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Revenue",
+            data: [],
+            borderColor: "#10b981",
+            backgroundColor: "rgba(16,185,129,0.2)",
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: "Expenses",
+            data: [],
+            borderColor: "#ef4444",
+            backgroundColor: "rgba(239,68,68,0.2)",
+            fill: true,
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } }
       }
-    }
-  });
+    });
 
-  pieChartInstance = new Chart(pieCtx, {
-    type: "pie",
-    data: {
-      labels: [],
-      datasets: [{
-        data: [],
-        backgroundColor: ["#fbbf24", "#f87171", "#60a5fa", "#34d399", "#c084fc"]
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: "bottom" }
+    pieChartInstance = new Chart(pieCtx, {
+      type: "pie",
+      data: {
+        labels: [],
+        datasets: [{
+          data: [],
+          backgroundColor: ["#fbbf24", "#f87171", "#60a5fa", "#34d399", "#c084fc"]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } }
       }
-    }
-  });
-}
-
+    });
+  }
 
   function updateCharts(data) {
     if (!lineChartInstance || !pieChartInstance) return;
 
     const monthly = {};
     data.forEach(tx => {
-      const month = tx.date.slice(0,7);
+      const month = tx.date.slice(0, 7);
       if (!monthly[month]) monthly[month] = { income: 0, expense: 0 };
-      if (tx.type === "income" || tx.type === "capital_revenue") monthly[month].income += tx.amount;
-      if (tx.type === "expense" || tx.type === "capital_expense") monthly[month].expense += tx.amount;
+      if (["income", "capital_revenue"].includes(tx.type)) monthly[month].income += tx.amount;
+      if (["expense", "capital_expense"].includes(tx.type)) monthly[month].expense += tx.amount;
     });
 
     const months = Object.keys(monthly).sort();
@@ -631,7 +645,7 @@ function initCharts() {
     lineChartInstance.update();
 
     const categoryMap = {};
-    data.filter(tx => tx.type === "expense" || tx.type === "capital_expense").forEach(tx => {
+    data.filter(tx => ["expense", "capital_expense"].includes(tx.type)).forEach(tx => {
       const name = tx.category_name || tx.category;
       categoryMap[name] = (categoryMap[name] || 0) + tx.amount;
     });
@@ -642,54 +656,76 @@ function initCharts() {
   }
 
   // =========================
-  // Update Summary
+  // Load & Render Transactions
   // =========================
- function updateSummary(data) {
-  const income = data.filter(tx => tx.type === "income" || tx.type === "capital_revenue")
-                     .reduce((s, tx) => s + tx.amount, 0);
-  const expenses = data.filter(tx => tx.type === "expense" || tx.type === "capital_expense")
+  async function loadTransactions() {
+    try {
+      const res = await fetch("/api/finance/transactions");
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to load transactions");
+      transactions = result.data || [];
+      renderTransactions(transactions);
+      updateCharts(transactions);
+      updateSummary(transactions);
+    } catch (err) {
+      console.error("Error loading transactions:", err);
+    }
+  }
+
+  function renderTransactions(data) {
+    transactionBody.innerHTML = "";
+    data.forEach(tx => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td class="px-4 py-2">${tx.date}</td>
+        <td class="px-4 py-2">${tx.description}</td>
+        <td class="px-4 py-2">${tx.category_name || tx.category}</td>
+        <td class="px-4 py-2">ZMW ${Number(tx.amount).toFixed(2)}</td>
+        <td class="px-4 py-2">${tx.type}</td>
+      `;
+      transactionBody.appendChild(row);
+    });
+  }
+
+  // =========================
+  // Update Summary Cards
+  // =========================
+  function updateSummary(data) {
+    const income = data.filter(tx => ["income", "capital_revenue"].includes(tx.type))
                        .reduce((s, tx) => s + tx.amount, 0);
-  const capex = data.filter(tx => tx.type === "capital_expense")
-                    .reduce((s, tx) => s + tx.amount, 0);
-  const caprev = data.filter(tx => tx.type === "capital_revenue")
-                     .reduce((s, tx) => s + tx.amount, 0);
-  const liabilities = data.filter(tx => tx.type === "liability")
-                          .reduce((s, tx) => s + tx.amount, 0);
+    const expenses = data.filter(tx => ["expense", "capital_expense"].includes(tx.type))
+                         .reduce((s, tx) => s + tx.amount, 0);
+    const capex = data.filter(tx => tx.type === "capital_expense")
+                      .reduce((s, tx) => s + tx.amount, 0);
+    const caprev = data.filter(tx => tx.type === "capital_revenue")
+                       .reduce((s, tx) => s + tx.amount, 0);
+    const liabilities = data.filter(tx => tx.type === "liability")
+                            .reduce((s, tx) => s + tx.amount, 0);
 
-  // Safely get DOM elements
-  const revenueEl = document.getElementById("revenue");
-  const expensesEl = document.getElementById("expenses");
-  const profitEl = document.getElementById("profit");
-  const capexEl = document.getElementById("capex");
-  const caprevEl = document.getElementById("caprev");
-  const liabilitiesEl = document.getElementById("liabilities");
-
-  // Update only if elements exist
-  if (revenueEl) revenueEl.textContent = `ZMW ${income.toFixed(2)}`;
-  if (expensesEl) expensesEl.textContent = `ZMW ${expenses.toFixed(2)}`;
-  if (profitEl) profitEl.textContent = `ZMW ${(income - expenses).toFixed(2)}`;
-  if (capexEl) capexEl.textContent = `ZMW ${capex.toFixed(2)}`;
-  if (caprevEl) caprevEl.textContent = `ZMW ${caprev.toFixed(2)}`;
-  if (liabilitiesEl) liabilitiesEl.textContent = `ZMW ${liabilities.toFixed(2)}`;
-}
-
+    if (revenueEl) revenueEl.textContent = `ZMW ${income.toFixed(2)}`;
+    if (expensesEl) expensesEl.textContent = `ZMW ${expenses.toFixed(2)}`;
+    if (profitEl) profitEl.textContent = `ZMW ${(income - expenses).toFixed(2)}`;
+    if (capexEl) capexEl.textContent = `ZMW ${capex.toFixed(2)}`;
+    if (caprevEl) caprevEl.textContent = `ZMW ${caprev.toFixed(2)}`;
+    if (liabilitiesEl) liabilitiesEl.textContent = `ZMW ${liabilities.toFixed(2)}`;
+  }
 
   // =========================
-  // Load Trial Balance, Balance Sheet, Assets
+  // Load Financial Tables
   // =========================
   async function loadTrialBalance() {
     const res = await fetch("/api/finance/trial-balance");
     const { data } = await res.json();
     trialBalanceBody.innerHTML = "";
     data.forEach(entry => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td class="px-4 py-2">${entry.account}</td>
-        <td class="px-4 py-2">$${Number(entry.debit).toFixed(2)}</td>
-        <td class="px-4 py-2">$${Number(entry.credit).toFixed(2)}</td>
-        <td class="px-4 py-2">${entry.fiscal_year}</td>
+      trialBalanceBody.innerHTML += `
+        <tr>
+          <td class="px-4 py-2">${entry.account}</td>
+          <td class="px-4 py-2">ZMW ${Number(entry.debit).toFixed(2)}</td>
+          <td class="px-4 py-2">ZMW ${Number(entry.credit).toFixed(2)}</td>
+          <td class="px-4 py-2">${entry.fiscal_year}</td>
+        </tr>
       `;
-      trialBalanceBody.appendChild(row);
     });
   }
 
@@ -698,14 +734,14 @@ function initCharts() {
     const { data } = await res.json();
     balanceSheetBody.innerHTML = "";
     data.forEach(entry => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td class="px-4 py-2">${entry.fiscal_year}</td>
-        <td class="px-4 py-2">$${Number(entry.assets).toFixed(2)}</td>
-        <td class="px-4 py-2">$${Number(entry.liabilities).toFixed(2)}</td>
-        <td class="px-4 py-2">$${Number(entry.equity).toFixed(2)}</td>
+      balanceSheetBody.innerHTML += `
+        <tr>
+          <td class="px-4 py-2">${entry.fiscal_year}</td>
+          <td class="px-4 py-2">ZMW ${Number(entry.assets).toFixed(2)}</td>
+          <td class="px-4 py-2">ZMW ${Number(entry.liabilities).toFixed(2)}</td>
+          <td class="px-4 py-2">ZMW ${Number(entry.equity).toFixed(2)}</td>
+        </tr>
       `;
-      balanceSheetBody.appendChild(row);
     });
   }
 
@@ -714,39 +750,54 @@ function initCharts() {
     const { data } = await res.json();
     assetLifecycleBody.innerHTML = "";
     data.forEach(asset => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td class="px-4 py-2">${asset.category}</td>
-        <td class="px-4 py-2">$${Number(asset.purchase).toFixed(2)}</td>
-        <td class="px-4 py-2">$${Number(asset.sale).toFixed(2)}</td>
-        <td class="px-4 py-2">$${Number(asset.gain_loss).toFixed(2)}</td>
-        <td class="px-4 py-2">${asset.status}</td>
+      assetLifecycleBody.innerHTML += `
+        <tr>
+          <td class="px-4 py-2">${asset.category}</td>
+          <td class="px-4 py-2">ZMW ${Number(asset.purchase).toFixed(2)}</td>
+          <td class="px-4 py-2">ZMW ${Number(asset.sale).toFixed(2)}</td>
+          <td class="px-4 py-2">ZMW ${Number(asset.gain_loss).toFixed(2)}</td>
+          <td class="px-4 py-2">${asset.status}</td>
+        </tr>
       `;
-      assetLifecycleBody.appendChild(row);
     });
   }
-document.addEventListener("DOMContentLoaded", () => {
+
 
 // =========================
 // Exports
 // =========================
-// NOTE: Assuming your "Export Excel" button should run the XLSX export logic
-document.getElementById("exportExcel").addEventListener("click", () => { 
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(transactions);
-  XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-  XLSX.writeFile(wb, "transactions.xlsx");
-});
+  document.getElementById("exportExcel").addEventListener("click", () => {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(transactions);
+    XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+    XLSX.writeFile(wb, "transactions.xlsx");
+  });
 
-// NOTE: Using the ID "exportPDF" from your HTML
-document.getElementById("exportPDF").addEventListener("click", () => { 
-  const doc = new jsPDF.jsPDF();
-  doc.autoTable({ html: "#transactionTable" });
-  doc.save("transactions.pdf");
-});
+  document.getElementById("exportPDF").addEventListener("click", () => {
+    const doc = new jsPDF.jsPDF();
+    doc.autoTable({ html: "#transactionTable" });
+    doc.save("transactions.pdf");
+  });
 
-  // =========================
-  // Initialize
+      document.getElementById("exportCSV").addEventListener("click", () => {
+    const rows = transactions.map(tx => [
+      tx.date,
+      tx.description,
+      tx.category_name || tx.category,
+      tx.amount,
+      tx.type
+    ]);
+    const csvContent = "Date,Description,Category,Amount,Type\n" + rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "transactions.csv";
+    link.click();
+  });
+
+
+   // =========================
+  // Initialize Dashboard
   // =========================
   initCharts();
   loadTransactions();
@@ -762,6 +813,7 @@ document.getElementById("exportPDF").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
