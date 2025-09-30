@@ -352,10 +352,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const txnTypeSelect = document.getElementById("txnType");
   const categorySelect = document.getElementById("category");
  const category = document.getElementById("category").value;
-const revenueEl = document.getElementById("revenue");
-const expenseEl = document.getElementById("expense");
-const netEl = document.getElementById("net");
-
+ 
 
   const transactionBody = document.getElementById("transactionBody");
 
@@ -647,20 +644,35 @@ function initCharts() {
   // =========================
   // Update Summary
   // =========================
-  function updateSummary(data) {
-    const income = data.filter(tx => tx.type === "income" || tx.type === "capital_revenue").reduce((s, tx) => s + tx.amount, 0);
-    const expenses = data.filter(tx => tx.type === "expense" || tx.type === "capital_expense").reduce((s, tx) => s + tx.amount, 0);
-    const capex = data.filter(tx => tx.type === "capital_expense").reduce((s, tx) => s + tx.amount, 0);
-    const caprev = data.filter(tx => tx.type === "capital_revenue").reduce((s, tx) => s + tx.amount, 0);
-    const liabilities = data.filter(tx => tx.type === "liability").reduce((s, tx) => s + tx.amount, 0);
+ function updateSummary(data) {
+  const income = data.filter(tx => tx.type === "income" || tx.type === "capital_revenue")
+                     .reduce((s, tx) => s + tx.amount, 0);
+  const expenses = data.filter(tx => tx.type === "expense" || tx.type === "capital_expense")
+                       .reduce((s, tx) => s + tx.amount, 0);
+  const capex = data.filter(tx => tx.type === "capital_expense")
+                    .reduce((s, tx) => s + tx.amount, 0);
+  const caprev = data.filter(tx => tx.type === "capital_revenue")
+                     .reduce((s, tx) => s + tx.amount, 0);
+  const liabilities = data.filter(tx => tx.type === "liability")
+                          .reduce((s, tx) => s + tx.amount, 0);
 
-    revenueEl.textContent = `ZMW ${income.toFixed(2)}`;
-    expensesEl.textContent = `ZMW ${expenses.toFixed(2)}`;
-    profitEl.textContent = `ZMW ${(income - expenses).toFixed(2)}`;
-    capexEl.textContent = `ZMW ${capex.toFixed(2)}`;
-    caprevEl.textContent = `ZMW ${caprev.toFixed(2)}`;
-    liabilitiesEl.textContent = `ZMW ${liabilities.toFixed(2)}`;
-  }
+  // Safely get DOM elements
+  const revenueEl = document.getElementById("revenue");
+  const expensesEl = document.getElementById("expenses");
+  const profitEl = document.getElementById("profit");
+  const capexEl = document.getElementById("capex");
+  const caprevEl = document.getElementById("caprev");
+  const liabilitiesEl = document.getElementById("liabilities");
+
+  // Update only if elements exist
+  if (revenueEl) revenueEl.textContent = `ZMW ${income.toFixed(2)}`;
+  if (expensesEl) expensesEl.textContent = `ZMW ${expenses.toFixed(2)}`;
+  if (profitEl) profitEl.textContent = `ZMW ${(income - expenses).toFixed(2)}`;
+  if (capexEl) capexEl.textContent = `ZMW ${capex.toFixed(2)}`;
+  if (caprevEl) caprevEl.textContent = `ZMW ${caprev.toFixed(2)}`;
+  if (liabilitiesEl) liabilitiesEl.textContent = `ZMW ${liabilities.toFixed(2)}`;
+}
+
 
   // =========================
   // Load Trial Balance, Balance Sheet, Assets
@@ -750,6 +762,7 @@ document.getElementById("exportPDF").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
