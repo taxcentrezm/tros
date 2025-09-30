@@ -516,42 +516,7 @@ const formData = { date, description, amount, type, account_id, category };
   // Initialize
   // =========================
   loadChartOfAccounts().then(loadTransactions);
- 
 
-  // =========================
-  // Load Transactions
-  // =========================
-  async function loadTransactions() {
-    try {
-      const res = await fetch("/api/finance/transactions");
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Failed to load transactions");
-      transactions = result.data || [];
-      renderTransactions(transactions);
-      updateCharts(transactions);
-      updateSummary(transactions);
-    } catch (err) {
-      console.error("Error loading transactions:", err);
-    }
-  }
-
-  // =========================
-  // Render Transactions
-  // =========================
-  function renderTransactions(data) {
-    transactionBody.innerHTML = "";
-    data.forEach(tx => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td class="px-4 py-2">${tx.date}</td>
-        <td class="px-4 py-2">${tx.description}</td>
-        <td class="px-4 py-2">${tx.category_name || tx.category}</td>
-        <td class="px-4 py-2">$${Number(tx.amount).toFixed(2)}</td>
-        <td class="px-4 py-2">${tx.type}</td>
-      `;
-      transactionBody.appendChild(row);
-    });
-  }
 
 document.addEventListener("DOMContentLoaded", () => {
   // =========================
@@ -813,6 +778,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+
 
 
 
