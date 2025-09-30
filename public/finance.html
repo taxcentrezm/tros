@@ -556,25 +556,62 @@ const formData = { date, description, amount, type, account_id, category };
   // =========================
   // Charts Initialization
   // =========================
-  function initCharts() {
-    const lineCtx = document.getElementById("lineChart").getContext("2d");
-    const pieCtx = document.getElementById("pieChart").getContext("2d");
+let lineChartInstance;
+let pieChartInstance;
 
-    lineChartInstance = new Chart(lineCtx, {
-      type: "line",
-      data: { labels: [], datasets: [
-        { label: "Revenue", data: [], borderColor: "#10b981", backgroundColor: "rgba(16,185,129,0.2)", fill: true, tension: 0.4 },
-        { label: "Expenses", data: [], borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.2)", fill: true, tension: 0.4 }
-      ]},
-      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
-    });
+function initCharts() {
+  const lineCtx = document.getElementById("lineChart").getContext("2d");
+  const pieCtx = document.getElementById("pieChart").getContext("2d");
 
-    pieChartInstance = new Chart(pieCtx, {
-      type: "pie",
-      data: { labels: [], datasets: [{ data: [], backgroundColor: ["#fbbf24","#f87171","#60a5fa","#34d399","#c084fc"] }]},
-      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
-    });
-  }
+  lineChartInstance = new Chart(lineCtx, {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: "Revenue",
+          data: [],
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16,185,129,0.2)",
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: "Expenses",
+          data: [],
+          borderColor: "#ef4444",
+          backgroundColor: "rgba(239,68,68,0.2)",
+          fill: true,
+          tension: 0.4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" }
+      }
+    }
+  });
+
+  pieChartInstance = new Chart(pieCtx, {
+    type: "pie",
+    data: {
+      labels: [],
+      datasets: [{
+        data: [],
+        backgroundColor: ["#fbbf24", "#f87171", "#60a5fa", "#34d399", "#c084fc"]
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" }
+      }
+    }
+  });
+}
+
 
   function updateCharts(data) {
     if (!lineChartInstance || !pieChartInstance) return;
@@ -710,6 +747,7 @@ document.getElementById("exportPDF").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
