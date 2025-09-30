@@ -351,6 +351,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const transactionForm = document.getElementById("transactionForm");
   const txnTypeSelect = document.getElementById("txnType");
   const categorySelect = document.getElementById("category");
+ const category = document.getElementById("category").value;
+
 
   const transactionBody = document.getElementById("transactionBody");
 
@@ -456,7 +458,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return alert("Selected category is invalid!");
     }
      
-const category_name = categorySelect.options[categorySelect.selectedIndex].text; // optional for display
+const category = categorySelect.options[categorySelect.selectedIndex].text; // optional for display
 
 const formData = { date, description, amount, type, account_id, category };
 
@@ -705,6 +707,7 @@ document.getElementById("exportPDF").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
