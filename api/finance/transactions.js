@@ -4,27 +4,26 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       // Fetch all transactions with account name from chart_of_accounts
-      const result = await client.execute(`
-       SELECT t.transaction_id, t.date, t.description, 
-       t.category, t.type, 
-       t.debit, t.credit, a.name AS account_name
-FROM transactions t
-JOIN chart_of_accounts a ON t.account_id = a.account_id
-ORDER BY t.date DESC
+const result = await client.execute(`
+  SELECT t.transaction_id, t.date, t.description, 
+         t.account_id, t.debit, t.credit, 
+         t.category, t.type, a.name AS account_name
+  FROM transactions t
+  JOIN chart_of_accounts a ON t.account_id = a.account_id
+  ORDER BY t.date DESC
+`);
 
-      `);
-
-      const data = result.rows.map(row => ({
-        id: row.transaction_id,
-        date: row.date,
-        description: row.description,
-        category: row.category,
-        amount: row.amount,
-        type: row.type,
-        debit: row.debit,
-        credit: row.credit,
-        account: row.account_name,
-      }));
+const data = result.rows.map(row => ({
+  id: row.transaction_id,
+  date: row.date,
+  description: row.description,
+  account_id: row.account_id,
+  debit: row.debit,
+  credit: row.credit,
+  category: row.category,
+  type: row.type,
+  account: row.account_name,
+}));
 
       return res.status(200).json({ success: true, data });
     }
