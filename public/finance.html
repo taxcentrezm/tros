@@ -627,18 +627,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // =========================
   // Load Transactions
   // =========================
-  async function loadTransactions() {
-    try {
-      const res = await fetch("/api/finance/transactions");
-      const result = await res.json();
-      transactions = result.data || [];
-      renderTransactions(transactions);
-      updateCharts(transactions);
-      updateSummary(transactions);
-    } catch (err) {
-      console.error("Error loading transactions:", err);
-    }
+  window.loadTransactions = async function () {
+  try {
+    const res = await fetch("/api/finance/transactions");
+    const result = await res.json();
+    transactions = result.data || [];
+    renderTransactions(transactions);
+    updateCharts(transactions);
+    updateSummary(transactions);
+  } catch (err) {
+    console.error("Error loading transactions:", err);
   }
+};
+
 
   // =========================
   // Load Financial Tables
@@ -749,6 +750,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+
 
 
 
