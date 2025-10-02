@@ -442,12 +442,21 @@ function generatePayslip(index) {
 
   // Employee Info
   doc.setFontSize(12);
-  doc.text(`Employee: ${emp.first_name} ${emp.last_name}`, 14, 42);
-  doc.text(`Employee ID: ${emp.id}`, 14, 48);
-  doc.text(`TPIN: ${emp.tpin || "N/A"}`, 14, 54);
-  doc.text(`NRC: ${emp.nrc || "N/A"}`, 14, 60);
-  doc.text(`Process Date: ${new Date().toLocaleDateString()}`, 14, 66);
+  const headerInfo = [
+    `Employee: ${emp.first_name} ${emp.last_name}`,
+    `Employee ID: ${empId}`,
+    `TPIN: ${emp.tpin || "N/A"}`,
+    `NRC: ${emp.nrc || "N/A"}`,
+    `Process Date: ${new Date().toLocaleDateString()}`
+  ];
+  let x = 14;
+  const gap = 38;
+  headerInfo.forEach(info => {
+    doc.text(info, x, 42);
+    x += gap;
+  });
 
+ 
   // =====================
   // Salary Table
   // =====================
@@ -455,8 +464,8 @@ function generatePayslip(index) {
 
   if (doc.autoTable) {
     doc.autoTable({
-      startY: 72,
-      head: [["Category", "% Rate", "Amount/Rate", "Total (K)"]],
+ startY: 50,
+      head: [["Category", "% Rate", "Amount Rate (K)", "Total Amount (K)"]],
       body: [
         ["Basic Pay", "-", emp.basic.toLocaleString(), emp.basic.toLocaleString()],
         ["Housing Allowance", "-", emp.housing.toLocaleString(), emp.housing.toLocaleString()],
@@ -470,34 +479,36 @@ function generatePayslip(index) {
         ["Net Pay", net.toLocaleString()]
       ],
       theme: "grid",
-      styles: { fontSize: 10, cellPadding: 4 }
-    });
-
-    // =====================
-    // Summary Table - accumulative payments to 12 months
-    // =====================
-    const startY = doc.lastAutoTable.finalY + 10;
-    const remainingMonths = 12 - (new Date().getMonth() + 1); // months remaining including current
-    const totalRemainingGross = gross * remainingMonths;
-    const totalRemainingLoan = (emp.loan || 0) * remainingMonths;
-    const totalRemainingNet = net * remainingMonths;
-
-    doc.text("Accumulative Payments for Remaining Months", 14, startY);
-    doc.autoTable({
-      startY: startY + 4,
-      head: [["Description", "Amount per Month (K)", "Remaining Months", "Total Amount (K)"]],
-      body: [
-        ["Gross Salary", gross.toLocaleString(), remainingMonths, totalRemainingGross.toLocaleString()],
-        ["Loan Deduction", (emp.loan || 0).toLocaleString(), remainingMonths, totalRemainingLoan.toLocaleString()],
-        ["Net Pay", net.toLocaleString(), remainingMonths, totalRemainingNet.toLocaleString()]
-      ],
-      theme: "grid",
-      styles: { fontSize: 10, cellPadding: 4 }
+      styles: {
+        fontSize: 10,
+        cellPadding: 4,
+      },
+      didParseCell: function (data) {
+        const col = data.column.index;
+        const row = data.row.index;
+        // Color earnings green, deductions red
+        if (row <= 4 || row === 5 || row === 9) {
+          data.cell.styles.fillColor = [200, 255, 200]; // light green for earnings
+        } else {
+          data.cell.styles.fillColor = [255, 200, 200]; // light red for deductions
+        }
+      }
     });
   }
 
-  doc.save(`${emp.id}_Payslip.pdf`);
-}
+  // Summary: accumulative payments until Dec
+  const startMonth = new Date().getMonth() + 1; // current month
+  const remainingMonths = 12 - startMonth + 1;
+  const monthlyNet = net;
+  const monthlyLoan = emp.loan || 0;
+  const totalFuture = (monthlyNet * remainingMonths) - (monthlyLoan * remainingMonths);
+
+  doc.setFontSize(10);
+  doc.text(`Summary (Remaining months until Dec): Net Pay: K ${monthlyNet.toLocaleString()} x ${remainingMonths} months = K ${(monthlyNet*remainingMonths).toLocaleString()}`, 14, doc.lastAutoTable.finalY + 10);
+  doc.text(`Loan Deduction: K ${monthlyLoan.toLocaleString()} x ${remainingMonths} months = K ${(monthlyLoan*remainingMonths).toLocaleString()}`, 14, doc.lastAutoTable.finalY + 16);
+  doc.text(`Accumulated Total: K ${totalFuture.toLocaleString()}`, 14, doc.lastAutoTable.finalY + 22);
+
+  doc.save(`${emp.Id}_Payslip.pdf`);
 
 // =============================
 // Charts
@@ -636,6 +647,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
