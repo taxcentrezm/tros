@@ -671,13 +671,11 @@ function renderDepartmentSettings() {
 // =============================
  
 document.addEventListener("DOMContentLoaded", () => {
-  // ✅ Expose to global scope
   window.onEmployeeChange = onEmployeeChange;
+  window.saveEmployeeFromForm = saveEmployeeFromForm; // ✅ this line fixes the error
 
-  // ✅ Attach form submit handler
   document.getElementById("employeeForm").addEventListener("submit", saveEmployeeFromForm);
 
-  // ✅ Load dropdowns and dashboard
   populateEmployeeDropdowns();
   renderDepartmentSettings?.();
   updateDashboard?.();
@@ -687,6 +685,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
