@@ -1,7 +1,7 @@
 // api/payroll/salaries.js
 import { client } from "../../db.js";
 
-function calculateDeductions({ basic = 0, housing = 0, transport = 0, bonus = 0, loan = 0 }) {
+function calculateDeductions({ basic = 0, housing = 0, transport = 0, bonus = 0, loan_deduction = 0 }) {
   const gross = basic + housing + transport + bonus;
   let taxable = gross;
   let paye = 0;
@@ -21,7 +21,7 @@ function calculateDeductions({ basic = 0, housing = 0, transport = 0, bonus = 0,
 
   const napsa = gross * 0.05;
   const nhima = gross * 0.01;
-  const net = gross - (paye + napsa + nhima);
+  const net = gross - (paye + napsa + nhima + loan_deduction);
 
   return { gross, net, paye, napsa, nhima };
 }
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         effective_date
       } = req.body;
 
-      // Save department-level salary structure
+      // ✅ Step 1: Save department-level salary structure
       await client.execute({
         sql: `
           INSERT INTO salaries (department, basic, housing, transport, bonus, effective_date)
@@ -73,18 +73,40 @@ export default async function handler(req, res) {
         args: [department, basic, housing, transport, bonus, effective_date]
       });
 
-      // Save employee-level salary record
-      const { gross, net, paye, napsa, nhima } = calculateDeductions({ basic, housing, transport, bonus, loan });
+      // ✅ Step 2: Auto-select current period_id
+      const today = new Date().toISOString().split("T")[0];
+      const periodRes = await client.execute({
+        sql: `
+          SELECT period_id FROM payroll_periods
+          WHERE start_date <= ? AND end_date >= ?
+          LIMIT 1
+        `,
+        args: [today, today]
+      });
 
-await client.execute({
-  sql: `
-    INSERT INTO payroll_records 
-    (employee_id, period_id, basic, housing, transport, bonus, loan, gross, net, paye, napsa, nhima, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-  `,
-  args: [employee_id, period_id, basic, housing, transport, bonus, loan, gross, net, paye, napsa, nhima]
-});
+      if (periodRes.rows.length === 0) {
+        return res.status(404).json({ error: "No active payroll period found" });
+      }
 
+      const period_id = periodRes.rows[0].period_id;
+
+      // ✅ Step 3: Save employee-level payroll record
+      const { gross, net, paye, napsa, nhima } = calculateDeductions({
+        basic,
+        housing,
+        transport,
+        bonus,
+        loan_deduction: loan
+      });
+
+      await client.execute({
+        sql: `
+          INSERT INTO payroll_records 
+          (employee_id, period_id, basic, housing, transport, bonus, loan_deduction, gross, net, paye, napsa, nhima, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `,
+        args: [employee_id, period_id, basic, housing, transport, bonus, loan, gross, net, paye, napsa, nhima]
+      });
 
       return res.status(201).json({ message: "✅ Salary structure and payroll record saved" });
     }
