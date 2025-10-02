@@ -685,7 +685,8 @@ function renderDepartmentSettings() {
  
  const onEmployeeSelectorChange = onEmployeeChange;
 document.addEventListener("DOMContentLoaded", () => {
-   populateEmployeeDropdowns();
+ window.onEmployeeChange = onEmployeeChange;  
+ populateEmployeeDropdowns();
   renderDepartmentSettings();
   updateDashboard();
  console.log("🚀 DOM ready");
@@ -696,6 +697,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
