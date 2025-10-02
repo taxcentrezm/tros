@@ -670,19 +670,24 @@ function renderDepartmentSettings() {
 // Init
 // =============================
  
- 
 document.addEventListener("DOMContentLoaded", () => {
- populateEmployeeDropdowns();
-  renderDepartmentSettings();
-  updateDashboard();
- console.log("🚀 DOM ready");
+  // ✅ Expose to global scope
+  window.onEmployeeChange = onEmployeeChange;
 
+  // ✅ Attach form submit handler
+  document.getElementById("employeeForm").addEventListener("submit", saveEmployeeFromForm);
+
+  // ✅ Load dropdowns and dashboard
+  populateEmployeeDropdowns();
+  renderDepartmentSettings?.();
+  updateDashboard?.();
+  console.log("🚀 DOM ready");
 });
-
 </script>
  
 </body>
 </html>
+
 
 
 
