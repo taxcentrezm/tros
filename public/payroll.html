@@ -242,16 +242,10 @@ async function populatePeriodDropdown() {
 document.addEventListener("DOMContentLoaded", () => {
   populatePeriodDropdown();
 });
-</script>
-
 <script>
 feather && feather.replace();
 
 document.addEventListener("DOMContentLoaded", () => {
-  // =============================
-  // Feather Icons
-  // =============================
-
   // =============================
   // Global Stores & Charts
   // =============================
@@ -277,128 +271,131 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-// =============================
-// Dropdown Logic
-// =============================
-
- const basic = parseFloat(document.getElementById("basicPay").value) || 0;
-const housing = parseFloat(document.getElementById("housingPay").value) || 0;
-const transport = parseFloat(document.getElementById("transportPay").value) || 0;
-const bonus = parseFloat(document.getElementById("bonus").value) || 0;
-const loan = parseFloat(document.getElementById("loan").value) || 0;
-const effective_date = document.getElementById("effective_date").value;
-
-function clearSelect(sel) {
-  while (sel.options.length > 1) sel.remove(1);
-}
-
-function populateEmployeeDropdowns() {
-  const idSel = document.getElementById("employee_id");
-  const nameSel = document.getElementById("full_name");
-  const tpinSel = document.getElementById("tpin");
-  const nrcSel = document.getElementById("nrc");
-
-  if (!idSel || !nameSel || !tpinSel || !nrcSel) return;
-
-  clearSelect(idSel);
-  clearSelect(nameSel);
-  clearSelect(tpinSel);
-  clearSelect(nrcSel);
-
-  employees.forEach(emp => {
-    const fullName = `${emp.first_name} ${emp.last_name}`;
-    idSel.add(new Option(emp.employee_id, emp.employee_id));
-    nameSel.add(new Option(fullName, emp.employee_id));
-    tpinSel.add(new Option(emp.tpin, emp.employee_id));
-    nrcSel.add(new Option(emp.nrc, emp.employee_id));
-  });
- console.log("🔄 Populating dropdowns...");
-
-}
-
-function syncSelects(empId) {
-  ["employee_id", "full_name", "tpin", "nrc"].forEach(id => {
-    const sel = document.getElementById(id);
-    if (sel) sel.value = empId;
-  });
-}
-
-function onEmployeeChange(e) {
-  const empId = e.target.value;
-  if (!empId) return;
-  syncSelects(empId);
-  updateEmployeeForm(empId);
-}
-
-// =============================
-// Employee Form Sync
-// =============================
-function updateEmployeeForm(empId) {
-  const emp = employees.find(e => e.employee_id === empId);
-  if (!emp) return;
-  selectedEmployeeId = empId;
-
-  syncSelects(empId);
-
-  document.getElementById("department").value = emp.department || "";
-  document.getElementById("basicPay").value = emp.basic ?? "";
-  document.getElementById("housingPay").value = emp.housing ?? "";
-  document.getElementById("transportPay").value = emp.transport ?? "";
-  document.getElementById("bonus").value = emp.bonus ?? "";
-  document.getElementById("loan").value = emp.loan ?? "";
-
-  updateDashboard();
-}
-
-// =============================
-// Add/Update Employee
-// =============================
-async function saveEmployeeFromForm(e) {
-  e && e.preventDefault();
-
-
-  const id = document.getElementById("employee_id").value || `E${Math.floor(Math.random() * 900 + 100)}`;
-  const fullNameSel = document.getElementById("full_name");
-  const nameText = fullNameSel?.selectedOptions?.[0]?.text || "";
-  let first_name = "", last_name = "";
-  if (nameText) {
-    const parts = nameText.trim().split(" ");
-    first_name = parts.shift() || "";
-    last_name = parts.join(" ") || "";
-  } else {
-    first_name = "New";
-    last_name = "Employee";
+  // =============================
+  // Utility to read form values
+  // =============================
+  function getFormValues() {
+    return {
+      basic: parseFloat(document.getElementById("basicPay")?.value) || 0,
+      housing: parseFloat(document.getElementById("housingPay")?.value) || 0,
+      transport: parseFloat(document.getElementById("transportPay")?.value) || 0,
+      bonus: parseFloat(document.getElementById("bonus")?.value) || 0,
+      loan: parseFloat(document.getElementById("loan")?.value) || 0,
+      effective_date: document.getElementById("effective_date")?.value || ""
+    };
   }
 
-  const period_id = document.getElementById("periodSelect").value;
-if (!period_id) {
-  alert("Please select a payroll period.");
-  return;
-}
+  // =============================
+  // Dropdown Logic
+  // =============================
+  function clearSelect(sel) {
+    while (sel.options.length > 1) sel.remove(1);
+  }
 
-const newEmp = {
-  employee_id,
-  department,
-  basic,
-  housing,
-  transport,
-  bonus,
-  loan,
-  effective_date,
-  period_id // ✅ manually selected
-};
+  function populateEmployeeDropdowns() {
+    const idSel = document.getElementById("employee_id");
+    const nameSel = document.getElementById("full_name");
+    const tpinSel = document.getElementById("tpin");
+    const nrcSel = document.getElementById("nrc");
 
+    if (!idSel || !nameSel || !tpinSel || !nrcSel) return;
 
-  await fetch("/api/payroll/salaries", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(newEmp)
-  });
+    clearSelect(idSel);
+    clearSelect(nameSel);
+    clearSelect(tpinSel);
+    clearSelect(nrcSel);
 
-  alert("✅ Employee and salary saved.");
-  document.getElementById("employeeForm").reset();
-}
+    employees.forEach(emp => {
+      const fullName = `${emp.first_name} ${emp.last_name}`;
+      idSel.add(new Option(emp.employee_id, emp.employee_id));
+      nameSel.add(new Option(fullName, emp.employee_id));
+      tpinSel.add(new Option(emp.tpin, emp.employee_id));
+      nrcSel.add(new Option(emp.nrc, emp.employee_id));
+    });
+    console.log("🔄 Populating dropdowns...");
+  }
 
+  function syncSelects(empId) {
+    ["employee_id", "full_name", "tpin", "nrc"].forEach(id => {
+      const sel = document.getElementById(id);
+      if (sel) sel.value = empId;
+    });
+  }
+
+  function onEmployeeChange(e) {
+    const empId = e.target.value;
+    if (!empId) return;
+    syncSelects(empId);
+    updateEmployeeForm(empId);
+  }
+
+  // =============================
+  // Employee Form Sync
+  // =============================
+  function updateEmployeeForm(empId) {
+    const emp = employees.find(e => e.employee_id === empId);
+    if (!emp) return;
+    selectedEmployeeId = empId;
+
+    syncSelects(empId);
+
+    document.getElementById("department").value = emp.department || "";
+    document.getElementById("basicPay").value = emp.basic ?? "";
+    document.getElementById("housingPay").value = emp.housing ?? "";
+    document.getElementById("transportPay").value = emp.transport ?? "";
+    document.getElementById("bonus").value = emp.bonus ?? "";
+    document.getElementById("loan").value = emp.loan ?? "";
+  }
+
+  // =============================
+  // Add/Update Employee
+  // =============================
+  async function saveEmployeeFromForm(e) {
+    e && e.preventDefault();
+
+    const id = document.getElementById("employee_id").value || `E${Math.floor(Math.random() * 900 + 100)}`;
+    const fullNameSel = document.getElementById("full_name");
+    const nameText = fullNameSel?.selectedOptions?.[0]?.text || "";
+
+    let first_name = "", last_name = "";
+    if (nameText) {
+      const parts = nameText.trim().split(" ");
+      first_name = parts.shift() || "";
+      last_name = parts.join(" ") || "";
+    } else {
+      first_name = "New";
+      last_name = "Employee";
+    }
+
+    const period_id = document.getElementById("periodSelect").value;
+    if (!period_id) {
+      alert("Please select a payroll period.");
+      return;
+    }
+
+    const values = getFormValues();
+
+    const newEmp = {
+      employee_id: id,
+      department: document.getElementById("department")?.value || "",
+      basic: values.basic,
+      housing: values.housing,
+      transport: values.transport,
+      bonus: values.bonus,
+      loan: values.loan,
+      effective_date: values.effective_date,
+      period_id
+    };
+
+    await fetch("/api/payroll/salaries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newEmp)
+    });
+
+    alert("✅ Employee and salary saved.");
+    document.getElementById("employeeForm").reset();
+  }
 
 
 // =============================
@@ -698,6 +695,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
