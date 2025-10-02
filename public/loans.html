@@ -93,7 +93,7 @@
       <option value="">-- Select Employee TPIN --</option>
     </select>
     <select id="employee_pacra" class="w-full px-4 py-2 border rounded-lg">
-      <option value="">-- Select Employee PACRA --</option>
+      <option value="">-- Select Employee NRC --</option>
     </select>
 
     <input type="number" id="loanAmount" placeholder="Loan Amount (K)" class="px-4 py-2 border rounded" required />
@@ -155,14 +155,14 @@ async function loadEmployees() {
     const idSel = document.getElementById("employee_id");
     const nameSel = document.getElementById("full_name");
     const tpinSel = document.getElementById("employee_tpin");
-    const pacraSel = document.getElementById("employee_pacra");
+    const nrcSel = document.getElementById("employee_nrc");
 
     employees.forEach(emp => {
       const fullName = `${emp.first_name} ${emp.last_name}`;
       idSel.add(new Option(emp.employee_id, emp.employee_id));
       nameSel.add(new Option(fullName, emp.employee_id));
       tpinSel.add(new Option(emp.tpin, emp.employee_id));
-      pacraSel.add(new Option(emp.pacra, emp.employee_id));
+      nrcSel.add(new Option(emp.nrc, emp.employee_id));
     });
   } catch (err) {
     console.error("Error loading employees:", err);
@@ -170,12 +170,12 @@ async function loadEmployees() {
 }
 
 function syncSelects(empId) {
-  ["employee_id","full_name","employee_tpin","employee_pacra"].forEach(id => {
+  ["employee_id","full_name","employee_tpin","employee_nrc"].forEach(id => {
     const sel = document.getElementById(id);
     if (sel) sel.value = empId;
   });
 }
-["employee_id","full_name","employee_tpin","employee_pacra"].forEach(id => {
+["employee_id","full_name","employee_tpin","employee_nrc"].forEach(id => {
   document.getElementById(id).addEventListener("change", e => syncSelects(e.target.value));
 });
 
@@ -290,6 +290,7 @@ document.getElementById("approveLoan").addEventListener("click", async () => {
 </script>
 </body>
 </html>
+
 
 
 
