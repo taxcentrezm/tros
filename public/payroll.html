@@ -347,14 +347,6 @@ function updateEmployeeForm(empId) {
 async function saveEmployeeFromForm(e) {
   e && e.preventDefault();
 
-  const periodRes = await fetch("/api/payroll/salaries");
-  const periodJson = await periodRes.json();
-  const period_id = periodJson?.period?.period_id;
-
-  if (!period_id) {
-    alert("❌ No active payroll period found.");
-    return;
-  }
 
   const id = document.getElementById("employee_id").value || `E${Math.floor(Math.random() * 900 + 100)}`;
   const fullNameSel = document.getElementById("full_name");
@@ -696,6 +688,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
