@@ -30,7 +30,15 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { date, description, amount, type, account_id, category } = req.body;
+      let { date, description, amount, type, account_id, category } = req.body;
+
+      // Type safety
+      date = typeof date === "string" ? date : new Date(date).toISOString().slice(0, 10);
+      description = String(description || "");
+      amount = Number(amount);
+      category = String(category || "");
+      type = String(type || "");
+      account_id = String(account_id || "");
 
       if (!date || !description || !amount || !type || !account_id) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -48,7 +56,6 @@ export default async function handler(req, res) {
       const debit = ["expense", "capital_expense"].includes(type) ? amount : 0;
       const credit = ["income", "capital_revenue"].includes(type) ? amount : 0;
 
-      // Insert transaction
       await client.execute({
         sql: `
           INSERT INTO transactions
@@ -58,7 +65,6 @@ export default async function handler(req, res) {
         args: [account_id, date, description, debit, credit, category, type, amount],
       });
 
-      // Insert journal entry
       const reference = `TX-${Date.now()}`;
       await client.execute({
         sql: `
@@ -78,28 +84,18 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: "Failed to retrieve journal entry ID" });
       }
 
-      // Determine counterpart account
-      let counterpart_id;
-      if (["income", "capital_revenue"].includes(type)) {
-        counterpart_id = "cash"; // income → credit revenue, debit cash
-      } else if (["expense", "capital_expense"].includes(type)) {
-        counterpart_id = "cash"; // expense → debit expense, credit cash
-      } else {
-        counterpart_id = "suspense"; // fallback
-      }
-
-      // Validate counterpart account exists
+      // Resolve counterpart account
+      const fallbackName = ["income", "capital_revenue"].includes(type) ? "cash" : "expenses";
       const counterpartCheck = await client.execute({
         sql: "SELECT account_id FROM chart_of_accounts WHERE name = ? LIMIT 1",
-        args: [counterpart_id],
+        args: [fallbackName],
       });
 
-      const counterpartAccount = counterpartCheck.rows[0]?.account_id;
-      if (!counterpartAccount) {
-        return res.status(400).json({ error: `Counterpart account '${counterpart_id}' not found` });
+      const counterpart_id = counterpartCheck.rows[0]?.account_id;
+      if (!counterpart_id) {
+        return res.status(400).json({ error: `Counterpart account '${fallbackName}' not found` });
       }
 
-      // Insert journal lines
       await client.execute({
         sql: `
           INSERT INTO journal_lines (entry_id, account_id, debit, credit)
@@ -107,7 +103,7 @@ export default async function handler(req, res) {
         `,
         args: [
           entry_id, account_id, debit, credit,
-          entry_id, counterpartAccount, credit, debit
+          entry_id, counterpart_id, credit, debit
         ],
       });
 
