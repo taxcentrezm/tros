@@ -363,20 +363,24 @@ async function saveEmployeeFromForm(e) {
     period_id
   };
 
-  try {
-    const res = await fetch("/api/payroll/salaries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newEmp)
-    });
-    if (!res.ok) throw new Error("Save failed");
-    alert("✅ Employee and salary saved.");
-    $("employeeForm")?.reset();
-    await loadEmployees();
-  } catch (err) {
-    console.error("❌ Save failed:", err);
-    alert("Failed to save employee.");
-  }
+ try {
+  const res = await fetch("/api/payroll/salaries", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(newEmp)
+  });
+
+  const text = await res.text(); // get raw response
+  if (!res.ok) throw new Error(`Save failed: ${res.status} ${text}`);
+
+  alert("✅ Employee and salary saved.");
+  $("employeeForm")?.reset();
+  await loadEmployees();
+} catch (err) {
+  console.error("❌ Save failed:", err);
+  alert("Failed to save employee. See console for details.");
+}
+
 }
 window.saveEmployeeFromForm = saveEmployeeFromForm;
 
@@ -677,6 +681,7 @@ document.addEventListener("DOMContentLoaded", async () => {
  
 </body>
 </html>
+
 
 
 
