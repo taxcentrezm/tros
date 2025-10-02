@@ -1,20 +1,64 @@
 // api/payroll/salaries.js
 import { client } from "../../db.js";
 
+function calculateDeductions({ basic = 0, housing = 0, transport = 0, bonus = 0, loan = 0 }) {
+  const gross = basic + housing + transport + bonus;
+  let taxable = gross;
+  let paye = 0;
+
+  if (taxable > 9200) {
+    paye += (taxable - 9200) * 0.37;
+    taxable = 9200;
+  }
+  if (taxable > 7100) {
+    paye += (taxable - 7100) * 0.30;
+    taxable = 7100;
+  }
+  if (taxable > 5100) {
+    paye += (taxable - 5100) * 0.20;
+    taxable = 5100;
+  }
+
+  const napsa = gross * 0.05;
+  const nhima = gross * 0.01;
+  const net = gross - (paye + napsa + nhima);
+
+  return { gross, net, paye, napsa, nhima };
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
-      const result = await client.execute(`
+      const salaries = await client.execute(`
         SELECT salary_id, department, basic, housing, transport, bonus, effective_date
         FROM salaries
         ORDER BY department
       `);
-      return res.status(200).json({ data: result.rows });
+
+      const records = await client.execute(`
+        SELECT * FROM payroll_records
+        ORDER BY created_at DESC
+      `);
+
+      return res.status(200).json({
+        salaries: salaries.rows,
+        records: records.rows
+      });
     }
 
     if (req.method === "POST") {
-      const { department, basic, housing, transport, bonus, effective_date } = req.body;
+      const {
+        employee_id,
+        department,
+        basic,
+        housing,
+        transport,
+        bonus,
+        loan,
+        effective_date
+      } = req.body;
 
+      // Save department-level salary structure
       await client.execute({
         sql: `
           INSERT INTO salaries (department, basic, housing, transport, bonus, effective_date)
@@ -26,10 +70,22 @@ export default async function handler(req, res) {
             bonus = excluded.bonus,
             effective_date = excluded.effective_date
         `,
-        args: [department, basic, housing, transport, bonus, effective_date],
+        args: [department, basic, housing, transport, bonus, effective_date]
       });
 
-      return res.status(201).json({ message: "✅ Salary structure saved successfully" });
+      // Save employee-level salary record
+      const { gross, net, paye, napsa, nhima } = calculateDeductions({ basic, housing, transport, bonus, loan });
+
+      await client.execute({
+        sql: `
+          INSERT INTO payroll_records 
+          (employee_id, department, basic, housing, transport, bonus, loan, gross, net, paye, napsa, nhima, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `,
+        args: [employee_id, department, basic, housing, transport, bonus, loan, gross, net, paye, napsa, nhima]
+      });
+
+      return res.status(201).json({ message: "✅ Salary structure and payroll record saved" });
     }
 
     return res.status(405).json({ error: "Method not allowed" });
