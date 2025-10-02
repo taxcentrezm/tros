@@ -159,21 +159,43 @@
   document.addEventListener("DOMContentLoaded", () => {
     const reportForm = document.getElementById("reportFilterForm");
     const reportTableBody = document.querySelector("#reportTable tbody");
+ 
 
-    // Sample data
-    const employees = [
-      { name: "Alice", gross: 12000, deductions: 2000},
-      { name: "Bob", gross: 9500, deductions: 1500},
-      { name: "Charlie", gross: 11000, deductions: 1800},
-    ];
+   reportForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    // Handle form submission
-    reportForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      generateReport(employees);
+  const type = document.getElementById("reportType").value;
+  const start = document.getElementById("startDate").value;
+  const end = document.getElementById("endDate").value;
+
+  try {
+    const res = await fetch("/api/payroll/salaries");
+    const json = await res.json();
+    const records = json.records || [];
+
+    // Filter by date range
+    const filtered = records.filter(rec => {
+      const date = new Date(rec.created_at);
+      return (!start || date >= new Date(start)) && (!end || date <= new Date(end));
+    });
+
+    // Map to chart-friendly format
+    const employees = filtered.map(rec => ({
+      name: rec.employee_id,
+      gross: rec.gross,
+      deductions: rec.paye + rec.napsa + rec.nhima
+    }));
+
+    generateReport(employees, type);
+  } catch (err) {
+    console.error("❌ Failed to load report data:", err);
+    alert("Could not load report data.");
+  }
 });
 
-    function generateReport(data) {
+
+    function generateReport(data, type) {
+
       // Populate summary stats
       const totalGross = data.reduce((sum, emp) => sum + emp.gross, 0);
       const totalDeductions = data.reduce((sum, emp) => sum + emp.deductions, 0);
@@ -200,21 +222,59 @@
       renderCharts(data);
 }
 
-    function renderCharts(data) {
-      const labels = data.map(emp => emp.name);
-      const netPayData = data.map(emp => emp.gross - emp.deductions);
+function renderCharts(data) {
+  const labels = data.map(emp => emp.name);
+  const gross = data.map(emp => emp.gross);
+  const net = data.map(emp => emp.gross - emp.deductions);
+  const deductions = data.map(emp => emp.deductions);
 
-      new Chart(document.getElementById("reportOverviewChart"), {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "Gross Pay",
-            data: data.map(emp => emp.gross),
-            backgroundColor: "#3b82f6"
-}]
+  if (window.reportOverviewChart) window.reportOverviewChart.destroy();
+  if (window.netPayChart) window.netPayChart.destroy();
+
+  if (type === "payroll") {
+    window.reportOverviewChart = new Chart(document.getElementById("reportOverviewChart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Gross Pay",
+          data: gross,
+          backgroundColor: "#3b82f6"
+        }]
+      }
+    });
+  }
+
+  if (type === "netpay") {
+    window.netPayChart = new Chart(document.getElementById("netPayChart"), {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Net Pay",
+          data: net,
+          borderColor: "#10b981",
+          fill: false
+        }]
+      }
+    });
+  }
+
+  if (type === "deductions") {
+    window.reportOverviewChart = new Chart(document.getElementById("reportOverviewChart"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Deductions",
+          data: deductions,
+          backgroundColor: "#ef4444"
+        }]
+      }
+    });
+  }
 }
-});
+
 
       new Chart(document.getElementById("netPayChart"), {
         type: "line",
@@ -246,3 +306,4 @@
  
 </body>
 </html>
+
