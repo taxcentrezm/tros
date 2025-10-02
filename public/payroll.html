@@ -455,7 +455,7 @@ function generatePayslip(index) {
   doc.line(14, 36, 195, 36);
 
   // Employee Info
-  doc.setFontSize(12);
+  doc.setFontSize(9);
   const headerInfo = [
     `Employee: ${emp.first_name} ${emp.last_name}`,
     `Employee ID: ${emp.employee_id}`,
@@ -510,17 +510,27 @@ function generatePayslip(index) {
     });
   }
 
-  // Summary: accumulative payments until Dec
-  const startMonth = new Date().getMonth() + 1; // current month
-  const remainingMonths = 12 - startMonth + 1;
-  const monthlyNet = net;
-  const monthlyLoan = emp.loan || 0;
-  const totalFuture = (monthlyNet * remainingMonths) - (monthlyLoan * remainingMonths);
+    // Summary Table - accumulative payments to 12 months
+    // =====================
+    const startY = doc.lastAutoTable.finalY + 10;
+    const remainingMonths = 12 - (new Date().getMonth() + 1); // months remaining including current
+    const totalRemainingGross = gross * remainingMonths;
+    const totalRemainingLoan = (emp.loan || 0) * remainingMonths;
+    const totalRemainingNet = net * remainingMonths;
 
-  doc.setFontSize(10);
-  doc.text(`Summary (Remaining months until Dec): Net Pay: K ${monthlyNet.toLocaleString()} x ${remainingMonths} months = K ${(monthlyNet*remainingMonths).toLocaleString()}`, 14, doc.lastAutoTable.finalY + 10);
-  doc.text(`Loan Deduction: K ${monthlyLoan.toLocaleString()} x ${remainingMonths} months = K ${(monthlyLoan*remainingMonths).toLocaleString()}`, 14, doc.lastAutoTable.finalY + 16);
-  doc.text(`Accumulated Total: K ${totalFuture.toLocaleString()}`, 14, doc.lastAutoTable.finalY + 22);
+    doc.text("Accumulative Payments for Remaining Months", 14, startY);
+    doc.autoTable({
+      startY: startY + 4,
+      head: [["Description", "Amount per Month (K)", "Remaining Months", "Total Amount (K)"]],
+      body: [
+        ["Gross Salary", gross.toLocaleString(), remainingMonths, totalRemainingGross.toLocaleString()],
+        ["Loan Deduction", (emp.loan || 0).toLocaleString(), remainingMonths, totalRemainingLoan.toLocaleString()],
+        ["Net Pay", net.toLocaleString(), remainingMonths, totalRemainingNet.toLocaleString()]
+      ],
+      theme: "grid",
+      styles: { fontSize: 10, cellPadding: 4 }
+    });
+  }
 
   doc.save(`${emp.employee_id}_Payslip.pdf`);
 }
@@ -661,6 +671,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
