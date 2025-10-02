@@ -3,7 +3,6 @@ import { client } from "../../db.js";
 export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
-      // Fetch all transactions with account name
       const result = await client.execute(`
         SELECT t.transaction_id, t.date, t.description,
                t.account_id, t.debit, t.credit,
@@ -33,12 +32,10 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       const { date, description, amount, type, account_id, category } = req.body;
 
-      // Validate required fields
       if (!date || !description || !amount || !type || !account_id) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Validate account_id exists
       const accountCheck = await client.execute({
         sql: "SELECT 1 FROM chart_of_accounts WHERE account_id = ? LIMIT 1",
         args: [account_id],
@@ -48,7 +45,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Invalid account_id" });
       }
 
-      // Determine debit or credit based on type
       const debit = ["expense", "capital_expense"].includes(type) ? amount : 0;
       const credit = ["income", "capital_revenue"].includes(type) ? amount : 0;
 
@@ -62,7 +58,60 @@ export default async function handler(req, res) {
         args: [account_id, date, description, debit, credit, category, type, amount],
       });
 
-      return res.status(201).json({ success: true, message: "Transaction added" });
+      // Insert journal entry
+      const reference = `TX-${Date.now()}`;
+      await client.execute({
+        sql: `
+          INSERT INTO journal_entries (date, description, reference)
+          VALUES (?, ?, ?)
+        `,
+        args: [date, description, reference],
+      });
+
+      const entryResult = await client.execute({
+        sql: "SELECT entry_id FROM journal_entries WHERE reference = ? LIMIT 1",
+        args: [reference],
+      });
+
+      const entry_id = entryResult.rows[0]?.entry_id;
+      if (!entry_id) {
+        return res.status(500).json({ error: "Failed to retrieve journal entry ID" });
+      }
+
+      // Determine counterpart account
+      let counterpart_id;
+      if (["income", "capital_revenue"].includes(type)) {
+        counterpart_id = "cash"; // income → credit revenue, debit cash
+      } else if (["expense", "capital_expense"].includes(type)) {
+        counterpart_id = "cash"; // expense → debit expense, credit cash
+      } else {
+        counterpart_id = "suspense"; // fallback
+      }
+
+      // Validate counterpart account exists
+      const counterpartCheck = await client.execute({
+        sql: "SELECT account_id FROM chart_of_accounts WHERE name = ? LIMIT 1",
+        args: [counterpart_id],
+      });
+
+      const counterpartAccount = counterpartCheck.rows[0]?.account_id;
+      if (!counterpartAccount) {
+        return res.status(400).json({ error: `Counterpart account '${counterpart_id}' not found` });
+      }
+
+      // Insert journal lines
+      await client.execute({
+        sql: `
+          INSERT INTO journal_lines (entry_id, account_id, debit, credit)
+          VALUES (?, ?, ?, ?), (?, ?, ?, ?)
+        `,
+        args: [
+          entry_id, account_id, debit, credit,
+          entry_id, counterpartAccount, credit, debit
+        ],
+      });
+
+      return res.status(201).json({ success: true, message: "Transaction and journal entry added" });
     }
 
     return res.status(405).json({ error: "Method not allowed" });
