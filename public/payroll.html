@@ -345,23 +345,35 @@ async function saveEmployeeFromForm(e) {
   const first_name = parts.shift() || "New";
   const last_name = parts.join(" ") || "Employee";
 
-  const period_id = $("periodSelect")?.value;
-  if (!period_id) {
-    alert("Please select a payroll period.");
-    return;
-  }
+ const period_id = $("periodSelect")?.value;
+if (!period_id) {
+  alert("Please select a payroll period.");
+  return;
+}
 
-  const newEmp = {
-    employee_id: id,
-    department: $("department")?.value || "",
-    basic: parseFloat($("basicPay")?.value) || 0,
-    housing: parseFloat($("housingPay")?.value) || 0,
-    transport: parseFloat($("transportPay")?.value) || 0,
-    bonus: parseFloat($("bonus")?.value) || 0,
-    loan: parseFloat($("loan")?.value) || 0,
-    effective_date: $("effective_date")?.value || "",
-    period_id
-  };
+const basic = parseFloat($("basicPay")?.value);
+const housing = parseFloat($("housingPay")?.value);
+const transport = parseFloat($("transportPay")?.value);
+const bonus = parseFloat($("bonus")?.value);
+const loan = parseFloat($("loan")?.value);
+
+if ([basic, housing, transport, bonus, loan].some(isNaN)) {
+  alert("Please enter valid numeric values for all salary fields.");
+  return;
+}
+
+const newEmp = {
+  employee_id: $("employee_id")?.value,
+  department: $("department")?.value || "",
+  basic,
+  housing,
+  transport,
+  bonus,
+  loan,
+  effective_date: $("effective_date")?.value || "",
+  period_id
+};
+
 
  try {
   const res = await fetch("/api/payroll/salaries", {
@@ -681,6 +693,7 @@ document.addEventListener("DOMContentLoaded", async () => {
  
 </body>
 </html>
+
 
 
 
