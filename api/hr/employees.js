@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const result = await client.execute(`
-        SELECT employee_id, first_name, last_name, department, status, hire_date, tpin, pacra_number
+        SELECT employee_id, first_name, last_name, department, status, hire_date, tpin, nrc
         FROM hr_employees
         ORDER BY employee_id
       `);
@@ -23,13 +23,13 @@ export default async function handler(req, res) {
         status,
         salary_grade,
         tpin,
-        pacra_number,
+        nrc,
       } = req.body;
 
       await client.execute({
         sql: `
           INSERT INTO hr_employees 
-          (first_name, last_name, gender, date_of_birth, department, hire_date, status, salary_grade, tpin, pacra_number)
+          (first_name, last_name, gender, date_of_birth, department, hire_date, status, salary_grade, tpin, nrc)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         args: [
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
           status,
           salary_grade,
           tpin,
-          pacra_number,
+          nrc,
         ],
       });
 
