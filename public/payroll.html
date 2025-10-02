@@ -388,12 +388,20 @@ function updateEmployeeForm(empId) {
   // -------------------------
   // Init
   // -------------------------
-  await loadEmployees(); // ✅ ensures employees are loaded before populating dropdowns
-  ["employee_id","full_name","tpin","nrc"].forEach(id => {
-    $(id)?.addEventListener("change", onEmployeeChange);
+ async function initPayroll() {
+  await loadEmployees();
+  ["employee_id", "full_name", "tpin", "nrc"].forEach(id => {
+    document.getElementById(id)?.addEventListener("change", onEmployeeChange);
   });
-  $("employeeForm")?.addEventListener("submit", saveEmployeeFromForm);
+  document.getElementById("employeeForm")?.addEventListener("submit", saveEmployeeFromForm);
 
+  renderDepartmentSettings?.();
+  updateDashboard?.();
+
+  console.log("🚀 Payroll page initialized");
+}
+
+document.addEventListener("DOMContentLoaded", initPayroll);
  
  
    populateEmployeeDropdowns();
@@ -701,6 +709,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
