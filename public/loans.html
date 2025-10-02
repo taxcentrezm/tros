@@ -235,11 +235,22 @@ document.getElementById("approveLoan").addEventListener("click", async () => {
   if (!lastLoan) return;
   if (!confirm("Are you sure you want to approve this loan?")) return;
 
+  const planRows = Array.from(document.querySelectorAll("#planBody tr")).map(row => {
+    const cells = row.querySelectorAll("td");
+    return {
+      month: parseInt(cells[0].textContent),
+      principal: parseFloat(cells[1].textContent.replace("K", "").trim()),
+      interest: parseFloat(cells[2].textContent.replace("K", "").trim()),
+      installment: parseFloat(cells[3].textContent.replace("K", "").trim()),
+      balance: parseFloat(cells[4].textContent.replace("K", "").trim())
+    };
+  });
+
   try {
-    await fetch("/api/loans", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
+    const res = await fetch("/api/loans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         employee_id: lastLoan.empId,
         loan_amount: lastLoan.loanAmount,
         interest_rate: lastLoan.rate,
@@ -247,10 +258,17 @@ document.getElementById("approveLoan").addEventListener("click", async () => {
         monthly_installment: lastLoan.installment,
         total_payment: lastLoan.totalPayment,
         total_interest: lastLoan.totalInterest,
-        eligibility: lastLoan.eligibility
+        eligibility: lastLoan.eligibility,
+        schedule: planRows // optional: backend can recalculate instead
       })
     });
-    alert("Loan approved and saved.");
+
+    const result = await res.json();
+    if (result.success || result.data) {
+      alert("✅ Loan approved and saved.");
+    } else {
+      alert("❌ Loan failed: " + (result.error || "Unknown error"));
+    }
   } catch (err) {
     console.error("Error approving loan:", err);
     alert("Error saving loan.");
@@ -259,3 +277,4 @@ document.getElementById("approveLoan").addEventListener("click", async () => {
 </script>
 </body>
 </html>
+
