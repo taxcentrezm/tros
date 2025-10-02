@@ -219,10 +219,10 @@
         reportTableBody.insertAdjacentHTML("beforeend", row);
 });
 
-      renderCharts(data);
+      renderCharts(data, type);
 }
 
-function renderCharts(data) {
+function renderCharts(data, type) {
   const labels = data.map(emp => emp.name);
   const gross = data.map(emp => emp.gross);
   const net = data.map(emp => emp.gross - emp.deductions);
@@ -276,18 +276,7 @@ function renderCharts(data) {
 }
 
 
-      new Chart(document.getElementById("netPayChart"), {
-        type: "line",
-        data: {
-          labels,
-          datasets: [{
-            label: "Net Pay",
-            data: netPayData,
-            borderColor: "#10b981",
-            fill: false
-}]
-}
-});
+      
 });
 
     // Export to PDF
@@ -301,12 +290,12 @@ function renderCharts(data) {
       doc.text(`Net Pay: ${document.getElementById("reportNetPay").textContent}`, 10, 50);
       doc.save("report.pdf");
 };
-});
  });
 </script>
  
 </body>
 </html>
+
 
 
 
