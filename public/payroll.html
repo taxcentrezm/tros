@@ -98,7 +98,7 @@
       <option value="">-- Select Employee TPIN --</option>
     </select>
     <select id="employee_pacra" class="w-full px-4 py-2 border rounded-lg">
-      <option value="">-- Select Employee PACRA --</option>
+      <option value="">-- Select Employee NRC --</option>
     </select>
 
     <input type="text" id="department" placeholder="Department" class="px-4 py-2 border rounded" required />
@@ -211,7 +211,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script>
-// Feather icons
+// =============================
+// Feather Icons
+// =============================
 feather && feather.replace();
 
 // =============================
@@ -221,6 +223,22 @@ let employees = [];
 let selectedEmployeeId = null;
 window.deductionChart = null;
 window.salaryChart = null;
+
+// =============================
+// Load Employees from API
+// =============================
+async function loadEmployees() {
+  try {
+    const res = await fetch("/api/hr/employees");
+    if (!res.ok) throw new Error("Failed to fetch employees");
+    const json = await res.json();
+    employees = json.data || [];
+    populateEmployeeDropdowns();
+  } catch (err) {
+    console.error("Error loading employees:", err);
+    alert("Could not load employee data.");
+  }
+}
 
 // =============================
 // Dropdown Logic
@@ -235,7 +253,7 @@ function populateEmployeeDropdowns() {
   const tpinSel = document.getElementById("tpin");
   const nrcSel = document.getElementById("nrc");
 
-  if (!idSel || !nameSel || !tpinSel || !pacraSel) return;
+  if (!idSel || !nameSel || !tpinSel || !nrcSel) return;
 
   clearSelect(idSel);
   clearSelect(nameSel);
@@ -266,21 +284,74 @@ function onEmployeeChange(e) {
 }
 
 // =============================
-// Load Employees from API
+// Employee Form Sync
 // =============================
-async function loadEmployees() {
-  try {
-    const res = await fetch("/api/hr/employees"); 
-    if (!res.ok) throw new Error("Failed to fetch employees");
-    const json = await res.json();
-    employees = json.data || [];
-    populateEmployeeDropdowns();
-  } catch (err) {
-    console.error("Error loading employees:", err);
-    alert("Could not load employee data.");
-  }
+function updateEmployeeForm(empId) {
+  const emp = employees.find(e => e.employee_id === empId);
+  if (!emp) return;
+  selectedEmployeeId = empId;
+
+  syncSelects(empId);
+
+  document.getElementById("department").value = emp.department || "";
+  document.getElementById("basicPay").value = emp.basic ?? "";
+  document.getElementById("housingPay").value = emp.housing ?? "";
+  document.getElementById("transportPay").value = emp.transport ?? "";
+  document.getElementById("bonus").value = emp.bonus ?? "";
+  document.getElementById("loan").value = emp.loan ?? "";
+
+  updateDashboard();
 }
 
+// =============================
+// Add/Update Employee
+// =============================
+function saveEmployeeFromForm(e) {
+  e && e.preventDefault();
+
+  const id = document.getElementById("employee_id").value || `E${Math.floor(Math.random() * 900 + 100)}`;
+  const fullNameSel = document.getElementById("full_name");
+  const nameText = fullNameSel?.selectedOptions?.[0]?.text || "";
+  let first_name = "", last_name = "";
+  if (nameText) {
+    const parts = nameText.trim().split(" ");
+    first_name = parts.shift() || "";
+    last_name = parts.join(" ") || "";
+  } else {
+    first_name = "New";
+    last_name = "Employee";
+  }
+
+  const tpinSel = document.getElementById("tpin");
+  const nrcSel = document.getElementById("nrc");
+
+  const newEmp = {
+    employee_id: id,
+    first_name,
+    last_name,
+    tpin: tpinSel?.selectedOptions?.[0]?.text || "",
+    nrc: nrcSel?.selectedOptions?.[0]?.text || "",
+    department: document.getElementById("department").value,
+    basic: parseFloat(document.getElementById("basicPay").value) || 0,
+    housing: parseFloat(document.getElementById("housingPay").value) || 0,
+    transport: parseFloat(document.getElementById("transportPay").value) || 0,
+    bonus: parseFloat(document.getElementById("bonus").value) || 0,
+    loan: parseFloat(document.getElementById("loan").value) || 0
+  };
+
+  const existingIndex = employees.findIndex(e => e.employee_id === id);
+  if (existingIndex >= 0) {
+    employees[existingIndex] = { ...employees[existingIndex], ...newEmp };
+  } else {
+    employees.push(newEmp);
+  }
+
+  populateEmployeeDropdowns();
+  updateEmployeeForm(id);
+
+  alert("Employee saved.");
+  document.getElementById("employeeForm").reset();
+}
 
 // =============================
 // Payroll Calculations
@@ -331,75 +402,16 @@ function calculatePayrollSummary(list) {
 }
 
 // =============================
-// Employee Form Sync
+// Init
 // =============================
-function updateEmployeeForm(empId) {
-  const emp = employees.find(e => e.employee_id === empId);
-  if (!emp) return;
-  selectedEmployeeId = empId;
-
-  syncSelects(empId);
-
-  document.getElementById("department").value = emp.department || "";
-  document.getElementById("basicPay").value = emp.basic ?? "";
-  document.getElementById("housingPay").value = emp.housing ?? "";
-  document.getElementById("transportPay").value = emp.transport ?? "";
-  document.getElementById("bonus").value = emp.bonus ?? "";
-  document.getElementById("loan").value = emp.loan ?? "";
-
-  updateDashboard();
-}
-
-// =============================
-// Add/Update Employee
-// =============================
-function saveEmployeeFromForm(e) {
-  e && e.preventDefault();
-
-  const id = document.getElementById("employee_id").value || `E${Math.floor(Math.random() * 900 + 100)}`;
-  const fullNameSel = document.getElementById("full_name");
-  const nameText = fullNameSel?.selectedOptions?.[0]?.text || "";
-  let first_name = "", last_name = "";
-  if (nameText) {
-    const parts = nameText.trim().split(" ");
-    first_name = parts.shift() || "";
-    last_name = parts.join(" ") || "";
-  } else {
-    first_name = "New";
-    last_name = "Employee";
-  }
-
-  const tpinSel = document.getElementById("tpin");
-  const pacraSel = document.getElementById("nrc");
-
-  const newEmp = {
-    employee_id: id,
-    first_name,
-    last_name,
-    tpin: tpinSel?.selectedOptions?.[0]?.text || "",
-    nrc: nrcSel?.selectedOptions?.[0]?.text || "",
-    department: document.getElementById("department").value,
-    basic: parseFloat(document.getElementById("basicPay").value) || 0,
-    housing: parseFloat(document.getElementById("housingPay").value) || 0,
-    transport: parseFloat(document.getElementById("transportPay").value) || 0,
-    bonus: parseFloat(document.getElementById("bonus").value) || 0,
-    loan: parseFloat(document.getElementById("loan").value) || 0
-  };
-
-  const existingIndex = employees.findIndex(e => e.employee_id === id);
-  if (existingIndex >= 0) {
-    employees[existingIndex] = { ...employees[existingIndex], ...newEmp };
-  } else {
-    employees.push(newEmp);
-  }
-
-  populateEmployeeDropdowns();
-  updateEmployeeForm(id);
-
-  alert("Employee saved.");
+document.addEventListener("DOMContentLoaded", () => {
+  loadEmployees();
+  ["employee_id", "full_name", "tpin", "nrc"].forEach(id => {
+    document.getElementById(id)?.addEventListener("change", onEmployeeChange);
+  });
+  document.getElementById("employeeForm")?.addEventListener("submit", saveEmployeeFromForm);
+});
  
-  document.getElementById("employeeForm").reset();
-}
 
 // =============================
 // Employee Table & Payslip
@@ -598,20 +610,15 @@ function renderDepartmentSettings() {
 // =============================
  const onEmployeeSelectorChange = onEmployeeChange;
 document.addEventListener("DOMContentLoaded", () => {
-  populateEmployeeDropdowns();
   renderDepartmentSettings();
   updateDashboard();
-
-  ["employee_id","full_name","tpin","nrc"].forEach(id => {
-    document.getElementById(id)?.addEventListener("change", onEmployeeSelectorChange);
-  });
-
-  document.getElementById("employeeForm")?.addEventListener("submit", saveEmployeeFromForm);
+ 
 });
 </script>
  
 </body>
 </html>
+
 
 
 
