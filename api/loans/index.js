@@ -39,7 +39,7 @@ module.exports = async (req, res) => {
       let q = `
         SELECT loan_id, employee_id, loan_amount, interest_rate, months,
                monthly_installment, total_payment, total_interest, eligibility, created_at
-        FROM loans
+        FROM payroll_loans
       `;
       if (employeeId) {
         params.push(employeeId);
@@ -72,7 +72,7 @@ module.exports = async (req, res) => {
       if (!Number.isFinite(annualRate) || annualRate < 0) return res.status(400).json({ error: "Invalid interest rate" });
       if (!Number.isInteger(monthsNum) || monthsNum <= 0) return res.status(400).json({ error: "Invalid months value" });
 
-      const empCheck = await pool.query("SELECT employee_id FROM employees WHERE employee_id = $1 LIMIT 1", [employee_id]);
+      const empCheck = await pool.query("SELECT employee_id FROM hr_employees WHERE employee_id = $1 LIMIT 1", [employee_id]);
       if (empCheck.rowCount === 0) return res.status(400).json({ error: "Employee not found" });
 
       const { monthlyInstallment, totalPayment, totalInterest, monthlyRate } = calculateLoan(loanAmount, annualRate, monthsNum);
