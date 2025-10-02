@@ -105,8 +105,10 @@
 <select id="nrc" class="w-full px-4 py-2 border rounded-lg">
   <option value="">-- Select Employee NRC --</option>
 </select>
-
-
+   <label for="periodSelect" class="block text-sm font-medium mb-1">Payroll Period</label>
+<select id="periodSelect" class="w-full px-3 py-2 border rounded bg-white text-sm">
+  <option value="">Select a period</option>
+</select>
     <input type="text" id="department" placeholder="Department" class="px-4 py-2 border rounded" required />
     <input type="number" id="basicPay" placeholder="Basic Pay" class="px-4 py-2 border rounded" required />
     <input type="number" id="housingPay" placeholder="Housing Allowance" class="px-4 py-2 border rounded" />
@@ -215,6 +217,32 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+async function populatePeriodDropdown() {
+  try {
+    const res = await fetch("/api/payroll/salaries");
+    const json = await res.json();
+    const periods = json.periods || [];
+
+    const select = document.getElementById("periodSelect");
+    select.innerHTML = `<option value="">Select a period</option>`;
+
+    periods.forEach(p => {
+      const label = `${p.period_year}-${String(p.period_month).padStart(2, "0")} (${p.start_date} to ${p.end_date})`;
+      const opt = document.createElement("option");
+      opt.value = p.period_id;
+      opt.textContent = label;
+      select.appendChild(opt);
+    });
+  } catch (err) {
+    console.error("❌ Failed to load periods:", err);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  populatePeriodDropdown();
+});
+</script>
 
 <script>
 // =============================
@@ -341,20 +369,24 @@ async function saveEmployeeFromForm(e) {
     last_name = "Employee";
   }
 
-  const newEmp = {
-    employee_id: id,
-    first_name,
-    last_name,
-    tpin: document.getElementById("tpin")?.selectedOptions?.[0]?.text || "",
-    nrc: document.getElementById("nrc")?.selectedOptions?.[0]?.text || "",
-    department: document.getElementById("department").value,
-    basic: parseFloat(document.getElementById("basicPay").value) || 0,
-    housing: parseFloat(document.getElementById("housingPay").value) || 0,
-    transport: parseFloat(document.getElementById("transportPay").value) || 0,
-    bonus: parseFloat(document.getElementById("bonus").value) || 0,
-    loan: parseFloat(document.getElementById("loan").value) || 0,
-    period_id // ✅ auto-injected
-  };
+  const period_id = document.getElementById("periodSelect").value;
+if (!period_id) {
+  alert("Please select a payroll period.");
+  return;
+}
+
+const newEmp = {
+  employee_id,
+  department,
+  basic,
+  housing,
+  transport,
+  bonus,
+  loan,
+  effective_date,
+  period_id // ✅ manually selected
+};
+
 
   await fetch("/api/payroll/salaries", {
     method: "POST",
@@ -664,6 +696,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
