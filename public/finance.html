@@ -291,6 +291,57 @@
     </table>
   </div>
 </section>
+<div class="flex gap-4 mb-4">
+  <button id="toggleJournalBtn" class="bg-blue-600 text-white px-4 py-2 rounded">
+    View Journal Tables
+  </button>
+  <button id="exportJournalBtn" class="bg-green-600 text-white px-4 py-2 rounded">
+    Export Journal CSV
+  </button>
+  <label class="bg-yellow-500 text-white px-4 py-2 rounded cursor-pointer">
+    Import Journal CSV
+    <input type="file" id="importJournalInput" accept=".csv" class="hidden" />
+  </label>
+</div>
+
+<div id="journalTables" class="hidden">
+  <h2 class="text-xl font-bold mb-2">Journal Entries</h2>
+  <table id="journalEntriesTable" class="table-auto w-full border border-gray-300 mb-6">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-4 py-2 border">Entry ID</th>
+        <th class="px-4 py-2 border">Date</th>
+        <th class="px-4 py-2 border">Description</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2 class="text-xl font-bold mb-2">Journal Lines</h2>
+  <table id="journalLinesTable" class="table-auto w-full border border-gray-300">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-4 py-2 border">Line ID</th>
+        <th class="px-4 py-2 border">Entry ID</th>
+        <th class="px-4 py-2 border">Account</th>
+        <th class="px-4 py-2 border">Debit</th>
+        <th class="px-4 py-2 border">Credit</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div id="importPreviewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded shadow-lg w-full max-w-3xl">
+    <h2 class="text-lg font-bold mb-4">Preview Imported Journal Data</h2>
+    <div id="importPreviewContent" class="overflow-auto max-h-96 mb-4"></div>
+    <div class="flex justify-end gap-4">
+      <button id="confirmImportBtn" class="bg-green-600 text-white px-4 py-2 rounded">Confirm Import</button>
+      <button id="cancelImportBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button>
+    </div>
+  </div>
+</div>
 
     
 <!-- Modal -->
@@ -691,12 +742,136 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAssets();
 });
 </script>
+    <script>
+        document.getElementById("toggleJournalBtn").addEventListener("click", () => {
+  const container = document.getElementById("journalTables");
+  const isHidden = container.classList.contains("hidden");
+
+  if (isHidden) {
+    container.classList.remove("hidden");
+    loadJournalEntries();
+    loadJournalLines();
+  } else {
+    container.classList.add("hidden");
+  }
+});
+
+async function loadJournalEntries() {
+  const res = await fetch("/api/finance/journal-entries");
+  const { data } = await res.json();
+  const tbody = document.querySelector("#journalEntriesTable tbody");
+  tbody.innerHTML = "";
+
+  data.forEach(entry => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="px-4 py-2 border">${entry.entry_id}</td>
+      <td class="px-4 py-2 border">${entry.date}</td>
+      <td class="px-4 py-2 border">${entry.description}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+async function loadJournalLines() {
+  const res = await fetch("/api/finance/journal-lines");
+  const { data } = await res.json();
+  const tbody = document.querySelector("#journalLinesTable tbody");
+  tbody.innerHTML = "";
+
+  data.forEach(line => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="px-4 py-2 border">${line.line_id}</td>
+      <td class="px-4 py-2 border">${line.entry_id}</td>
+      <td class="px-4 py-2 border">${line.account}</td>
+      <td class="px-4 py-2 border">${line.debit}</td>
+      <td class="px-4 py-2 border">${line.credit}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadJournalEntries();
+  loadJournalLines();
+});
+
+let previewRows = [];
+let previewType = "";
+
+document.getElementById("importJournalInput").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const text = await file.text();
+  const rows = text.split("\n").map(r => r.split(","));
+  previewType = rows[0].includes("entry_id") ? "lines" : "entries";
+
+  previewRows = rows.map((r, i) => `<tr>${r.map(cell => `<td class="border px-2 py-1">${cell}</td>`).join("")}</tr>`).join("");
+  document.getElementById("importPreviewContent").innerHTML = `<table class="table-auto w-full border"><tbody>${previewRows}</tbody></table>`;
+  document.getElementById("importPreviewModal").classList.remove("hidden");
+});
+
+document.getElementById("cancelImportBtn").addEventListener("click", () => {
+  document.getElementById("importPreviewModal").classList.add("hidden");
+});
+
+document.getElementById("confirmImportBtn").addEventListener("click", async () => {
+  const csvText = previewRows.map(row => row.replace(/<\/?[^>]+(>|$)/g, "")).join("\n");
+
+  const res = await fetch("/api/finance/import-journal", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ csvText, type: previewType }),
+  });
+
+  const result = await res.json();
+  alert(result.success ? result.message : "Import failed: " + JSON.stringify(result.errors));
+  document.getElementById("importPreviewModal").classList.add("hidden");
+  loadJournalEntries();
+  loadJournalLines();
+});
+
+
+function exportTableToCSV(tableId, filename) {
+  const rows = document.querySelectorAll(`#${tableId} tr`);
+  const csv = Array.from(rows).map(row =>
+    Array.from(row.cells).map(cell => `"${cell.innerText}"`).join(",")
+  ).join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
+
+document.getElementById("exportJournalBtn").addEventListener("click", () => {
+  exportTableToCSV("journalEntriesTable", "journal_entries.csv");
+  exportTableToCSV("journalLinesTable", "journal_lines.csv");
+});
+document.getElementById("importJournalInput").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const text = await file.text();
+  const rows = text.split("\n").map(r => r.split(","));
+
+  console.log("Imported CSV rows:", rows);
+
+  // You can now POST these rows to /api/finance/journal-entries or journal-lines
+  // Or preview them in a modal before saving
+});
+
+    </script>
 
 
 
 
 </body>
 </html>
+
 
 
 
