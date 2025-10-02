@@ -89,7 +89,7 @@
   <main class="container mx-auto px-4 py-12">
     <!-- Employee Input Form -->
     <section class="bg-white p-6 rounded-xl shadow mb-12">
-  <form id="employeeForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 bg-white p-6 rounded-xl shadow">
+  <form id="employeeForm" onsubmit="saveEmployeeFromForm(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 bg-white p-6 rounded-xl shadow">
 <select id="employee_id" class="w-full px-4 py-2 border rounded-lg">
   <option value="">-- Select Employee ID --</option>
 </select>
@@ -341,50 +341,52 @@ document.addEventListener("DOMContentLoaded", () => {
     updateDashboard(); // redraw whatever you need
   }
 
-  // -------------------------
-  // Save employee form
-  // -------------------------
-  async function saveEmployeeFromForm(e) {
-    e && e.preventDefault();
+ // =============================
+// Save Employee Form
+// =============================
+async function saveEmployeeFromForm(e) {
+  e?.preventDefault();
 
-    const id = $("employee_id")?.value || `E${Math.floor(Math.random()*900+100)}`;
-    const fullNameSel = $("full_name");
-    const nameText = fullNameSel?.selectedOptions?.[0]?.text || "";
-    const parts = nameText.trim() ? nameText.trim().split(" ") : [];
-    const first_name = parts.length ? parts.shift() : "New";
-    const last_name = parts.length ? parts.join(" ") : "Employee";
+  const $ = id => document.getElementById(id);
+  const id = $("employee_id")?.value || `E${Math.floor(Math.random() * 900 + 100)}`;
+  const nameText = $("full_name")?.selectedOptions?.[0]?.text?.trim() || "";
+  const parts = nameText.split(" ");
+  const first_name = parts.shift() || "New";
+  const last_name = parts.join(" ") || "Employee";
 
-    const period_id = $("periodSelect")?.value;
-    if (!period_id) { alert("Please select a payroll period."); return; }
-
-    const newEmp = {
-      employee_id: id,
-      department: $("department")?.value || "",
-      basic: parseFloat($("basicPay")?.value) || 0,
-      housing: parseFloat($("housingPay")?.value) || 0,
-      transport: parseFloat($("transportPay")?.value) || 0,
-      bonus: parseFloat($("bonus")?.value) || 0,
-      loan: parseFloat($("loan")?.value) || 0,
-      effective_date: $("effective_date")?.value || "",
-      period_id
-    };
-
-    try {
-      const res = await fetch("/api/payroll/salaries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newEmp)
-      });
-      if (!res.ok) throw new Error("Save failed");
-      alert("✅ Employee and salary saved.");
-      $("employeeForm")?.reset();
-      await loadEmployees(); // refresh dropdowns
-    } catch (err) {
-      console.error("Save failed:", err);
-      alert("Failed to save employee.");
-    }
+  const period_id = $("periodSelect")?.value;
+  if (!period_id) {
+    alert("Please select a payroll period.");
+    return;
   }
 
+  const newEmp = {
+    employee_id: id,
+    department: $("department")?.value || "",
+    basic: parseFloat($("basicPay")?.value) || 0,
+    housing: parseFloat($("housingPay")?.value) || 0,
+    transport: parseFloat($("transportPay")?.value) || 0,
+    bonus: parseFloat($("bonus")?.value) || 0,
+    loan: parseFloat($("loan")?.value) || 0,
+    effective_date: $("effective_date")?.value || "",
+    period_id
+  };
+
+  try {
+    const res = await fetch("/api/payroll/salaries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newEmp)
+    });
+    if (!res.ok) throw new Error("Save failed");
+    alert("✅ Employee and salary saved.");
+    $("employeeForm")?.reset();
+    await loadEmployees(); // refresh dropdowns
+  } catch (err) {
+    console.error("❌ Save failed:", err);
+    alert("Failed to save employee.");
+  }
+}
 
 // =============================
 // Payroll Calculations
@@ -437,12 +439,14 @@ function calculatePayrollSummary(list) {
 // =============================
 // Init
 // =============================
- loadEmployees();
+document.addEventListener("DOMContentLoaded", () => {
+  loadEmployees();
   ["employee_id", "full_name", "tpin", "nrc"].forEach(id => {
     document.getElementById(id)?.addEventListener("change", onEmployeeChange);
   });
   document.getElementById("employeeForm")?.addEventListener("submit", saveEmployeeFromForm);
 });
+
  
 
 // =============================
@@ -684,6 +688,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
