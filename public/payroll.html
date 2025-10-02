@@ -88,18 +88,22 @@
     <!-- Employee Input Form -->
     <section class="bg-white p-6 rounded-xl shadow mb-12">
   <form id="employeeForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 bg-white p-6 rounded-xl shadow">
-    <select id="employee_id" class="w-full px-4 py-2 border rounded-lg">
-      <option value="">-- Select Employee ID --</option>
-    </select>
-    <select id="full_name" class="w-full px-4 py-2 border rounded-lg">
-      <option value="">-- Select Employee Name --</option>
-    </select>
-    <select id="employee_tpin" class="w-full px-4 py-2 border rounded-lg">
-      <option value="">-- Select Employee TPIN --</option>
-    </select>
-    <select id="employee_pacra" class="w-full px-4 py-2 border rounded-lg">
-      <option value="">-- Select Employee NRC --</option>
-    </select>
+<select id="employee_id" class="w-full px-4 py-2 border rounded-lg">
+  <option value="">-- Select Employee ID --</option>
+</select>
+
+<select id="full_name" class="w-full px-4 py-2 border rounded-lg">
+  <option value="">-- Select Employee Name --</option>
+</select>
+
+<select id="tpin" class="w-full px-4 py-2 border rounded-lg">
+  <option value="">-- Select Employee TPIN --</option>
+</select>
+
+<select id="nrc" class="w-full px-4 py-2 border rounded-lg">
+  <option value="">-- Select Employee NRC --</option>
+</select>
+
 
     <input type="text" id="department" placeholder="Department" class="px-4 py-2 border rounded" required />
     <input type="number" id="basicPay" placeholder="Basic Pay" class="px-4 py-2 border rounded" required />
@@ -624,6 +628,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
