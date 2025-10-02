@@ -233,14 +233,14 @@ async function loadEmployees() {
     if (!res.ok) throw new Error("Failed to fetch employees");
     const json = await res.json();
     employees = json.data || [];
+    console.log("✅ Employees loaded:", employees);
     populateEmployeeDropdowns();
-  
-  } console.log("✅ Employees loaded:", employees);
-catch (err) {
-    console.error("Error loading employees:", err);
+  } catch (err) {
+    console.error("❌ Error loading employees:", err);
     alert("Could not load employee data.");
   }
 }
+
 
 // =============================
 // Dropdown Logic
@@ -624,6 +624,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
