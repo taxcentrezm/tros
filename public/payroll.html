@@ -436,10 +436,10 @@ function generatePayslip(index) {
 
 
   doc.setFontSize(18);
-  doc.text("Acme Corporation", 14, 20);
+  doc.text("Tax Return Online Solutions", 14, 20);
   doc.setFontSize(10);
-  doc.text("123 Business Avenue, Suite 456", 14, 26);
-  doc.text("Email: hr@acmecorp.com | Tel: +123-456-7890", 14, 32);
+  doc.text("4974 Kabelenga Rd, Lusaka Zambia", 14, 26);
+  doc.text("Email: finance@tax-centre.com | Tel: +123-456-7890", 14, 32);
   doc.line(14, 36, 195, 36);
 
   const { gross, paye, napsa, nhima, net } = calculateDeductions(emp);
@@ -570,3 +570,4 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
