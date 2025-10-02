@@ -523,7 +523,7 @@ function generatePayslip(index) {
   doc.text(`Accumulated Total: K ${totalFuture.toLocaleString()}`, 14, doc.lastAutoTable.finalY + 22);
 
   doc.save(`${emp.Id}_Payslip.pdf`);
-
+}
 // =============================
 // Charts
 // =============================
@@ -661,6 +661,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
