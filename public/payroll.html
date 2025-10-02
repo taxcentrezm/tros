@@ -232,27 +232,27 @@ function clearSelect(sel) {
 function populateEmployeeDropdowns() {
   const idSel = document.getElementById("employee_id");
   const nameSel = document.getElementById("full_name");
-  const tpinSel = document.getElementById("employee_tpin");
-  const pacraSel = document.getElementById("employee_pacra");
+  const tpinSel = document.getElementById("tpin");
+  const nrcSel = document.getElementById("nrc");
 
   if (!idSel || !nameSel || !tpinSel || !pacraSel) return;
 
   clearSelect(idSel);
   clearSelect(nameSel);
   clearSelect(tpinSel);
-  clearSelect(pacraSel);
+  clearSelect(nrcSel);
 
   employees.forEach(emp => {
     const fullName = `${emp.first_name} ${emp.last_name}`;
     idSel.add(new Option(emp.employee_id, emp.employee_id));
     nameSel.add(new Option(fullName, emp.employee_id));
     tpinSel.add(new Option(emp.tpin, emp.employee_id));
-    pacraSel.add(new Option(emp.pacra, emp.employee_id));
+    nrcSel.add(new Option(emp.nrc, emp.employee_id));
   });
 }
 
 function syncSelects(empId) {
-  ["employee_id", "full_name", "employee_tpin", "employee_pacra"].forEach(id => {
+  ["employee_id", "full_name", "tpin", "nrc"].forEach(id => {
     const sel = document.getElementById(id);
     if (sel) sel.value = empId;
   });
@@ -270,7 +270,7 @@ function onEmployeeChange(e) {
 // =============================
 async function loadEmployees() {
   try {
-    const res = await fetch("/api/hr/employees");
+    const res = await fetch("/api/hr/employees"); 
     if (!res.ok) throw new Error("Failed to fetch employees");
     const json = await res.json();
     employees = json.data || [];
@@ -280,6 +280,7 @@ async function loadEmployees() {
     alert("Could not load employee data.");
   }
 }
+
 
 // =============================
 // Payroll Calculations
@@ -376,7 +377,7 @@ function saveEmployeeFromForm(e) {
     first_name,
     last_name,
     tpin: tpinSel?.selectedOptions?.[0]?.text || "",
-    nrc: pacraSel?.selectedOptions?.[0]?.text || "",
+    nrc: nrcSel?.selectedOptions?.[0]?.text || "",
     department: document.getElementById("department").value,
     basic: parseFloat(document.getElementById("basicPay").value) || 0,
     housing: parseFloat(document.getElementById("housingPay").value) || 0,
@@ -601,7 +602,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderDepartmentSettings();
   updateDashboard();
 
-  ["employee_id","full_name","employee_tpin","employee_pacra"].forEach(id => {
+  ["employee_id","full_name","tpin","nrc"].forEach(id => {
     document.getElementById(id)?.addEventListener("change", onEmployeeSelectorChange);
   });
 
@@ -611,6 +612,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
