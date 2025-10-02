@@ -234,7 +234,9 @@ async function loadEmployees() {
     const json = await res.json();
     employees = json.data || [];
     populateEmployeeDropdowns();
-  } catch (err) {
+  
+  } console.log("✅ Employees loaded:", employees);
+catch (err) {
     console.error("Error loading employees:", err);
     alert("Could not load employee data.");
   }
@@ -267,6 +269,8 @@ function populateEmployeeDropdowns() {
     tpinSel.add(new Option(emp.tpin, emp.employee_id));
     nrcSel.add(new Option(emp.nrc, emp.employee_id));
   });
+ console.log("🔄 Populating dropdowns...");
+
 }
 
 function syncSelects(empId) {
@@ -610,14 +614,17 @@ function renderDepartmentSettings() {
 // =============================
  const onEmployeeSelectorChange = onEmployeeChange;
 document.addEventListener("DOMContentLoaded", () => {
+   populateEmployeeDropdowns();
   renderDepartmentSettings();
   updateDashboard();
- 
+ console.log("🚀 DOM ready");
+
 });
 </script>
  
 </body>
 </html>
+
 
 
 
