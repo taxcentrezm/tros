@@ -245,98 +245,99 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 <script>
 feather && feather.replace();
+// -------------------------
+// Global State
+// -------------------------
+window.employees = [];
+window.selectedEmployeeId = null;
+window.deductionChart = null;
+window.salaryChart = null;
 
-document.addEventListener("DOMContentLoaded", async () => {
-  // -------------------------
-  // State
-  // -------------------------
-  let employees = [];
-  let selectedEmployeeId = null;
-  window.deductionChart = null;
-  window.salaryChart = null;
+// -------------------------
+// DOM Helpers
+// -------------------------
+function $(id) {
+  return document.getElementById(id);
+}
 
-  const $ = id => document.getElementById(id);
-
-  // -------------------------
-  // Load employees
-  // -------------------------
-  async function loadEmployees() {
-    try {
-      const res = await fetch("/api/hr/employees");
-      if (!res.ok) throw new Error("Failed to fetch employees");
-      const json = await res.json();
-      employees = json.data || [];
-      populateEmployeeDropdowns();
-    } catch (err) {
-      console.error("❌ Error loading employees:", err);
-    }
+// -------------------------
+// Load employees
+// -------------------------
+async function loadEmployees() {
+  try {
+    const res = await fetch("/api/hr/employees");
+    if (!res.ok) throw new Error("Failed to fetch employees");
+    const json = await res.json();
+    window.employees = json.data || [];
+    populateEmployeeDropdowns();
+  } catch (err) {
+    console.error("Error loading employees:", err);
   }
+}
 
-  // -------------------------
-  // Dropdown helpers
-  // -------------------------
-  function clearSelect(sel) {
-    if (!sel) return;
-    while (sel.options.length > 1) sel.remove(1);
-  }
+ // -------------------------
+// Dropdown helpers
+// -------------------------
+function clearSelect(sel) {
+  if (!sel) return;
+  while (sel.options.length > 1) sel.remove(1);
+}
 
-  function populateEmployeeDropdowns() {
-    const idSel = $("employee_id");
-    const nameSel = $("full_name");
-    const tpinSel = $("tpin");
-    const nrcSel = $("nrc");
-    if (!idSel || !nameSel || !tpinSel || !nrcSel) return;
+function populateEmployeeDropdowns() {
+  const idSel = $("employee_id");
+  const nameSel = $("full_name");
+  const tpinSel = $("tpin");
+  const nrcSel = $("nrc");
+  if (!idSel || !nameSel || !tpinSel || !nrcSel) return;
 
-    clearSelect(idSel);
-    clearSelect(nameSel);
-    clearSelect(tpinSel);
-    clearSelect(nrcSel);
+  clearSelect(idSel);
+  clearSelect(nameSel);
+  clearSelect(tpinSel);
+  clearSelect(nrcSel);
 
-    employees.forEach(emp => {
-      const fullName = `${emp.first_name || ""} ${emp.last_name || ""}`.trim();
-      idSel.add(new Option(emp.employee_id, emp.employee_id));
-      nameSel.add(new Option(fullName || emp.employee_id, emp.employee_id));
-      tpinSel.add(new Option(emp.tpin || "", emp.employee_id));
-      nrcSel.add(new Option(emp.nrc || "", emp.employee_id));
-    });
-  }
+  window.employees.forEach(emp => {
+    const fullName = `${emp.first_name || ""} ${emp.last_name || ""}`.trim();
+    idSel.add(new Option(emp.employee_id, emp.employee_id));
+    nameSel.add(new Option(fullName || emp.employee_id, emp.employee_id));
+    tpinSel.add(new Option(emp.tpin || "", emp.employee_id));
+    nrcSel.add(new Option(emp.nrc || "", emp.employee_id));
+  });
+}
 
-  function syncSelects(empId) {
-    ["employee_id","full_name","tpin","nrc"].forEach(id => {
-      const el = $(id);
-      if (el) el.value = empId;
-    });
-  }
+function syncSelects(empId) {
+  ["employee_id","full_name","tpin","nrc"].forEach(id => {
+    const el = $(id);
+    if (el) el.value = empId;
+  });
+}
 
-  // -------------------------
-  // onEmployeeChange
-  // -------------------------
-  function onEmployeeChange(e) {
-    const empId = e?.target?.value;
-    if (!empId) return;
-    syncSelects(empId);
-    updateEmployeeForm(empId);
-  }
-  window.onEmployeeChange = onEmployeeChange;
+// Employee change
+// -------------------------
+function onEmployeeChange(e) {
+  const empId = e?.target?.value;
+  if (!empId) return;
+  syncSelects(empId);
+  updateEmployeeForm(empId);
+}
+window.onEmployeeChange = onEmployeeChange; // ✅ expose globally
 
-  // -------------------------
-  // Update form
-  // -------------------------
-  function updateEmployeeForm(empId) {
-    const emp = employees.find(x => String(x.employee_id) === String(empId));
-    if (!emp) return;
-    selectedEmployeeId = empId;
+// -------------------------
+// Update employee form
+// -------------------------
+function updateEmployeeForm(empId) {
+  const emp = window.employees.find(x => String(x.employee_id) === String(empId));
+  if (!emp) return;
+  window.selectedEmployeeId = empId;
 
-    $("department") && ($("department").value = emp.department || "");
-    $("basicPay") && ($("basicPay").value = emp.basic ?? "");
-    $("housingPay") && ($("housingPay").value = emp.housing ?? "");
-    $("transportPay") && ($("transportPay").value = emp.transport ?? "");
-    $("bonus") && ($("bonus").value = emp.bonus ?? "");
-    $("loan") && ($("loan").value = emp.loan ?? "");
+  $("department") && ($("department").value = emp.department || "");
+  $("basicPay") && ($("basicPay").value = emp.basic ?? "");
+  $("housingPay") && ($("housingPay").value = emp.housing ?? "");
+  $("transportPay") && ($("transportPay").value = emp.transport ?? "");
+  $("bonus") && ($("bonus").value = emp.bonus ?? "");
+  $("loan") && ($("loan").value = emp.loan ?? "");
 
-    updateDashboard();
-  }
-
+  updateDashboard();
+}
   // -------------------------
   // Save Employee Form
   // -------------------------
@@ -393,8 +394,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   $("employeeForm")?.addEventListener("submit", saveEmployeeFromForm);
 
-  renderDepartmentSettings?.();
-  updateDashboard?.();
+ 
+ 
    populateEmployeeDropdowns();
 
   console.log("🚀 DOM ready, employees loaded:", employees);
@@ -629,15 +630,12 @@ function renderEmployeeTable() {
 
 // =============================
 // Dashboard Update
-// =============================
 function updateDashboard() {
-const list = selectedEmployeeId
-  ? employees.filter(e => e.employee_id === selectedEmployeeId)
-  : employees;
+  const list = window.selectedEmployeeId
+    ? window.employees.filter(e => e.employee_id === window.selectedEmployeeId)
+    : window.employees;
 
-const summary = calculatePayrollSummary(list);
-renderCharts(list); // ✅ pass employee list instead of summary
-
+  const summary = calculatePayrollSummary(list);
 
   document.getElementById("totalPayroll").textContent = `K ${summary.totalGross.toLocaleString()}`;
   document.getElementById("averageSalary").textContent = `K ${summary.averageSalary.toLocaleString()}`;
@@ -647,7 +645,7 @@ renderCharts(list); // ✅ pass employee list instead of summary
   renderCharts(summary);
   renderEmployeeTable();
 }
-
+window.updateDashboard = updateDashboard;
 // =============================
 // Department Settings
 // =============================
@@ -682,11 +680,28 @@ function renderDepartmentSettings() {
   });
 }
 
+// -------------------------
+// Init on DOM Ready
+// -------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  loadEmployees();
 
+  ["employee_id", "full_name", "tpin", "nrc"].forEach(id => {
+    document.getElementById(id)?.addEventListener("change", onEmployeeChange);
+  });
+
+  document.getElementById("employeeForm")?.addEventListener("submit", saveEmployeeFromForm);
+
+  renderDepartmentSettings?.();
+  updateDashboard?.();
+
+  console.log("🚀 Payroll page initialized");
+});
 </script>
  
 </body>
 </html>
+
 
 
 
