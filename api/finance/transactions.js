@@ -68,15 +68,19 @@ export default async function handler(req, res) {
       const reference = `TX-${Date.now()}`;
       await client.execute({
         sql: `
-          INSERT INTO journal_entries (date, description, reference)
-          VALUES (?, ?, ?)
+          INSERT INTO journal_entries (date, description)
+          VALUES (?, ?)
         `,
-        args: [date, description, reference],
+        args: [date, description],
       });
 
       const entryResult = await client.execute({
-        sql: "SELECT entry_id FROM journal_entries WHERE reference = ? LIMIT 1",
-        args: [reference],
+        sql: `
+          SELECT entry_id FROM journal_entries
+          WHERE date = ? AND description = ?
+          ORDER BY entry_id DESC LIMIT 1
+        `,
+        args: [date, description],
       });
 
       const entry_id = entryResult.rows[0]?.entry_id;
@@ -84,13 +88,23 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: "Failed to retrieve journal entry ID" });
       }
 
-      // Resolve counterpart account
-      const fallbackName = ["income", "capital_revenue"].includes(type) ? "cash" : "expenses";
-     const counterpartCheck = await client.execute({
-  sql: "SELECT account_id FROM chart_of_accounts WHERE account_id = ? LIMIT 1",
-  args: ["cash"],
-});
+      // 🔁 Map transaction type to counterpart account name
+      const typeToAccount = {
+        income: "Cash",
+        capital_revenue: "Cash",
+        expense: "Salaries Expense",
+        capital_expense: "Supplies Expense",
+        liability: "Accounts Payable",
+        asset: "Vehicle Asset",
+        equity: "Equity Capital"
+      };
 
+      const fallbackName = typeToAccount[type] || "Suspense";
+
+      const counterpartCheck = await client.execute({
+        sql: "SELECT account_id FROM chart_of_accounts WHERE name = ? LIMIT 1",
+        args: [fallbackName],
+      });
 
       const counterpart_id = counterpartCheck.rows[0]?.account_id;
       if (!counterpart_id) {
