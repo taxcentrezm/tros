@@ -39,24 +39,45 @@ export default async function handler(req, res) {
         ORDER BY created_at DESC
       `);
 
+      const periods = await client.execute(`
+        SELECT period_id, period_year, period_month, start_date, end_date
+        FROM payroll_periods
+        ORDER BY start_date DESC
+      `);
+
       return res.status(200).json({
         salaries: Array.isArray(salaries.rows) ? salaries.rows : [],
-        records: Array.isArray(records.rows) ? records.rows : []
+        records: Array.isArray(records.rows) ? records.rows : [],
+        periods: Array.isArray(periods.rows) ? periods.rows : []
       });
     }
 
     if (req.method === "POST") {
-      const body = req.body;
+      const {
+        period_year,
+        period_month,
+        start_date,
+        end_date,
+        employee_id,
+        department,
+        basic,
+        housing,
+        transport,
+        bonus,
+        loan,
+        effective_date,
+        period_id
+      } = req.body;
 
       // ✅ Admin: Create new payroll period
-      if (body.period_year && body.period_month && body.start_date && body.end_date) {
+      if (period_year && period_month && start_date && end_date) {
         const existing = await client.execute({
           sql: `
             SELECT period_id FROM payroll_periods
             WHERE period_year = ? AND period_month = ?
             LIMIT 1
           `,
-          args: [body.period_year, body.period_month]
+          args: [period_year, period_month]
         });
 
         if (existing.rows.length > 0) {
@@ -68,24 +89,18 @@ export default async function handler(req, res) {
             INSERT INTO payroll_periods (period_year, period_month, start_date, end_date)
             VALUES (?, ?, ?, ?)
           `,
-          args: [body.period_year, body.period_month, body.start_date, body.end_date]
+          args: [period_year, period_month, start_date, end_date]
         });
 
         return res.status(201).json({ message: "✅ Payroll period created" });
       }
 
-      // ✅ Salary + Payroll Record
-      const {
-        employee_id,
-        department,
-        basic,
-        housing,
-        transport,
-        bonus,
-        loan,
-        effective_date
-      } = body;
+      // ✅ Validate required fields for payroll record
+      if (!employee_id || !period_id || !department || !effective_date) {
+        return res.status(400).json({ error: "Missing required payroll fields" });
+      }
 
+      // ✅ Save department-level salary structure
       await client.execute({
         sql: `
           INSERT INTO salaries (department, basic, housing, transport, bonus, effective_date)
@@ -99,22 +114,6 @@ export default async function handler(req, res) {
         `,
         args: [department, basic, housing, transport, bonus, effective_date]
       });
-
-      const today = new Date().toISOString().split("T")[0];
-      const periodRes = await client.execute({
-        sql: `
-          SELECT period_id FROM payroll_periods
-          WHERE start_date <= ? AND end_date >= ?
-          LIMIT 1
-        `,
-        args: [today, today]
-      });
-
-      if (periodRes.rows.length === 0) {
-        return res.status(404).json({ error: "No active payroll period found" });
-      }
-
-      const period_id = periodRes.rows[0].period_id;
 
       const { gross, net, paye, napsa, nhima } = calculateDeductions({
         basic,
