@@ -211,24 +211,75 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script>
+// Feather icons
 feather && feather.replace();
 
 // =============================
-// Data Stores
+// Global Stores & Charts
 // =============================
-let employees = []; // start empty
+let employees = [];
 let selectedEmployeeId = null;
-
-// Defaults by department
-let departmentConfigs = {
-  Finance: { basic: 5000, housing: 1200, transport: 800, bonus: 500 },
-  HR: { basic: 4500, housing: 1000, transport: 600, bonus: 300 },
-  Sales: { basic: 4000, housing: 900, transport: 700, bonus: 400 }
-};
-
-// Charts
 window.deductionChart = null;
 window.salaryChart = null;
+
+// =============================
+// Dropdown Logic
+// =============================
+function clearSelect(sel) {
+  while (sel.options.length > 1) sel.remove(1);
+}
+
+function populateEmployeeDropdowns() {
+  const idSel = document.getElementById("employee_id");
+  const nameSel = document.getElementById("full_name");
+  const tpinSel = document.getElementById("employee_tpin");
+  const pacraSel = document.getElementById("employee_pacra");
+
+  if (!idSel || !nameSel || !tpinSel || !pacraSel) return;
+
+  clearSelect(idSel);
+  clearSelect(nameSel);
+  clearSelect(tpinSel);
+  clearSelect(pacraSel);
+
+  employees.forEach(emp => {
+    const fullName = `${emp.first_name} ${emp.last_name}`;
+    idSel.add(new Option(emp.employee_id, emp.employee_id));
+    nameSel.add(new Option(fullName, emp.employee_id));
+    tpinSel.add(new Option(emp.tpin, emp.employee_id));
+    pacraSel.add(new Option(emp.pacra, emp.employee_id));
+  });
+}
+
+function syncSelects(empId) {
+  ["employee_id", "full_name", "employee_tpin", "employee_pacra"].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) sel.value = empId;
+  });
+}
+
+function onEmployeeChange(e) {
+  const empId = e.target.value;
+  if (!empId) return;
+  syncSelects(empId);
+  updateEmployeeForm(empId);
+}
+
+// =============================
+// Load Employees from API
+// =============================
+async function loadEmployees() {
+  try {
+    const res = await fetch("/api/employees");
+    if (!res.ok) throw new Error("Failed to fetch employees");
+    const json = await res.json();
+    employees = json.data || [];
+    populateEmployeeDropdowns();
+  } catch (err) {
+    console.error("Error loading employees:", err);
+    alert("Could not load employee data.");
+  }
+}
 
 // =============================
 // Payroll Calculations
@@ -279,48 +330,14 @@ function calculatePayrollSummary(list) {
 }
 
 // =============================
-// Dropdowns
+// Employee Form Sync
 // =============================
-function clearSelect(sel) {
-  while (sel.options.length > 1) sel.remove(1);
-}
-
-function populateEmployeeDropdowns() {
-  const idSel = document.getElementById("employee_id");
-  const nameSel = document.getElementById("full_name");
-  const tpinSel = document.getElementById("employee_tpin");
-  const pacraSel = document.getElementById("employee_pacra");
-
-  if (!idSel || !nameSel || !tpinSel || !pacraSel) return;
-
-  clearSelect(idSel);
-  clearSelect(nameSel);
-  clearSelect(tpinSel);
-  clearSelect(pacraSel);
-
-  employees.forEach(emp => {
-    const fullName = `${emp.first_name} ${emp.last_name}`;
-    idSel.add(new Option(emp.id, emp.id));
-    nameSel.add(new Option(fullName, emp.id));
-    tpinSel.add(new Option(emp.tpin, emp.id));
-    pacraSel.add(new Option(emp.pacra, emp.id));
-  });
-}
-
-function syncSelectsTo(empId) {
-  if (!empId) return;
-  ["employee_id","full_name","employee_tpin","employee_pacra"].forEach(id => {
-    const sel = document.getElementById(id);
-    if (sel) sel.value = empId;
-  });
-}
-
 function updateEmployeeForm(empId) {
-  const emp = employees.find(e => e.id === empId);
+  const emp = employees.find(e => e.employee_id === empId);
   if (!emp) return;
   selectedEmployeeId = empId;
 
-  syncSelectsTo(empId);
+  syncSelects(empId);
 
   document.getElementById("department").value = emp.department || "";
   document.getElementById("basicPay").value = emp.basic ?? "";
@@ -332,24 +349,13 @@ function updateEmployeeForm(empId) {
   updateDashboard();
 }
 
-function onEmployeeSelectorChange(e) {
-  const empId = e.target.value;
-  if (!empId) {
-    document.getElementById("employeeForm").reset();
-    selectedEmployeeId = null;
-    updateDashboard();
-    return;
-  }
-  updateEmployeeForm(empId);
-}
-
 // =============================
 // Add/Update Employee
 // =============================
 function saveEmployeeFromForm(e) {
   e && e.preventDefault();
 
-  const id = document.getElementById("employee_id").value || (`E${String(Math.floor(Math.random()*900)+100)}`);
+  const id = document.getElementById("employee_id").value || `E${Math.floor(Math.random() * 900 + 100)}`;
   const fullNameSel = document.getElementById("full_name");
   const nameText = fullNameSel?.selectedOptions?.[0]?.text || "";
   let first_name = "", last_name = "";
@@ -366,7 +372,7 @@ function saveEmployeeFromForm(e) {
   const pacraSel = document.getElementById("employee_pacra");
 
   const newEmp = {
-    id,
+    employee_id: id,
     first_name,
     last_name,
     tpin: tpinSel?.selectedOptions?.[0]?.text || "",
@@ -379,7 +385,7 @@ function saveEmployeeFromForm(e) {
     loan: parseFloat(document.getElementById("loan").value) || 0
   };
 
-  const existingIndex = employees.findIndex(e => e.id === id);
+  const existingIndex = employees.findIndex(e => e.employee_id === id);
   if (existingIndex >= 0) {
     employees[existingIndex] = { ...employees[existingIndex], ...newEmp };
   } else {
@@ -390,41 +396,13 @@ function saveEmployeeFromForm(e) {
   updateEmployeeForm(id);
 
   alert("Employee saved.");
+ 
   document.getElementById("employeeForm").reset();
 }
 
 // =============================
 // Employee Table & Payslip
-// =============================
-function renderEmployeeTable() {
-  const tbody = document.querySelector("#employeeTable tbody");
-  if (!tbody) return;
-  tbody.innerHTML = "";
-
-  const list = selectedEmployeeId ? employees.filter(e => e.id === selectedEmployeeId) : [];
-  list.forEach((emp, i) => {
-    const { gross, net } = calculateDeductions(emp);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="px-4 py-2">${emp.first_name} ${emp.last_name}</td>
-      <td class="px-4 py-2">K ${gross.toLocaleString()}</td>
-      <td class="px-4 py-2">K ${net.toLocaleString()}</td>
-      <td class="px-4 py-2">
-        <button type="button" data-id="${emp.id}" class="payslip-btn bg-blue-500 text-white px-3 py-1 rounded">Payslip</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  document.querySelectorAll(".payslip-btn").forEach(btn => {
-    btn.addEventListener("click", (ev) => {
-      const empId = ev.currentTarget.dataset.id;
-      const idx = employees.findIndex(e => e.id === empId);
-      generatePayslip(idx);
-    });
-  });
-}
-
+// ==============/
 function generatePayslip(index) {
   const emp = employees[index];
   if (!emp) return;
@@ -570,4 +548,5 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
