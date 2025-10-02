@@ -47,6 +47,38 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
+      const body = req.body;
+
+      // ✅ Admin: Create new payroll period
+      if (body.period_year && body.period_month && body.start_date && body.end_date) {
+        // Check for existing period
+const existing = await client.execute({
+  sql: `
+    SELECT period_id FROM payroll_periods
+    WHERE period_year = ? AND period_month = ?
+    LIMIT 1
+  `,
+  args: [body.period_year, body.period_month]
+});
+
+if (existing.rows.length > 0) {
+  return res.status(409).json({ error: "❌ Period already exists for this year and month" });
+}
+
+// Insert new period
+await client.execute({
+  sql: `
+    INSERT INTO payroll_periods (period_year, period_month, start_date, end_date)
+    VALUES (?, ?, ?, ?)
+  `,
+  args: [body.period_year, body.period_month, body.start_date, body.end_date]
+});
+
+return res.status(201).json({ message: "✅ Payroll period created" });
+ 
+      }
+
+      // ✅ Salary + Payroll Record
       const {
         employee_id,
         department,
@@ -56,9 +88,9 @@ export default async function handler(req, res) {
         bonus,
         loan,
         effective_date
-      } = req.body;
+      } = body;
 
-      // ✅ Step 1: Save department-level salary structure
+      // Save department-level salary structure
       await client.execute({
         sql: `
           INSERT INTO salaries (department, basic, housing, transport, bonus, effective_date)
@@ -73,7 +105,7 @@ export default async function handler(req, res) {
         args: [department, basic, housing, transport, bonus, effective_date]
       });
 
-      // ✅ Step 2: Auto-select current period_id
+      // Auto-select current period_id
       const today = new Date().toISOString().split("T")[0];
       const periodRes = await client.execute({
         sql: `
@@ -90,7 +122,7 @@ export default async function handler(req, res) {
 
       const period_id = periodRes.rows[0].period_id;
 
-      // ✅ Step 3: Save employee-level payroll record
+      // Save payroll record
       const { gross, net, paye, napsa, nhima } = calculateDeductions({
         basic,
         housing,
