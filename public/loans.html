@@ -136,7 +136,7 @@ let lastLoan = null;
 // Load employees from API
 async function loadEmployees() {
   try {
-    const res = await fetch("/api/employees");
+    const res = await fetch("/api/hr/employees");
     const json = await res.json();
     employees = json.data || [];
     const idSel = document.getElementById("employee_id");
@@ -247,7 +247,7 @@ document.getElementById("approveLoan").addEventListener("click", async () => {
   });
 
   try {
-    const res = await fetch("/api/loans", {
+    const res = await fetch("/api/loans/index", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -277,4 +277,5 @@ document.getElementById("approveLoan").addEventListener("click", async () => {
 </script>
 </body>
 </html>
+
 
