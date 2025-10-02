@@ -675,8 +675,10 @@ function renderDepartmentSettings() {
 // =============================
  
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("employeeForm").addEventListener("submit", saveEmployeeFromForm);
+  window.saveEmployeeFromForm = saveEmployeeFromForm; // ✅ exposes it globally
+  window.onEmployeeChange = onEmployeeChange;         // ✅ same for dropdown sync
 
+  document.getElementById("employeeForm").addEventListener("submit", saveEmployeeFromForm);
   document.getElementById("employee_id").addEventListener("change", onEmployeeChange);
 
   populateEmployeeDropdowns();
@@ -688,6 +690,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
