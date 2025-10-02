@@ -314,7 +314,7 @@ function updateEmployeeForm(empId) {
 // =============================
 // Add/Update Employee
 // =============================
-function saveEmployeeFromForm(e) {
+async function saveEmployeeFromForm(e) {
   e && e.preventDefault();
 
   const id = document.getElementById("employee_id").value || `E${Math.floor(Math.random() * 900 + 100)}`;
@@ -344,7 +344,8 @@ function saveEmployeeFromForm(e) {
     housing: parseFloat(document.getElementById("housingPay").value) || 0,
     transport: parseFloat(document.getElementById("transportPay").value) || 0,
     bonus: parseFloat(document.getElementById("bonus").value) || 0,
-    loan: parseFloat(document.getElementById("loan").value) || 0
+    loan: parseFloat(document.getElementById("loan").value) || 0,
+    effective_date: new Date().toISOString().split("T")[0] // optional: for salary structure
   };
 
   const existingIndex = employees.findIndex(e => e.employee_id === id);
@@ -357,9 +358,22 @@ function saveEmployeeFromForm(e) {
   populateEmployeeDropdowns();
   updateEmployeeForm(id);
 
-  alert("Employee saved.");
+  try {
+    await fetch("/api/payroll/salaries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newEmp)
+    });
+    alert("✅ Employee and salary saved.");
+  } catch (err) {
+    console.error("❌ Failed to save salary record:", err);
+    alert("Could not save salary record.");
+  }
+
   document.getElementById("employeeForm").reset();
 }
+
+
 
 // =============================
 // Payroll Calculations
@@ -647,6 +661,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
