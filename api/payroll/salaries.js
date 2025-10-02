@@ -76,14 +76,15 @@ export default async function handler(req, res) {
       // Save employee-level salary record
       const { gross, net, paye, napsa, nhima } = calculateDeductions({ basic, housing, transport, bonus, loan });
 
-      await client.execute({
-        sql: `
-          INSERT INTO payroll_records 
-          (employee_id, department, basic, housing, transport, bonus, loan, gross, net, paye, napsa, nhima, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `,
-        args: [employee_id, department, basic, housing, transport, bonus, loan, gross, net, paye, napsa, nhima]
-      });
+await client.execute({
+  sql: `
+    INSERT INTO payroll_records 
+    (employee_id, period_id, basic, housing, transport, bonus, loan, gross, net, paye, napsa, nhima, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+  `,
+  args: [employee_id, period_id, basic, housing, transport, bonus, loan, gross, net, paye, napsa, nhima]
+});
+
 
       return res.status(201).json({ message: "✅ Salary structure and payroll record saved" });
     }
