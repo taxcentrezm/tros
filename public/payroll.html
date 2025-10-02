@@ -513,6 +513,34 @@ function renderCharts(summary) {
     options: { scales: { y: { beginAtZero: true } } }
   });
 }
+function renderEmployeeTable() {
+  const tbody = document.querySelector("#employeeTable tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const list = selectedEmployeeId ? employees.filter(e => e.employee_id === selectedEmployeeId) : employees;
+  list.forEach(emp => {
+    const { gross, net } = calculateDeductions(emp);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="px-4 py-2">${emp.first_name} ${emp.last_name}</td>
+      <td class="px-4 py-2">K ${gross.toLocaleString()}</td>
+      <td class="px-4 py-2">K ${net.toLocaleString()}</td>
+      <td class="px-4 py-2">
+        <button type="button" data-id="${emp.employee_id}" class="payslip-btn bg-blue-500 text-white px-3 py-1 rounded">Payslip</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.querySelectorAll(".payslip-btn").forEach(btn => {
+    btn.addEventListener("click", (ev) => {
+      const empId = ev.currentTarget.dataset.id;
+      const idx = employees.findIndex(e => e.employee_id === empId);
+      generatePayslip(idx);
+    });
+  });
+}
 
 // =============================
 // Dashboard Update
@@ -582,6 +610,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
