@@ -450,8 +450,7 @@ function calculatePayrollSummary(list) {
 // =============================
 // Init
 // =============================
-document.addEventListener("DOMContentLoaded", () => {
-  loadEmployees();
+ loadEmployees();
   ["employee_id", "full_name", "tpin", "nrc"].forEach(id => {
     document.getElementById(id)?.addEventListener("change", onEmployeeChange);
   });
@@ -683,6 +682,7 @@ function renderDepartmentSettings() {
 // =============================
 // Init
 // =============================
+ 
  const onEmployeeSelectorChange = onEmployeeChange;
 document.addEventListener("DOMContentLoaded", () => {
    populateEmployeeDropdowns();
@@ -691,11 +691,12 @@ document.addEventListener("DOMContentLoaded", () => {
  console.log("🚀 DOM ready");
 
 });
- });
+
 </script>
  
 </body>
 </html>
+
 
 
 
