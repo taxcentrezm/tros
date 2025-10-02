@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const result = await client.execute(`
         SELECT salary_id, department, basic, housing, transport, bonus, effective_date
-        FROM payroll_salary_structures
+        FROM salaries
         ORDER BY department
       `);
       return res.status(200).json({ data: result.rows });
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
       await client.execute({
         sql: `
-          INSERT INTO payroll_salary_structures (department, basic, housing, transport, bonus, effective_date)
+          INSERT INTO salaries (department, basic, housing, transport, bonus, effective_date)
           VALUES (?, ?, ?, ?, ?, ?)
           ON CONFLICT(department) DO UPDATE SET
             basic = excluded.basic,
