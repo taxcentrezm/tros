@@ -86,10 +86,11 @@ export default async function handler(req, res) {
 
       // Resolve counterpart account
       const fallbackName = ["income", "capital_revenue"].includes(type) ? "cash" : "expenses";
-      const counterpartCheck = await client.execute({
-        sql: "SELECT account_id FROM chart_of_accounts WHERE name = ? LIMIT 1",
-        args: [fallbackName],
-      });
+     const counterpartCheck = await client.execute({
+  sql: "SELECT account_id FROM chart_of_accounts WHERE account_id = ? LIMIT 1",
+  args: ["cash"],
+});
+
 
       const counterpart_id = counterpartCheck.rows[0]?.account_id;
       if (!counterpart_id) {
