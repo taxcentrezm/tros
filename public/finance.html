@@ -73,6 +73,9 @@
                     <a href="sales.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Sales & CRM</a>
                     <a href="reports.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Reports</a>
                     <a href="payroll.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Payroll</a>
+                    <a href="salaries.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Salaries</a>
+                     <a href="loans.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Loans</a>
+                     <a href="employee.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Employees</a>
                     <a href="fiscal.html" class="px-4 py-2 text-primary-700 hover:bg-primary-50 rounded-lg transition-colors font-medium">Fiscal</a>
                 </div>
 
@@ -294,9 +297,6 @@
 
 
 <div class="flex gap-4 mb-4">
-  <button id="toggleJournalBtn" class="bg-blue-600 text-white px-4 py-2 rounded">
-    View Journal Tables
-  </button>
   <button id="exportJournalBtn" class="bg-green-600 text-white px-4 py-2 rounded">
     Export Journal CSV
   </button>
@@ -309,7 +309,7 @@
 
     
     <section class="bg-white rounded-xl shadow-md p-6 mx-6 mb-12" data-aos="fade-up">    
-<div id="journalTables" class="hidden">
+     <div id="journalTables"  >
   <h2 class="text-xl font-bold mb-2">Journal Entries</h2>
   <table id="journalEntriesTable" class="table-auto w-full border border-gray-300 mb-6">
     <thead class="bg-gray-100">
@@ -753,18 +753,11 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
     <script>
-        document.getElementById("toggleJournalBtn").addEventListener("click", () => {
+         
   const container = document.getElementById("journalTables");
-  const isHidden = container.classList.contains("hidden");
+ 
 
-  if (isHidden) {
-    container.classList.remove("hidden");
-    loadJournalEntries();
-    loadJournalLines();
-  } else {
-    container.classList.add("hidden");
-  }
-});
+  
 
 async function loadJournalEntries() {
   const res = await fetch("/api/finance/journal-entries");
@@ -881,6 +874,7 @@ document.getElementById("importJournalInput").addEventListener("change", async (
 
 </body>
 </html>
+
 
 
 
