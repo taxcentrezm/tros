@@ -521,18 +521,21 @@ function renderCharts(summary) {
     }
   });
 
-  window.salaryChart = new Chart(sCanvas, {
-    type: "bar",
-    data: {
-      labels: selectedEmployeeId ? [employees.find(e => e.id === selectedEmployeeId).first_name] : [],
-      datasets: [{
-        label: "Gross Salary",
-        data: selectedEmployeeId ? [summary.totalGross] : [],
-        backgroundColor: "#10b981"
-      }]
-    },
-    options: { scales: { y: { beginAtZero: true } } }
-  });
+const emp = employees.find(e => e.employee_id === selectedEmployeeId);
+const label = emp ? `${emp.first_name} ${emp.last_name}` : "Employee";
+
+window.salaryChart = new Chart(sCanvas, {
+  type: "bar",
+  data: {
+    labels: selectedEmployeeId ? [label] : [],
+    datasets: [{
+      label: "Gross Salary",
+      data: selectedEmployeeId ? [summary.totalGross] : [],
+      backgroundColor: "#10b981"
+    }]
+  },
+  options: { scales: { y: { beginAtZero: true } } }
+});
 }
 function renderEmployeeTable() {
   const tbody = document.querySelector("#employeeTable tbody");
@@ -567,8 +570,13 @@ function renderEmployeeTable() {
 // Dashboard Update
 // =============================
 function updateDashboard() {
-  const list = selectedEmployeeId ? employees.filter(e => e.id === selectedEmployeeId) : [];
-  const summary = calculatePayrollSummary(list);
+const list = selectedEmployeeId
+  ? employees.filter(e => e.employee_id === selectedEmployeeId)
+  : employees;
+
+const summary = calculatePayrollSummary(list);
+renderCharts(list); // ✅ pass employee list instead of summary
+
 
   document.getElementById("totalPayroll").textContent = `K ${summary.totalGross.toLocaleString()}`;
   document.getElementById("averageSalary").textContent = `K ${summary.averageSalary.toLocaleString()}`;
@@ -628,6 +636,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
