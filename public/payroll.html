@@ -458,7 +458,7 @@ function generatePayslip(index) {
   doc.setFontSize(12);
   const headerInfo = [
     `Employee: ${emp.first_name} ${emp.last_name}`,
-    `Employee ID: ${empId}`,
+    `Employee ID: ${emp.employee_id}`,
     `TPIN: ${emp.tpin || "N/A"}`,
     `NRC: ${emp.nrc || "N/A"}`,
     `Process Date: ${new Date().toLocaleDateString()}`
@@ -522,7 +522,7 @@ function generatePayslip(index) {
   doc.text(`Loan Deduction: K ${monthlyLoan.toLocaleString()} x ${remainingMonths} months = K ${(monthlyLoan*remainingMonths).toLocaleString()}`, 14, doc.lastAutoTable.finalY + 16);
   doc.text(`Accumulated Total: K ${totalFuture.toLocaleString()}`, 14, doc.lastAutoTable.finalY + 22);
 
-  doc.save(`${emp.Id}_Payslip.pdf`);
+  doc.save(`${emp.employee_id}_Payslip.pdf`);
 }
 // =============================
 // Charts
@@ -661,6 +661,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
