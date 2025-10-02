@@ -218,13 +218,38 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
+feather && feather.replace();
+
+// =============================
+// Global State
+// =============================
+window.employees = [];
+window.selectedEmployeeId = null;
+window.deductionChart = null;
+window.salaryChart = null;
+
+// =============================
+// DOM Helpers
+// =============================
+function $(id) {
+  return document.getElementById(id);
+}
+function clearSelect(sel) {
+  if (!sel) return;
+  while (sel.options.length > 1) sel.remove(1);
+}
+
+// =============================
+// Payroll Periods
+// =============================
 async function populatePeriodDropdown() {
   try {
     const res = await fetch("/api/payroll/salaries");
     const json = await res.json();
     const periods = json.periods || [];
 
-    const select = document.getElementById("periodSelect");
+    const select = $("periodSelect");
+    if (!select) return;
     select.innerHTML = `<option value="">Select a period</option>`;
 
     periods.forEach(p => {
@@ -239,30 +264,9 @@ async function populatePeriodDropdown() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  populatePeriodDropdown();
-});
-</script>
-<script>
-feather && feather.replace();
-// -------------------------
-// Global State
-// -------------------------
-window.employees = [];
-window.selectedEmployeeId = null;
-window.deductionChart = null;
-window.salaryChart = null;
-
-// -------------------------
-// DOM Helpers
-// -------------------------
-function $(id) {
-  return document.getElementById(id);
-}
-
-// -------------------------
-// Load employees
-// -------------------------
+// =============================
+// Load Employees
+// =============================
 async function loadEmployees() {
   try {
     const res = await fetch("/api/hr/employees");
@@ -271,16 +275,8 @@ async function loadEmployees() {
     window.employees = json.data || [];
     populateEmployeeDropdowns();
   } catch (err) {
-    console.error("Error loading employees:", err);
+    console.error("❌ Error loading employees:", err);
   }
-}
-
- // -------------------------
-// Dropdown helpers
-// -------------------------
-function clearSelect(sel) {
-  if (!sel) return;
-  while (sel.options.length > 1) sel.remove(1);
 }
 
 function populateEmployeeDropdowns() {
@@ -311,19 +307,17 @@ function syncSelects(empId) {
   });
 }
 
-// Employee change
-// -------------------------
+// =============================
+// Employee Change & Form Update
+// =============================
 function onEmployeeChange(e) {
   const empId = e?.target?.value;
   if (!empId) return;
   syncSelects(empId);
   updateEmployeeForm(empId);
 }
-window.onEmployeeChange = onEmployeeChange; // ✅ expose globally
+window.onEmployeeChange = onEmployeeChange;
 
-// -------------------------
-// Update employee form
-// -------------------------
 function updateEmployeeForm(empId) {
   const emp = window.employees.find(x => String(x.employee_id) === String(empId));
   if (!emp) return;
@@ -338,76 +332,53 @@ function updateEmployeeForm(empId) {
 
   updateDashboard();
 }
-  // -------------------------
-  // Save Employee Form
-  // -------------------------
-  async function saveEmployeeFromForm(e) {
-    e?.preventDefault();
 
-    const id = $("employee_id")?.value || `E${Math.floor(Math.random() * 900 + 100)}`;
-    const nameText = $("full_name")?.selectedOptions?.[0]?.text?.trim() || "";
-    const parts = nameText.split(" ");
-    const first_name = parts.shift() || "New";
-    const last_name = parts.join(" ") || "Employee";
+// =============================
+// Save Employee
+// =============================
+async function saveEmployeeFromForm(e) {
+  e?.preventDefault();
 
-    const period_id = $("periodSelect")?.value;
-    if (!period_id) {
-      alert("Please select a payroll period.");
-      return;
-    }
+  const id = $("employee_id")?.value || `E${Math.floor(Math.random() * 900 + 100)}`;
+  const nameText = $("full_name")?.selectedOptions?.[0]?.text?.trim() || "";
+  const parts = nameText.split(" ");
+  const first_name = parts.shift() || "New";
+  const last_name = parts.join(" ") || "Employee";
 
-    const newEmp = {
-      employee_id: id,
-      department: $("department")?.value || "",
-      basic: parseFloat($("basicPay")?.value) || 0,
-      housing: parseFloat($("housingPay")?.value) || 0,
-      transport: parseFloat($("transportPay")?.value) || 0,
-      bonus: parseFloat($("bonus")?.value) || 0,
-      loan: parseFloat($("loan")?.value) || 0,
-      effective_date: $("effective_date")?.value || "",
-      period_id
-    };
-
-    try {
-      const res = await fetch("/api/payroll/salaries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newEmp)
-      });
-      if (!res.ok) throw new Error("Save failed");
-      alert("✅ Employee and salary saved.");
-      $("employeeForm")?.reset();
-      await loadEmployees();
-    } catch (err) {
-      console.error("❌ Save failed:", err);
-      alert("Failed to save employee.");
-    }
+  const period_id = $("periodSelect")?.value;
+  if (!period_id) {
+    alert("Please select a payroll period.");
+    return;
   }
-  window.saveEmployeeFromForm = saveEmployeeFromForm;
 
-  // -------------------------
-  // Init
-  // -------------------------
- async function initPayroll() {
-  await loadEmployees();
-  ["employee_id", "full_name", "tpin", "nrc"].forEach(id => {
-    document.getElementById(id)?.addEventListener("change", onEmployeeChange);
-  });
-  document.getElementById("employeeForm")?.addEventListener("submit", saveEmployeeFromForm);
+  const newEmp = {
+    employee_id: id,
+    department: $("department")?.value || "",
+    basic: parseFloat($("basicPay")?.value) || 0,
+    housing: parseFloat($("housingPay")?.value) || 0,
+    transport: parseFloat($("transportPay")?.value) || 0,
+    bonus: parseFloat($("bonus")?.value) || 0,
+    loan: parseFloat($("loan")?.value) || 0,
+    effective_date: $("effective_date")?.value || "",
+    period_id
+  };
 
-  renderDepartmentSettings?.();
-  updateDashboard?.();
-
-  console.log("🚀 Payroll page initialized");
+  try {
+    const res = await fetch("/api/payroll/salaries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newEmp)
+    });
+    if (!res.ok) throw new Error("Save failed");
+    alert("✅ Employee and salary saved.");
+    $("employeeForm")?.reset();
+    await loadEmployees();
+  } catch (err) {
+    console.error("❌ Save failed:", err);
+    alert("Failed to save employee.");
+  }
 }
-
-document.addEventListener("DOMContentLoaded", initPayroll);
- 
- 
-   populateEmployeeDropdowns();
-
-  console.log("🚀 DOM ready, employees loaded:", employees);
-});
+window.saveEmployeeFromForm = saveEmployeeFromForm;
 
 // =============================
 // Payroll Calculations
@@ -457,16 +428,6 @@ function calculatePayrollSummary(list) {
   };
 }
 
-// =============================
-// Init
-// =============================
-document.addEventListener("DOMContentLoaded", () => {
-  loadEmployees();
-  ["employee_id", "full_name", "tpin", "nrc"].forEach(id => {
-    document.getElementById(id)?.addEventListener("change", onEmployeeChange);
-  });
-  document.getElementById("employeeForm")?.addEventListener("submit", saveEmployeeFromForm);
-});
 
  
 
@@ -569,12 +530,13 @@ function generatePayslip(index) {
 
   doc.save(`${emp.employee_id}_Payslip.pdf`);
 }
+
 // =============================
 // Charts
 // =============================
 function renderCharts(summary) {
-  const dCanvas = document.getElementById("deductionChart");
-  const sCanvas = document.getElementById("salaryChart");
+  const dCanvas = $("deductionChart");
+  const sCanvas = $("salaryChart");
   if (!dCanvas || !sCanvas) return;
 
   if (window.deductionChart) window.deductionChart.destroy();
@@ -591,22 +553,26 @@ function renderCharts(summary) {
     }
   });
 
-const emp = employees.find(e => e.employee_id === selectedEmployeeId);
-const label = emp ? `${emp.first_name} ${emp.last_name}` : "Employee";
+  const emp = employees.find(e => e.employee_id === selectedEmployeeId);
+  const label = emp ? `${emp.first_name} ${emp.last_name}` : "Employee";
 
-window.salaryChart = new Chart(sCanvas, {
-  type: "bar",
-  data: {
-    labels: selectedEmployeeId ? [label] : [],
-    datasets: [{
-      label: "Gross Salary",
-      data: selectedEmployeeId ? [summary.totalGross] : [],
-      backgroundColor: "#10b981"
-    }]
-  },
-  options: { scales: { y: { beginAtZero: true } } }
-});
+  window.salaryChart = new Chart(sCanvas, {
+    type: "bar",
+    data: {
+      labels: selectedEmployeeId ? [label] : [],
+      datasets: [{
+        label: "Gross Salary",
+        data: selectedEmployeeId ? [summary.totalGross] : [],
+        backgroundColor: "#10b981"
+      }]
+    },
+    options: { scales: { y: { beginAtZero: true } } }
+  });
 }
+
+// =============================
+// Employee Table
+// =============================
 function renderEmployeeTable() {
   const tbody = document.querySelector("#employeeTable tbody");
   if (!tbody) return;
@@ -638,6 +604,7 @@ function renderEmployeeTable() {
 
 // =============================
 // Dashboard Update
+// =============================
 function updateDashboard() {
   const list = window.selectedEmployeeId
     ? window.employees.filter(e => e.employee_id === window.selectedEmployeeId)
@@ -645,15 +612,16 @@ function updateDashboard() {
 
   const summary = calculatePayrollSummary(list);
 
-  document.getElementById("totalPayroll").textContent = `K ${summary.totalGross.toLocaleString()}`;
-  document.getElementById("averageSalary").textContent = `K ${summary.averageSalary.toLocaleString()}`;
-  document.getElementById("payeContributions").textContent = `K ${summary.totalPAYE.toLocaleString()}`;
-  document.getElementById("netPayDistributed").textContent = `K ${summary.totalNet.toLocaleString()}`;
+  $("totalPayroll").textContent = `K ${summary.totalGross.toLocaleString()}`;
+  $("averageSalary").textContent = `K ${summary.averageSalary.toLocaleString()}`;
+  $("payeContributions").textContent = `K ${summary.totalPAYE.toLocaleString()}`;
+  $("netPayDistributed").textContent = `K ${summary.totalNet.toLocaleString()}`;
 
   renderCharts(summary);
   renderEmployeeTable();
 }
 window.updateDashboard = updateDashboard;
+
 // =============================
 // Department Settings
 // =============================
@@ -688,17 +656,17 @@ function renderDepartmentSettings() {
   });
 }
 
-// -------------------------
+// =============================
 // Init on DOM Ready
-// -------------------------
-document.addEventListener("DOMContentLoaded", () => {
-  loadEmployees();
+// =============================
+document.addEventListener("DOMContentLoaded", async () => {
+  await populatePeriodDropdown();
+  await loadEmployees();
 
   ["employee_id", "full_name", "tpin", "nrc"].forEach(id => {
-    document.getElementById(id)?.addEventListener("change", onEmployeeChange);
+    $(id)?.addEventListener("change", onEmployeeChange);
   });
-
-  document.getElementById("employeeForm")?.addEventListener("submit", saveEmployeeFromForm);
+  $("employeeForm")?.addEventListener("submit", saveEmployeeFromForm);
 
   renderDepartmentSettings?.();
   updateDashboard?.();
@@ -709,6 +677,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
