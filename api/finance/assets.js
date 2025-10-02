@@ -1,32 +1,55 @@
+// api/finance/assets.js
 import { client } from "../../db.js";
 
 export default async function handler(req, res) {
   try {
     const purchases = await client.execute(`
-      SELECT category, SUM(amount) AS total_purchase
+      SELECT category, SUM(amount) AS purchase
       FROM finance_transactions
       WHERE type='capital_expense'
       GROUP BY category;
     `);
 
     const sales = await client.execute(`
-      SELECT category, SUM(amount) AS total_sale
+      SELECT category, SUM(amount) AS sale
       FROM finance_transactions
       WHERE type='asset_sale'
       GROUP BY category;
     `);
 
-    const assets = purchases.rows.map(p => {
-      const sale = sales.rows.find(s => s.category === p.category);
-      const purchase = p.total_purchase || 0;
-      const saleAmount = sale ? sale.total_sale : 0;
-      const gainLoss = saleAmount - purchase;
+    // Normalize results (SQLite may return strings for numbers)
+    const purchaseMap = {};
+    purchases.rows.forEach(p => {
+      purchaseMap[p.category] = Number(p.purchase || 0);
+    });
+
+    const saleMap = {};
+    sales.rows.forEach(s => {
+      saleMap[s.category] = Number(s.sale || 0);
+    });
+
+    // Merge purchases + sales categories
+    const allCategories = new Set([
+      ...Object.keys(purchaseMap),
+      ...Object.keys(saleMap),
+    ]);
+
+    const assets = Array.from(allCategories).map(category => {
+      const purchase = purchaseMap[category] || 0;
+      const sale = saleMap[category] || 0;
+      const gainLoss = sale - purchase;
+
       return {
-        category: p.category,
+        category,
         purchase,
-        sale: saleAmount,
+        sale,
         gain_loss: gainLoss,
-        status: gainLoss > 0 ? "Gain" : gainLoss < 0 ? "Loss" : "Break-even"
+        status:
+          gainLoss > 0
+            ? "Gain"
+            : gainLoss < 0
+            ? "Loss"
+            : "Break-even",
       };
     });
 
