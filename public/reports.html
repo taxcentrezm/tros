@@ -302,11 +302,11 @@ document.addEventListener("DOMContentLoaded", () => {
     doc.setFontSize(16);
     doc.text("Report Summary", 40, 40);
 
-    doc.setFontSize(12);
+    doc.setFontSize(9);
 
 // Horizontal positions
 const startX = 40;
-const gapX = 120;
+const gapX = 100;
 
 doc.text(`Employees: ${document.getElementById("reportEmployeeCount").textContent}`, startX, 60);
 doc.text(`Gross Pay: ${document.getElementById("reportGrossPay").textContent}`, startX + gapX, 60);
@@ -346,6 +346,7 @@ doc.text(`Net Pay: ${document.getElementById("reportNetPay").textContent}`, star
 </script>
 </body>
 </html>
+
 
 
 
