@@ -156,16 +156,17 @@
 </main>
 </div>
  
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const reportForm = document.getElementById("reportFilterForm");
   const reportTableBody = document.querySelector("#reportTable tbody");
 
-  // Format number with commas and 2 decimals
-  function formatAmount(value) {
-    return (value ?? 0).toLocaleString("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function formatCurrency(value) {
+    return value.toLocaleString("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   reportForm.addEventListener("submit", async (e) => {
@@ -177,6 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const res = await fetch("/api/payroll/salaries");
+      if (!res.ok) throw new Error("Failed to fetch payroll records");
       const json = await res.json();
       const records = json.records || [];
 
@@ -190,8 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const employees = filtered.map(rec => ({
         name: rec.employee_id,
         gross: rec.gross ?? 0,
-        deductions: (rec.paye ?? 0) + (rec.napsa ?? 0) + (rec.nhima ?? 0),
-        net: (rec.gross ?? 0) - ((rec.paye ?? 0) + (rec.napsa ?? 0) + (rec.nhima ?? 0))
+        deductions: (rec.paye ?? 0) + (rec.napsa ?? 0) + (rec.nhima ?? 0)
       }));
 
       generateReport(employees, type);
@@ -202,24 +203,24 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function generateReport(data, type) {
-    // Populate summary stats
     const totalGross = data.reduce((sum, emp) => sum + emp.gross, 0);
     const totalDeductions = data.reduce((sum, emp) => sum + emp.deductions, 0);
     const totalNet = totalGross - totalDeductions;
 
     document.getElementById("reportEmployeeCount").textContent = data.length;
-    document.getElementById("reportGrossPay").textContent = `K ${formatAmount(totalGross)}`;
-    document.getElementById("reportDeductions").textContent = `K ${formatAmount(totalDeductions)}`;
-    document.getElementById("reportNetPay").textContent = `K ${formatAmount(totalNet)}`;
+    document.getElementById("reportGrossPay").textContent = `K ${formatCurrency(totalGross)}`;
+    document.getElementById("reportDeductions").textContent = `K ${formatCurrency(totalDeductions)}`;
+    document.getElementById("reportNetPay").textContent = `K ${formatCurrency(totalNet)}`;
 
     // Populate table
     reportTableBody.innerHTML = "";
     data.forEach(emp => {
+      const net = emp.gross - emp.deductions;
       const row = `<tr>
         <td class="px-4 py-2">${emp.name}</td>
-        <td class="px-4 py-2">K ${formatAmount(emp.gross)}</td>
-        <td class="px-4 py-2">K ${formatAmount(emp.deductions)}</td>
-        <td class="px-4 py-2">K ${formatAmount(emp.net)}</td>
+        <td class="px-4 py-2">K ${formatCurrency(emp.gross)}</td>
+        <td class="px-4 py-2">K ${formatCurrency(emp.deductions)}</td>
+        <td class="px-4 py-2">K ${formatCurrency(net)}</td>
       </tr>`;
       reportTableBody.insertAdjacentHTML("beforeend", row);
     });
@@ -230,82 +231,63 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderCharts(data, type) {
     const labels = data.map(emp => emp.name);
     const gross = data.map(emp => emp.gross);
-    const net = data.map(emp => emp.net);
+    const net = data.map(emp => emp.gross - emp.deductions);
     const deductions = data.map(emp => emp.deductions);
 
-    if (window.reportOverviewChart) window.reportOverviewChart.destroy();
-    if (window.netPayChart) window.netPayChart.destroy();
+    if (window.reportOverviewChart instanceof Chart) window.reportOverviewChart.destroy();
+    if (window.netPayChart instanceof Chart) window.netPayChart.destroy();
 
     if (type === "payroll") {
       window.reportOverviewChart = new Chart(document.getElementById("reportOverviewChart"), {
         type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "Gross Pay (K)",
-            data: gross,
-            backgroundColor: "#3b82f6"
-          }]
-        },
-        options: {
-          plugins: { tooltip: { callbacks: { label: ctx => `K ${formatAmount(ctx.raw)}` } } },
-          scales: { y: { beginAtZero: true } }
-        }
+        data: { labels, datasets: [{ label: "Gross Pay", data: gross, backgroundColor: "#3b82f6" }] },
+        options: { responsive: true, maintainAspectRatio: false }
       });
     }
 
     if (type === "netpay") {
       window.netPayChart = new Chart(document.getElementById("netPayChart"), {
         type: "line",
-        data: {
-          labels,
-          datasets: [{
-            label: "Net Pay (K)",
-            data: net,
-            borderColor: "#10b981",
-            fill: false
-          }]
-        },
-        options: {
-          plugins: { tooltip: { callbacks: { label: ctx => `K ${formatAmount(ctx.raw)}` } } },
-          scales: { y: { beginAtZero: true } }
-        }
+        data: { labels, datasets: [{ label: "Net Pay", data: net, borderColor: "#10b981", fill: false }] },
+        options: { responsive: true, maintainAspectRatio: false }
       });
     }
 
     if (type === "deductions") {
       window.reportOverviewChart = new Chart(document.getElementById("reportOverviewChart"), {
         type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "Deductions (K)",
-            data: deductions,
-            backgroundColor: "#ef4444"
-          }]
-        },
-        options: {
-          plugins: { tooltip: { callbacks: { label: ctx => `K ${formatAmount(ctx.raw)}` } } },
-          scales: { y: { beginAtZero: true } }
-        }
+        data: { labels, datasets: [{ label: "Deductions", data: deductions, backgroundColor: "#ef4444" }] },
+        options: { responsive: true, maintainAspectRatio: false }
       });
     }
   }
 
-  // Export to PDF
+  // Export Report to PDF
   window.exportReportToPDF = function () {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
+
+    doc.setFontSize(14);
     doc.text("Report Summary", 10, 10);
+    doc.setFontSize(10);
     doc.text(`Employees: ${document.getElementById("reportEmployeeCount").textContent}`, 10, 20);
     doc.text(`Gross Pay: ${document.getElementById("reportGrossPay").textContent}`, 10, 30);
     doc.text(`Deductions: ${document.getElementById("reportDeductions").textContent}`, 10, 40);
     doc.text(`Net Pay: ${document.getElementById("reportNetPay").textContent}`, 10, 50);
 
-    // Optional: Export table as well
-    const table = document.getElementById("reportTable");
-    if (table) {
-      doc.autoTable({ html: table, startY: 60, theme: "grid", styles: { fontSize: 8 } });
+    // Include table if AutoTable is available
+    if (typeof doc.autoTable === "function") {
+      doc.autoTable({
+        startY: 60,
+        head: [["Employee", "Gross Pay (K)", "Deductions (K)", "Net Pay (K)"]],
+        body: Array.from(reportTableBody.querySelectorAll("tr")).map(tr => {
+          return Array.from(tr.querySelectorAll("td")).map(td => td.textContent);
+        }),
+        theme: "grid",
+        styles: { fontSize: 8 }
+      });
+    } else {
+      console.warn("AutoTable plugin not loaded!");
     }
 
     doc.save("report.pdf");
@@ -316,6 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
