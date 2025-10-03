@@ -286,10 +286,20 @@ async function loadPayrollRecords() {
     if (!res.ok) throw new Error("Failed to fetch payroll records");
 
     const json = await res.json();
-    // Each record now includes employee details from hr_employees
-    window.payrollRecords = (json.records || []).map(rec => {
-      const emp = json.employees?.find(e => e.employee_id === rec.employee_id) || {};
-      return { ...rec, ...emp };
+    const records = json.records || []; // payroll_records
+    const employees = window.employees || [];
+
+    // Merge payroll record with employee details
+    window.payrollRecords = records.map(r => {
+      const emp = employees.find(e => e.employee_id === r.employee_id) || {};
+      return {
+        ...r,
+        first_name: emp.first_name || "Unknown",
+        last_name: emp.last_name || "",
+        tpin: emp.tpin || "",
+        nrc: emp.nrc || "",
+        department: emp.department || "",
+      };
     });
 
     renderEmployeeTable();
@@ -297,6 +307,7 @@ async function loadPayrollRecords() {
     console.error("❌ Error loading payroll records:", err);
   }
 }
+
 
 // =============================
 // Employee Dropdowns
@@ -618,7 +629,7 @@ function renderEmployeeTable() {
     const { gross = 0, net = 0 } = emp;
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td class="px-4 py-2">${emp.first_name || ""} ${emp.last_name || ""}</td>
+      <td class="px-4 py-2">${emp.first_name} ${emp.last_name}</td>
       <td class="px-4 py-2">K ${gross.toLocaleString()}</td>
       <td class="px-4 py-2">K ${net.toLocaleString()}</td>
       <td class="px-4 py-2">
@@ -630,16 +641,19 @@ function renderEmployeeTable() {
     tbody.appendChild(tr);
   });
 
-  // Attach payslip button events
   document.querySelectorAll(".payslip-btn").forEach(btn => {
-    btn.addEventListener("click", (ev) => {
+    btn.addEventListener("click", ev => {
       const empId = ev.currentTarget.dataset.id;
       const idx = window.payrollRecords.findIndex(e => e.employee_id === empId);
-      if (idx >= 0) generatePayslip(idx);
-      else alert("Employee not found for payslip generation.");
+      if (idx >= 0) {
+        generatePayslip(idx);
+      } else {
+        alert("Employee not found for payslip generation.");
+      }
     });
   });
 }
+
 
 
 // =============================
@@ -720,6 +734,7 @@ document.addEventListener("DOMContentLoaded", async () => {
  
 </body>
 </html>
+
 
 
 
