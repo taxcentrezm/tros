@@ -178,7 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const res = await fetch("/api/payroll/salaries");
-      if (!res.ok) throw new Error("Failed to fetch payroll records");
+      if (!res.ok) throw new Error("Failed to fetch payroll data");
       const json = await res.json();
       const records = json.records || [];
 
@@ -207,12 +207,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const totalDeductions = data.reduce((sum, emp) => sum + emp.deductions, 0);
     const totalNet = totalGross - totalDeductions;
 
+    // Update summary cards
     document.getElementById("reportEmployeeCount").textContent = data.length;
     document.getElementById("reportGrossPay").textContent = `K ${formatCurrency(totalGross)}`;
     document.getElementById("reportDeductions").textContent = `K ${formatCurrency(totalDeductions)}`;
     document.getElementById("reportNetPay").textContent = `K ${formatCurrency(totalNet)}`;
 
-    // Populate table
+    // Populate detailed table
     reportTableBody.innerHTML = "";
     data.forEach(emp => {
       const net = emp.gross - emp.deductions;
@@ -234,60 +235,97 @@ document.addEventListener("DOMContentLoaded", () => {
     const net = data.map(emp => emp.gross - emp.deductions);
     const deductions = data.map(emp => emp.deductions);
 
-    if (window.reportOverviewChart instanceof Chart) window.reportOverviewChart.destroy();
-    if (window.netPayChart instanceof Chart) window.netPayChart.destroy();
+    // Properly destroy previous charts
+    if (window.reportOverviewChart) {
+      window.reportOverviewChart.destroy();
+      window.reportOverviewChart = null;
+    }
+    if (window.netPayChart) {
+      window.netPayChart.destroy();
+      window.netPayChart = null;
+    }
+
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const value = context.raw ?? 0;
+              return `K ${formatCurrency(value)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    };
 
     if (type === "payroll") {
-      window.reportOverviewChart = new Chart(document.getElementById("reportOverviewChart"), {
-        type: "bar",
-        data: { labels, datasets: [{ label: "Gross Pay", data: gross, backgroundColor: "#3b82f6" }] },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
+      window.reportOverviewChart = new Chart(
+        document.getElementById("reportOverviewChart"),
+        {
+          type: "bar",
+          data: { labels, datasets: [{ label: "Gross Pay", data: gross, backgroundColor: "#3b82f6" }] },
+          options: chartOptions
+        }
+      );
     }
 
     if (type === "netpay") {
-      window.netPayChart = new Chart(document.getElementById("netPayChart"), {
-        type: "line",
-        data: { labels, datasets: [{ label: "Net Pay", data: net, borderColor: "#10b981", fill: false }] },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
+      window.netPayChart = new Chart(
+        document.getElementById("netPayChart"),
+        {
+          type: "line",
+          data: { labels, datasets: [{ label: "Net Pay", data: net, borderColor: "#10b981", fill: false }] },
+          options: chartOptions
+        }
+      );
     }
 
     if (type === "deductions") {
-      window.reportOverviewChart = new Chart(document.getElementById("reportOverviewChart"), {
-        type: "bar",
-        data: { labels, datasets: [{ label: "Deductions", data: deductions, backgroundColor: "#ef4444" }] },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
+      window.reportOverviewChart = new Chart(
+        document.getElementById("reportOverviewChart"),
+        {
+          type: "bar",
+          data: { labels, datasets: [{ label: "Deductions", data: deductions, backgroundColor: "#ef4444" }] },
+          options: chartOptions
+        }
+      );
     }
   }
 
-  // Export Report to PDF
+  // Export report to PDF
   window.exportReportToPDF = function () {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
+    const employeeCount = document.getElementById("reportEmployeeCount").textContent;
+    const grossPay = document.getElementById("reportGrossPay").textContent;
+    const deductions = document.getElementById("reportDeductions").textContent;
+    const netPay = document.getElementById("reportNetPay").textContent;
 
-    doc.setFontSize(14);
+    doc.setFontSize(16);
     doc.text("Report Summary", 10, 10);
-    doc.setFontSize(10);
-    doc.text(`Employees: ${document.getElementById("reportEmployeeCount").textContent}`, 10, 20);
-    doc.text(`Gross Pay: ${document.getElementById("reportGrossPay").textContent}`, 10, 30);
-    doc.text(`Deductions: ${document.getElementById("reportDeductions").textContent}`, 10, 40);
-    doc.text(`Net Pay: ${document.getElementById("reportNetPay").textContent}`, 10, 50);
+    doc.setFontSize(12);
+    doc.text(`Employees: ${employeeCount}`, 10, 20);
+    doc.text(`Gross Pay: ${grossPay}`, 10, 30);
+    doc.text(`Deductions: ${deductions}`, 10, 40);
+    doc.text(`Net Pay: ${netPay}`, 10, 50);
 
-    // Include table if AutoTable is available
-    if (typeof doc.autoTable === "function") {
+    // Optional: Add table
+    const tableRows = Array.from(reportTableBody.querySelectorAll("tr")).map(tr =>
+      Array.from(tr.querySelectorAll("td")).map(td => td.textContent)
+    );
+
+    if (tableRows.length) {
       doc.autoTable({
+        head: [["Employee", "Gross Pay", "Deductions", "Net Pay"]],
+        body: tableRows,
         startY: 60,
-        head: [["Employee", "Gross Pay (K)", "Deductions (K)", "Net Pay (K)"]],
-        body: Array.from(reportTableBody.querySelectorAll("tr")).map(tr => {
-          return Array.from(tr.querySelectorAll("td")).map(td => td.textContent);
-        }),
-        theme: "grid",
-        styles: { fontSize: 8 }
+        styles: { fontSize: 10 }
       });
-    } else {
-      console.warn("AutoTable plugin not loaded!");
     }
 
     doc.save("report.pdf");
@@ -295,9 +333,11 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
+
  
 </body>
 </html>
+
 
 
 
