@@ -29,12 +29,13 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       // ✅ Join payroll_records with employees so frontend sees names
-      const records = await client.execute(`
+const records = await client.execute(`
   SELECT pr.*, e.first_name, e.last_name, e.tpin, e.nrc
   FROM payroll_records pr
-  JOIN hr_employees e ON e.employee_id = pr.employee_id
+  JOIN hr_employees e ON pr.employee_id = e.employee_id
   ORDER BY pr.created_at DESC
 `);
+
 
       const salaries = await client.execute(`
         SELECT salary_id, department, basic, housing, transport, bonus, effective_date
