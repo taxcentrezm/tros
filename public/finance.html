@@ -100,258 +100,279 @@
         </div>
     </nav>
 
-  <!-- Summary Cards -->
-<section class="grid grid-cols-1 md:grid-cols-5 gap-6 p-6">
-  <!-- Total Revenue -->
-  <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
-    <div class="flex justify-between items-center">
-      <div>
-        <p class="text-gray-600">Total Revenue</p>
-        <h3 id="totalRevenue" class="text-3xl font-bold text-green-700">$0</h3>
-      </div>
-      <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-        <i class="fa-solid fa-kwacha-sign"></i>
-      </div>
-    </div>
-  </div>
+ <!-- ======= REPLACE MAIN CONTENT WITH THIS ENHANCED FINANCE LAYOUT ======= -->
+<div class="max-w-7xl mx-auto p-6">
 
-  <!-- Total Expenses -->
-  <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="100">
-    <div class="flex justify-between items-center">
-      <div>
-        <p class="text-gray-600">Total Expenses</p>
-        <h3 id="totalExpenses" class="text-3xl font-bold text-red-700">$0</h3>
-      </div>
-      <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-        <i data-feather="credit-card" class="text-red-600"></i>
-      </div>
-    </div>
-  </div>
-
-  <!-- Net Profit -->
-  <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="200">
-    <div class="flex justify-between items-center">
-      <div>
-        <p class="text-gray-600">Net Profit</p>
-        <h3 id="netProfit" class="text-3xl font-bold text-blue-700">$0</h3>
-      </div>
-      <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-        <i data-feather="bar-chart-2" class="text-blue-600"></i>
-      </div>
-    </div>
-  </div>
-
-  <!-- Capital Expenses -->
-  <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="300">
-    <div class="flex justify-between items-center">
-      <div>
-        <p class="text-gray-600">Capital Expenses (CapEx)</p>
-        <h3 id="totalCapex" class="text-3xl font-bold text-orange-700">$0</h3>
-      </div>
-      <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-        <i data-feather="minus-circle" class="text-orange-600"></i>
-      </div>
-    </div>
-  </div>
-
-  <!-- Total Liabilities -->
-<div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="500">
-  <div class="flex justify-between items-center">
+  <!-- Page header + Period filter -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
     <div>
-      <p class="text-gray-600">Total Liabilities</p>
-      <h3 id="totalLiabilities" class="text-3xl font-bold text-yellow-700">$0</h3>
+      <h1 class="text-2xl font-bold">Finance Dashboard</h1>
+      <p class="text-sm text-gray-600">Overview, drill-downs and extended trial balance.</p>
     </div>
-    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-      <i data-feather="alert-circle" class="text-yellow-600"></i>
-    </div>
+
+    <!-- Period filter -->
+    <form id="periodForm" class="flex gap-2 items-center">
+      <label class="text-sm text-gray-600">Period:</label>
+      <input id="startDate" type="date" class="px-3 py-2 border rounded" />
+      <span class="text-sm text-gray-500">to</span>
+      <input id="endDate" type="date" class="px-3 py-2 border rounded" />
+      <button type="submit" class="ml-2 px-4 py-2 bg-primary-600 text-white rounded">Apply</button>
+      <button id="clearPeriod" type="button" class="ml-2 px-3 py-2 bg-gray-100 rounded text-sm">Clear</button>
+    </form>
   </div>
-</div>
 
-
-  <!-- Capital Revenue -->
-  <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="400">
-    <div class="flex justify-between items-center">
-      <div>
-        <p class="text-gray-600">Capital Revenue (CapRev)</p>
-        <h3 id="totalCaprev" class="text-3xl font-bold text-purple-700">$0</h3>
-      </div>
-      <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-        <i data-feather="plus-circle" class="text-purple-600"></i>
-      </div>
+  <!-- Summary Cards (rearranged, professional) -->
+  <section class="grid grid-cols-2 md:grid-cols-5 gap-6 mb-6">
+    <div class="bg-white rounded-xl shadow p-5">
+      <p class="text-sm text-gray-600">Total Revenue</p>
+      <h3 id="totalRevenue" class="text-2xl font-bold text-green-600">ZMW 0.00</h3>
     </div>
-  </div>
-</section>
 
-  <!-- Charts -->
-  <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mx-6 mb-12">
-    <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up">
-      <h2 class="text-lg font-semibold text-primary-800 mb-4">Monthly Revenue vs Expenses</h2>
-      <canvas id="lineChart" height="200"></canvas>
+    <div class="bg-white rounded-xl shadow p-5">
+      <p class="text-sm text-gray-600">Total Expenses</p>
+      <h3 id="totalExpenses" class="text-2xl font-bold text-red-600">ZMW 0.00</h3>
     </div>
-    <div class="bg-white rounded-xl shadow-md p-6" data-aos="fade-up" data-aos-delay="100">
-      <h2 class="text-lg font-semibold text-primary-800 mb-4">Expense Breakdown</h2>
-      <canvas id="pieChart" height="200"></canvas>
+
+    <div class="bg-white rounded-xl shadow p-5">
+      <p class="text-sm text-gray-600">Net Profit</p>
+      <h3 id="netProfit" class="text-2xl font-bold text-blue-600">ZMW 0.00</h3>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-5">
+      <p class="text-sm text-gray-600">Cash Flow (Operating)</p>
+      <h3 id="cashFlowOperating" class="text-2xl font-bold text-emerald-600">ZMW 0.00</h3>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-5">
+      <p class="text-sm text-gray-600">Equity</p>
+      <h3 id="equityTotal" class="text-2xl font-bold text-purple-600">ZMW 0.00</h3>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-5">
+      <p class="text-sm text-gray-600">Working Capital</p>
+      <h3 id="workingCapital" class="text-2xl font-bold text-yellow-600">ZMW 0.00</h3>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-5">
+      <p class="text-sm text-gray-600">Capital Expenses (CapEx)</p>
+      <h3 id="totalCapex" class="text-2xl font-bold text-orange-600">ZMW 0.00</h3>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-5">
+      <p class="text-sm text-gray-600">Capital Revenue (CapRev)</p>
+      <h3 id="totalCaprev" class="text-2xl font-bold text-indigo-600">ZMW 0.00</h3>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-5">
+      <p class="text-sm text-gray-600">Total Liabilities</p>
+      <h3 id="totalLiabilities" class="text-2xl font-bold text-pink-600">ZMW 0.00</h3>
     </div>
   </section>
 
-  <!-- Transactions Table -->
-  <section class="bg-white rounded-xl shadow-md p-6 mx-6 mb-12" data-aos="fade-up">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold text-primary-800">Transactions</h2>
-      <div class="flex space-x-2 mb-4">
-<input type="file" id="importFile" accept=".csv,.xlsx" class="hidden" />
-    <button id="importBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
-        Import Transactions
-    </button>
-    <button id="exportCSV" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Export CSV</button> 
-    
-    <button id="exportExcel" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Export Excel</button> 
-    
-    <button id="exportPDF" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Export PDF</button> 
-</div>
-</div>
-
-      <button class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center" id="openModal">
-        <i data-feather="plus" class="w-5 h-5 mr-2"></i> Add Transaction
-      </button>
+  <!-- Charts: two rows -->
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white rounded-xl shadow p-6">
+      <h2 class="font-semibold mb-3">Monthly Revenue vs Expenses</h2>
+      <canvas id="lineChart" height="220"></canvas>
     </div>
-    <input type="text" id="transactionSearch" placeholder="Search..." class="mb-4 w-full px-4 py-2 border rounded-lg" />
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm" id="transactionTable" title="Transactions">
+
+    <div class="bg-white rounded-xl shadow p-6">
+      <h2 class="font-semibold mb-3">Expense Breakdown</h2>
+      <canvas id="pieChart" height="220"></canvas>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-6">
+      <h2 class="font-semibold mb-3">Net Profit Trend</h2>
+      <canvas id="netProfitTrend" height="220"></canvas>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-6">
+      <h2 class="font-semibold mb-3">Liabilities vs Assets</h2>
+      <canvas id="liabilitiesAssetsChart" height="220"></canvas>
+    </div>
+  </section>
+
+  <!-- Transactions Table with richer details + export buttons -->
+  <section class="bg-white rounded-xl shadow p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold">Transactions</h2>
+      <div class="flex gap-2">
+        <input id="transactionSearch" type="text" placeholder="Search..." class="px-3 py-2 border rounded" />
+        <button id="importBtn" class="px-3 py-2 bg-purple-600 text-white rounded">Import</button>
+        <button id="exportCSV" class="px-3 py-2 bg-blue-600 text-white rounded">Export CSV</button>
+        <button id="exportExcel" class="px-3 py-2 bg-green-600 text-white rounded">Export Excel</button>
+        <button id="exportPDF" class="px-3 py-2 bg-red-600 text-white rounded">Export PDF</button>
+      </div>
+    </div>
+
+    <div class="overflow-auto">
+      <table id="transactionTable" class="w-full text-sm">
         <thead class="bg-gray-100">
           <tr>
-            <th class="px-4 py-2 text-left">Date</th>
-            <th class="px-4 py-2 text-left">Description</th>
-            <th class="px-4 py-2 text-left">Category</th>
-            <th class="px-4 py-2 text-left">Amount</th>
-            <th class="px-4 py-2 text-left">Type</th>
+            <th class="px-3 py-2 text-left">Date</th>
+            <th class="px-3 py-2 text-left">Reference</th>
+            <th class="px-3 py-2 text-left">Description</th>
+            <th class="px-3 py-2 text-left">Category</th>
+            <th class="px-3 py-2 text-right">Amount</th>
+            <th class="px-3 py-2 text-left">Payment Method</th>
+            <th class="px-3 py-2 text-left">Status</th>
+            <th class="px-3 py-2 text-left">Type</th>
           </tr>
         </thead>
         <tbody id="transactionBody" class="divide-y divide-gray-200"></tbody>
       </table>
     </div>
   </section>
-  <!-- Balance Sheet Section -->
-<section class="bg-white rounded-xl shadow-md p-6 mx-6 mb-12" data-aos="fade-up">
-  <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-semibold text-primary-800">Balance Sheet</h2>
-    <button class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center" id="addBalanceSheet">
-      <i data-feather="plus" class="w-5 h-5 mr-2"></i> Add Entry
-    </button>
-  </div>
-  <div class="overflow-x-auto">
-    <table id="balanceSheetTable" title="Balance Sheet" class="w-full text-sm">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="px-4 py-2 text-left">Fiscal Year</th>
-          <th class="px-4 py-2 text-left">Assets</th>
-          <th class="px-4 py-2 text-left">Liabilities</th>
-          <th class="px-4 py-2 text-left">Equity</th>
-        </tr>
-      </thead>
-      <tbody id="balanceSheetBody" class="divide-y divide-gray-200"></tbody>
-    </table>
-  </div>
-</section>
 
-<!-- Trial Balance Section -->
-<section class="bg-white rounded-xl shadow-md p-6 mx-6 mb-12" data-aos="fade-up">
-  <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-semibold text-primary-800">Trial Balance</h2>
-    <button class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center" id="addTrialBalance">
-      <i data-feather="plus" class="w-5 h-5 mr-2"></i> Add Entry
-    </button>
-  </div>
-  <div class="overflow-x-auto">
-    <table id="trialBalanceTable" title="Trial Balance" class="w-full text-sm">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="px-4 py-2 text-left">Account</th>
-          <th class="px-4 py-2 text-left">Debit</th>
-          <th class="px-4 py-2 text-left">Credit</th>
-          <th class="px-4 py-2 text-left">Fiscal Year</th>
-        </tr>
-      </thead>
-      <tbody id="trialBalanceBody" class="divide-y divide-gray-200"></tbody>
-    </table>
-  </div>
-</section>
+  <!-- Balance & Extended Trial Balance -->
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white rounded-xl shadow p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold">Trial Balance</h2>
+        <div class="flex gap-2">
+          <button id="exportTrialBalance" class="px-3 py-2 bg-gray-800 text-white rounded text-sm">Export TB</button>
+          <button id="validateLedger" class="px-3 py-2 bg-yellow-500 text-white rounded text-sm">Validate Ledger</button>
+        </div>
+      </div>
+      <div class="overflow-auto">
+        <table id="trialBalanceTable" class="w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-3 py-2 text-left">Account</th>
+              <th class="px-3 py-2 text-right">Debit</th>
+              <th class="px-3 py-2 text-right">Credit</th>
+              <th class="px-3 py-2 text-right">Balance</th>
+            </tr>
+          </thead>
+          <tbody id="trialBalanceBody" class="divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+      <p id="ledgerCheck" class="mt-3 text-sm"></p>
+    </div>
 
-<section class="bg-white rounded-xl shadow-md p-6 mx-6 mb-12" data-aos="fade-up">
-  <h2 class="text-xl font-semibold text-primary-800 mb-4">Asset Lifecycle</h2>
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm" id="assetLifecycleTable" title="Asset Lifecycle">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="px-4 py-2 text-left">Asset</th>
-          <th class="px-4 py-2 text-left">Purchase</th>
-          <th class="px-4 py-2 text-left">Sale</th>
-          <th class="px-4 py-2 text-left">Gain/Loss</th>
-          <th class="px-4 py-2 text-left">Status</th>
-        </tr>
-      </thead>
-      <tbody id="assetLifecycleBody" class="divide-y divide-gray-200"></tbody>
-    </table>
-  </div>
-</section>
+    <div class="bg-white rounded-xl shadow p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold">Extended Trial Balance (ETB)</h2>
+        <button id="exportETB" class="px-3 py-2 bg-gray-800 text-white rounded text-sm">Export ETB</button>
+      </div>
 
+      <div class="overflow-auto">
+        <table id="extendedTB" class="w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-2 py-2 text-left">Account</th>
+              <th class="px-2 py-2 text-right">Debit</th>
+              <th class="px-2 py-2 text-right">Credit</th>
+              <th class="px-2 py-2 text-right">Adj.</th>
+              <th class="px-2 py-2 text-right">Adj. Debit</th>
+              <th class="px-2 py-2 text-right">Adj. Credit</th>
+              <th class="px-2 py-2 text-right">P&L</th>
+              <th class="px-2 py-2 text-right">Balance Sheet</th>
+            </tr>
+          </thead>
+          <tbody id="extendedTBBody" class="divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
-<div class="flex gap-4 mb-4">
-  <button id="exportJournalBtn" class="bg-green-600 text-white px-4 py-2 rounded">
-    Export Journal CSV
-  </button>
-  <label class="bg-yellow-500 text-white px-4 py-2 rounded cursor-pointer">
-    Import Journal CSV
-    <input type="file" id="importJournalInput" accept=".csv" class="hidden" />
-  </label>
-</div>
+  <!-- Balance Sheet -->
+  <section class="bg-white rounded-xl shadow p-6 mb-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold">Balance Sheet</h2>
+      <div class="flex gap-2">
+        <button id="exportBalanceSheet" class="px-3 py-2 bg-gray-800 text-white rounded text-sm">Export Balance Sheet</button>
+      </div>
+    </div>
 
+    <div class="overflow-auto">
+      <table id="balanceSheetTable" class="w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-3 py-2 text-left">Fiscal Year</th>
+            <th class="px-3 py-2 text-right">Assets</th>
+            <th class="px-3 py-2 text-right">Liabilities</th>
+            <th class="px-3 py-2 text-right">Equity</th>
+          </tr>
+        </thead>
+        <tbody id="balanceSheetBody" class="divide-y divide-gray-200"></tbody>
+      </table>
+    </div>
+  </section>
 
-    
-    <section class="bg-white rounded-xl shadow-md p-6 mx-6 mb-12" data-aos="fade-up">    
-     <div id="journalTables"  >
-  <h2 class="text-xl font-bold mb-2">Journal Entries</h2>
-  <table id="journalEntriesTable" class="table-auto w-full border border-gray-300 mb-6">
-    <thead class="bg-gray-100">
-      <tr>
-        <th class="px-4 py-2 border">Entry ID</th>
-        <th class="px-4 py-2 border">Date</th>
-        <th class="px-4 py-2 border">Description</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-    </section>
+  <!-- Asset Lifecycle -->
+  <section class="bg-white rounded-xl shadow p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Asset Lifecycle</h2>
+    <div class="overflow-auto">
+      <table id="assetLifecycleTable" class="w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-3 py-2 text-left">Asset</th>
+            <th class="px-3 py-2 text-right">Purchase</th>
+            <th class="px-3 py-2 text-right">Sale</th>
+            <th class="px-3 py-2 text-right">Gain/Loss</th>
+            <th class="px-3 py-2 text-left">Status</th>
+          </tr>
+        </thead>
+        <tbody id="assetLifecycleBody" class="divide-y divide-gray-200"></tbody>
+      </table>
+    </div>
+  </section>
 
-    
-    
-<section class="bg-white rounded-xl shadow-md p-6 mx-6 mb-12" data-aos="fade-up">    
-  <h2 class="text-xl font-bold mb-2">Journal Lines</h2>
-  <table id="journalLinesTable" class="table-auto w-full border border-gray-300">
-    <thead class="bg-gray-100">
-      <tr>
-        <th class="px-4 py-2 border">Line ID</th>
-        <th class="px-4 py-2 border">Entry ID</th>
-        <th class="px-4 py-2 border">Account</th>
-        <th class="px-4 py-2 border">Debit</th>
-        <th class="px-4 py-2 border">Credit</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-</section>
-    
-<div id="importPreviewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-  <div class="bg-white p-6 rounded shadow-lg w-full max-w-3xl">
-    <h2 class="text-lg font-bold mb-4">Preview Imported Journal Data</h2>
-    <div id="importPreviewContent" class="overflow-auto max-h-96 mb-4"></div>
-    <div class="flex justify-end gap-4">
-      <button id="confirmImportBtn" class="bg-green-600 text-white px-4 py-2 rounded">Confirm Import</button>
-      <button id="cancelImportBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button>
+  <!-- Journal: entries expandable to show lines inline -->
+  <section class="bg-white rounded-xl shadow p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">Journal Entries</h2>
+    <div class="overflow-auto">
+      <table id="journalEntriesTable" class="w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-3 py-2">Entry ID</th>
+            <th class="px-3 py-2">Date</th>
+            <th class="px-3 py-2">Description</th>
+            <th class="px-3 py-2">Lines</th>
+          </tr>
+        </thead>
+        <tbody id="journalEntriesBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Export/Import Journal + Journal Lines -->
+  <section class="flex gap-4 mb-12">
+    <button id="exportJournalBtn" class="px-4 py-2 bg-green-600 text-white rounded">Export Journal CSV</button>
+    <label class="px-4 py-2 bg-yellow-500 text-white rounded cursor-pointer">
+      Import Journal CSV
+      <input id="importJournalInput" type="file" accept=".csv" class="hidden" />
+    </label>
+  </section>
+
+  <!-- Drill-down modal (hidden) -->
+  <div id="drillDownModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-full max-w-3xl">
+      <div class="flex justify-between items-center mb-3">
+        <h3 id="drillDownTitle" class="text-lg font-semibold">Drill-down</h3>
+        <button id="closeDrillDown" class="px-3 py-1 bg-gray-200 rounded">Close</button>
+      </div>
+
+      <div class="overflow-auto max-h-80">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-2 py-1">Date</th>
+              <th class="px-2 py-1">Reference</th>
+              <th class="px-2 py-1">Description</th>
+              <th class="px-2 py-1 text-right">Debit</th>
+              <th class="px-2 py-1 text-right">Credit</th>
+            </tr>
+          </thead>
+          <tbody id="drillDownBody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
+
 </div>
+<!-- ======= END REPLACEMENT CONTENT ======= -->
 
     
 <!-- Modal -->
@@ -874,6 +895,7 @@ document.getElementById("importJournalInput").addEventListener("change", async (
 
 </body>
 </html>
+
 
 
 
