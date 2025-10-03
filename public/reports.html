@@ -165,7 +165,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportForm = document.getElementById("reportFilterForm");
   const reportTableBody = document.querySelector("#reportTable tbody");
 
-  // Utility: format numbers with commas and two decimals
   function formatCurrency(value) {
     return Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
@@ -182,20 +181,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const json = await res.json();
       const records = json.records || [];
 
-      // Filter by date range
       const filtered = records.filter(rec => {
         const date = new Date(rec.created_at);
         return (!start || date >= new Date(start)) && (!end || date <= new Date(end));
       });
 
-      // Map to chart-friendly format
       const employees = filtered.map(rec => ({
         name: rec.employee_id,
-        gross: rec.gross,
-        net: rec.net,
-        nhima: rec.nhima,
-        napsa: rec.napsa,
-        paye: rec.paye,
+        gross: rec.gross || 0,
+        net: rec.net || 0,
+        nhima: rec.nhima || 0,
+        napsa: rec.napsa || 0,
+        paye: rec.paye || 0,
         loan: rec.loan_deduction || 0
       }));
 
@@ -207,7 +204,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function generateReport(data, type) {
-    // Summary stats
     const totalGross = data.reduce((sum, emp) => sum + emp.gross, 0);
     const totalDeductions = data.reduce((sum, emp) => sum + (emp.nhima + emp.napsa + emp.paye + emp.loan), 0);
     const totalNet = totalGross - totalDeductions;
@@ -217,7 +213,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("reportDeductions").textContent = `K ${formatCurrency(totalDeductions)}`;
     document.getElementById("reportNetPay").textContent = `K ${formatCurrency(totalNet)}`;
 
-    // Detailed Table
     reportTableBody.innerHTML = "";
     data.forEach(emp => {
       const net = emp.gross - (emp.nhima + emp.napsa + emp.paye + emp.loan);
@@ -246,7 +241,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const net = data.map(emp => emp.gross - (emp.nhima + emp.napsa + emp.paye + emp.loan));
     const deductions = data.map(emp => emp.nhima + emp.napsa + emp.paye + emp.loan);
 
-    // Safely destroy previous charts
+    // Destroy old charts safely
     if (window.reportOverviewChart && typeof window.reportOverviewChart.destroy === "function") {
       window.reportOverviewChart.destroy();
       window.reportOverviewChart = null;
@@ -259,7 +254,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const overviewCanvas = document.getElementById("reportOverviewChart");
     const netPayCanvas = document.getElementById("netPayChart");
 
-    // Chart configurations
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: true, // prevents charts from expanding vertically
+      height: 200,
+      scales: { y: { beginAtZero: true } }
+    };
+
     if (type === "payroll" || type === "deductions") {
       window.reportOverviewChart = new Chart(overviewCanvas, {
         type: "bar",
@@ -271,11 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
             backgroundColor: type === "payroll" ? "#3b82f6" : "#ef4444"
           }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: { y: { beginAtZero: true } }
-        }
+        options: chartOptions
       });
     }
 
@@ -293,38 +290,58 @@ document.addEventListener("DOMContentLoaded", () => {
             tension: 0.3
           }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: { y: { beginAtZero: true } }
-        }
+        options: chartOptions
       });
     }
   }
 
-  // Export PDF
   window.exportReportToPDF = function () {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: "a4" });
 
     doc.setFontSize(16);
     doc.text("Report Summary", 40, 40);
+
     doc.setFontSize(12);
     doc.text(`Employees: ${document.getElementById("reportEmployeeCount").textContent}`, 40, 60);
     doc.text(`Gross Pay: ${document.getElementById("reportGrossPay").textContent}`, 40, 80);
     doc.text(`Deductions: ${document.getElementById("reportDeductions").textContent}`, 40, 100);
     doc.text(`Net Pay: ${document.getElementById("reportNetPay").textContent}`, 40, 120);
 
+    // Build table data cleanly
+    const tableData = Array.from(reportTableBody.querySelectorAll("tr")).map(tr => {
+      const tds = tr.querySelectorAll("td");
+      const empName = tds[0].textContent;
+      const gross = tds[1].textContent;
+      const net = tds[3].textContent;
+
+      // Deductions are extracted from the table cells flex div
+      const dedDiv = tds[2].querySelectorAll("span");
+      const nhima = dedDiv[0].textContent.replace("NHIMA: ", "");
+      const napsa = dedDiv[1].textContent.replace("NAPSA: ", "");
+      const paye = dedDiv[2].textContent.replace("PAYE: ", "");
+      const loan = dedDiv[3].textContent.replace("Loan: ", "");
+
+      return [empName, gross, nhima, napsa, paye, loan, net];
+    });
+
+    if (tableData.length && doc.autoTable) {
+      doc.autoTable({
+        head: [["Employee", "Gross Pay", "NHIMA", "NAPSA", "PAYE", "Loan", "Net Pay"]],
+        body: tableData,
+        startY: 140,
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [200, 200, 200] }
+      });
+    }
+
     doc.save("report.pdf");
   };
 });
 </script>
-
-
-
- 
 </body>
 </html>
+
 
 
 
