@@ -195,9 +195,15 @@
   <!-- Transactions Table with richer details + export buttons -->
   <section class="bg-white rounded-xl shadow p-6 mb-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold">Transactions</h2>
+        <h2 class="text-xl font-semibold">Transactions</h2>
+  
       <div class="flex gap-2">
         <input id="transactionSearch" type="text" placeholder="Search..." class="px-3 py-2 border rounded" />
+          <button 
+    class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition"
+    onclick="openTransactionModal()">
+    + Add Transaction
+  </button>
         <button id="importBtn" class="px-3 py-2 bg-purple-600 text-white rounded">Import</button>
         <button id="exportCSV" class="px-3 py-2 bg-blue-600 text-white rounded">Export CSV</button>
         <button id="exportExcel" class="px-3 py-2 bg-green-600 text-white rounded">Export Excel</button>
@@ -895,6 +901,7 @@ document.getElementById("importJournalInput").addEventListener("change", async (
 
 </body>
 </html>
+
 
 
 
