@@ -284,10 +284,15 @@ async function loadPayrollRecords() {
   try {
     const res = await fetch("/api/payroll/salaries");
     if (!res.ok) throw new Error("Failed to fetch payroll records");
+
     const json = await res.json();
-    window.payrollRecords = json.records || [];
-    console.log("✅ Payroll records loaded:", window.payrollRecords);
-    updateDashboard();
+    // Each record now includes employee details from hr_employees
+    window.payrollRecords = (json.records || []).map(rec => {
+      const emp = json.employees?.find(e => e.employee_id === rec.employee_id) || {};
+      return { ...rec, ...emp };
+    });
+
+    renderEmployeeTable();
   } catch (err) {
     console.error("❌ Error loading payroll records:", err);
   }
@@ -598,7 +603,7 @@ window.exportCharts = exportCharts;
 
  
 // =============================
-// Employee Table & Payslip
+// Render Employee Table
 // =============================
 function renderEmployeeTable() {
   const tbody = document.querySelector("#employeeTable tbody");
@@ -613,7 +618,7 @@ function renderEmployeeTable() {
     const { gross = 0, net = 0 } = emp;
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td class="px-4 py-2">${emp.first_name} ${emp.last_name}</td>
+      <td class="px-4 py-2">${emp.first_name || ""} ${emp.last_name || ""}</td>
       <td class="px-4 py-2">K ${gross.toLocaleString()}</td>
       <td class="px-4 py-2">K ${net.toLocaleString()}</td>
       <td class="px-4 py-2">
@@ -625,19 +630,16 @@ function renderEmployeeTable() {
     tbody.appendChild(tr);
   });
 
+  // Attach payslip button events
   document.querySelectorAll(".payslip-btn").forEach(btn => {
     btn.addEventListener("click", (ev) => {
       const empId = ev.currentTarget.dataset.id;
       const idx = window.payrollRecords.findIndex(e => e.employee_id === empId);
-      if (idx >= 0) {
-        generatePayslip(idx);
-      } else {
-        alert("Employee not found for payslip generation.");
-      }
+      if (idx >= 0) generatePayslip(idx);
+      else alert("Employee not found for payslip generation.");
     });
   });
 }
-
 
 
 // =============================
@@ -718,6 +720,7 @@ document.addEventListener("DOMContentLoaded", async () => {
  
 </body>
 </html>
+
 
 
 
