@@ -28,15 +28,18 @@ function calculateDeductions({ basic = 0, housing = 0, transport = 0, bonus = 0,
 export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
+      // ✅ Join payroll_records with employees so frontend sees names
+      const records = await client.execute(`
+        SELECT pr.*, e.first_name, e.last_name, e.tpin, e.nrc
+        FROM payroll_records pr
+        JOIN employees e ON e.employee_id = pr.employee_id
+        ORDER BY pr.created_at DESC
+      `);
+
       const salaries = await client.execute(`
         SELECT salary_id, department, basic, housing, transport, bonus, effective_date
         FROM salaries
         ORDER BY department
-      `);
-
-      const records = await client.execute(`
-        SELECT * FROM payroll_records
-        ORDER BY created_at DESC
       `);
 
       const periods = await client.execute(`
@@ -60,11 +63,11 @@ export default async function handler(req, res) {
         end_date,
         employee_id,
         department,
-        basic,
-        housing,
-        transport,
-        bonus,
-        loan,
+        basic = 0,
+        housing = 0,
+        transport = 0,
+        bonus = 0,
+        loan = 0,
         effective_date,
         period_id
       } = req.body;
@@ -100,7 +103,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Missing required payroll fields" });
       }
 
-      // ✅ Save department-level salary structure
+      // ✅ Save or update department-level salary structure
       await client.execute({
         sql: `
           INSERT INTO salaries (department, basic, housing, transport, bonus, effective_date)
@@ -115,6 +118,7 @@ export default async function handler(req, res) {
         args: [department, basic, housing, transport, bonus, effective_date]
       });
 
+      // ✅ Calculate deductions
       const { gross, net, paye, napsa, nhima } = calculateDeductions({
         basic,
         housing,
@@ -123,16 +127,29 @@ export default async function handler(req, res) {
         loan_deduction: loan
       });
 
+      // ✅ UPSERT payroll record (avoid UNIQUE constraint error)
       await client.execute({
         sql: `
           INSERT INTO payroll_records 
           (employee_id, period_id, basic, housing, transport, bonus, loan_deduction, gross, net, paye, napsa, nhima, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          ON CONFLICT(employee_id, period_id) DO UPDATE SET
+            basic = excluded.basic,
+            housing = excluded.housing,
+            transport = excluded.transport,
+            bonus = excluded.bonus,
+            loan_deduction = excluded.loan_deduction,
+            gross = excluded.gross,
+            net = excluded.net,
+            paye = excluded.paye,
+            napsa = excluded.napsa,
+            nhima = excluded.nhima,
+            created_at = CURRENT_TIMESTAMP
         `,
         args: [employee_id, period_id, basic, housing, transport, bonus, loan, gross, net, paye, napsa, nhima]
       });
 
-      return res.status(201).json({ message: "✅ Salary structure and payroll record saved" });
+      return res.status(201).json({ message: "✅ Payroll record saved/updated" });
     }
 
     return res.status(405).json({ error: "Method not allowed" });
