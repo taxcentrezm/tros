@@ -603,26 +603,21 @@ window.exportCharts = exportCharts;
 function renderEmployeeTable() {
   const tbody = document.querySelector("#employeeTable tbody");
   if (!tbody) return;
-
   tbody.innerHTML = "";
 
-  const list = selectedEmployeeId
-    ? employees.filter(e => e.employee_id === selectedEmployeeId)
-    : employees;
+  const list = window.selectedEmployeeId
+    ? window.payrollRecords.filter(e => e.employee_id === window.selectedEmployeeId)
+    : window.payrollRecords;
 
   list.forEach(emp => {
-    const { gross, net } = calculateDeductions(emp);
-
+    const { gross = 0, net = 0 } = emp;
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="px-4 py-2">${emp.first_name} ${emp.last_name}</td>
       <td class="px-4 py-2">K ${gross.toLocaleString()}</td>
       <td class="px-4 py-2">K ${net.toLocaleString()}</td>
       <td class="px-4 py-2">
-        <button 
-          type="button" 
-          data-id="${emp.employee_id}" 
-          class="payslip-btn bg-blue-600 text-white px-3 py-1 rounded">
+        <button type="button" data-id="${emp.employee_id}" class="payslip-btn bg-blue-500 text-white px-3 py-1 rounded">
           View Payslip
         </button>
       </td>
@@ -630,19 +625,19 @@ function renderEmployeeTable() {
     tbody.appendChild(tr);
   });
 
-  // Attach events to generate PDF Payslip
   document.querySelectorAll(".payslip-btn").forEach(btn => {
     btn.addEventListener("click", (ev) => {
       const empId = ev.currentTarget.dataset.id;
-      const idx = employees.findIndex(e => e.employee_id === empId);
-      if (idx !== -1) {
-        generatePayslip(idx); // ✅ use your existing PDF generator
+      const idx = window.payrollRecords.findIndex(e => e.employee_id === empId);
+      if (idx >= 0) {
+        generatePayslip(idx);
       } else {
         alert("Employee not found for payslip generation.");
       }
     });
   });
 }
+
 
 
 // =============================
@@ -723,6 +718,7 @@ document.addEventListener("DOMContentLoaded", async () => {
  
 </body>
 </html>
+
 
 
 
