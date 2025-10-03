@@ -303,10 +303,15 @@ document.addEventListener("DOMContentLoaded", () => {
     doc.text("Report Summary", 40, 40);
 
     doc.setFontSize(12);
-    doc.text(`Employees: ${document.getElementById("reportEmployeeCount").textContent}`, 40, 60);
-    doc.text(`Gross Pay: ${document.getElementById("reportGrossPay").textContent}`, 40, 80);
-    doc.text(`Deductions: ${document.getElementById("reportDeductions").textContent}`, 40, 100);
-    doc.text(`Net Pay: ${document.getElementById("reportNetPay").textContent}`, 40, 120);
+
+// Horizontal positions
+const startX = 40;
+const gapX = 120;
+
+doc.text(`Employees: ${document.getElementById("reportEmployeeCount").textContent}`, startX, 60);
+doc.text(`Gross Pay: ${document.getElementById("reportGrossPay").textContent}`, startX + gapX, 60);
+doc.text(`Deductions: ${document.getElementById("reportDeductions").textContent}`, startX + 2 * gapX, 60);
+doc.text(`Net Pay: ${document.getElementById("reportNetPay").textContent}`, startX + 3 * gapX, 60);
 
     // Build table data cleanly
     const tableData = Array.from(reportTableBody.querySelectorAll("tr")).map(tr => {
@@ -341,6 +346,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
