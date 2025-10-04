@@ -8,7 +8,7 @@ export default async function handler(req, res) {
         account_id, 
         SUM(debit) AS debit, 
         SUM(credit) AS credit
-      FROM finance_transactions
+      FROM transactions
       GROUP BY account_id
     `);
 
