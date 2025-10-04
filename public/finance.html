@@ -236,7 +236,7 @@
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-semibold">Trial Balance</h2>
         <div class="flex gap-2">
-          <button id="exportTrialBalance" class="px-3 py-2 bg-gray-800 text-white rounded text-sm">Export TB</button>
+         <button id="exportTB" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Export TB</button>
           <button id="validateLedger" class="px-3 py-2 bg-yellow-500 text-white rounded text-sm">Validate Ledger</button>
         </div>
       </div>
@@ -637,6 +637,17 @@ document.addEventListener("DOMContentLoaded", () => {
     alert(Math.abs(debit-credit) < 1 ? "✅ Ledger balances!" : `❌ Ledger out of balance: Diff = ${nf.format(debit-credit)}`);
   }
 
+    const safeBind = (id, handler) => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("click", handler);
+};
+
+safeBind("exportTB", exportTrialBalance);
+safeBind("validateLedger", validateDoubleLedger);
+safeBind("exportPDF", exportTransactionsToPDF);
+safeBind("exportETB", exportExtendedTrialBalance);
+safeBind("exportBalanceSheet", exportBalanceSheetToCSV);
+
   // =============================
   // Init
   // =============================
@@ -647,5 +658,6 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
