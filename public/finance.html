@@ -424,488 +424,678 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // =========================
-  // Feather icons & AOS
-  // =========================
-  feather.replace();
-  AOS.init();
+  // --------------------------
+  // Config & Helpers
+  // --------------------------
+  const nf = new Intl.NumberFormat("en-ZM", { style: "currency", currency: "ZMW", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const num = v => (typeof v === "number" ? v : (parseFloat(v) || 0));
 
-  // =========================
-  // DOM References
-  // =========================
-  const transactionModal = document.getElementById("transactionModal");
-  const openModalBtn = document.getElementById("openModal");
-  const cancelModalBtn = document.getElementById("cancelModal");
-  const transactionForm = document.getElementById("transactionForm");
-  const txnTypeSelect = document.getElementById("txnType");
-  const categorySelect = document.getElementById("category");
+  function formatMoney(v) { return nf.format(num(v)); }
+  function showToast(msg, ms = 2400) {
+    let el = document.getElementById("exportFeedback");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "exportFeedback";
+      el.className = "fixed bottom-6 right-6 bg-primary-600 text-white px-4 py-2 rounded-lg shadow-lg transition-opacity duration-500";
+      document.body.appendChild(el);
+    }
+    el.textContent = msg; el.classList.remove("hidden"); el.style.opacity = "1";
+    setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.classList.add("hidden"), 400); }, ms);
+  }
 
-  const transactionBody = document.getElementById("transactionBody");
-  const trialBalanceBody = document.getElementById("trialBalanceBody");
-  const balanceSheetBody = document.getElementById("balanceSheetBody");
-  const assetLifecycleBody = document.getElementById("assetLifecycleBody");
+  // Null-safe DOM getter
+  const $ = id => document.getElementById(id);
 
-  const revenueEl = document.getElementById("totalRevenue");
-  const expensesEl = document.getElementById("totalExpenses");
-  const profitEl = document.getElementById("netProfit");
-  const capexEl = document.getElementById("totalCapex");
-  const caprevEl = document.getElementById("totalCaprev");
-  const liabilitiesEl = document.getElementById("totalLiabilities");
+  // --------------------------
+  // DOM references (existing)
+  // --------------------------
+  const modal = $("transactionModal");
+  const openModalBtn = $("openModal");
+  const cancelModalBtn = $("cancelModal");
+  const form = $("transactionForm");
+  const txnType = $("txnType");
+  const categorySelect = $("category");
+  const transactionBody = $("transactionBody");
+  const trialBalanceBody = $("trialBalanceBody");
+  const balanceSheetBody = $("balanceSheetBody");
+  const assetLifecycleBody = $("assetLifecycleBody");
+  const journalEntriesTbody = document.querySelector("#journalEntriesTable tbody");
+  const journalLinesTbody = document.querySelector("#journalLinesTable tbody");
+  const startDateInput = $("startDate");
+  const endDateInput = $("endDate");
+  const reportTypeSelect = $("reportType");
 
-  let transactions = [];
+  const revenueEl = $("totalRevenue");
+  const expensesEl = $("totalExpenses");
+  const profitEl = $("netProfit");
+  const capexEl = $("totalCapex");
+  const caprevEl = $("totalCaprev");
+  const liabilitiesEl = $("totalLiabilities");
+
+  // --------------------------
+  // State
+  // --------------------------
   let chartOfAccounts = [];
+  let transactions = [];
+  let journals = { entries: [], lines: [] };
+  let trialBalance = [];
+  let balanceSheet = [];
+  let assets = [];
+  let lineChart = null;
+  let pieChart = null;
 
-  // =========================
+  // --------------------------
+  // Create drill modal (if not present)
+  // --------------------------
+  function ensureDrillModal() {
+    let m = $("drillModal");
+    if (m) return m;
+    m = document.createElement("div");
+    m.id = "drillModal";
+    m.className = "fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-60";
+    m.innerHTML = `
+      <div class="bg-white rounded-xl p-6 w-full max-w-2xl">
+        <h3 id="drillTitle" class="text-lg font-semibold mb-4">Details</h3>
+        <div id="drillBody" class="max-h-72 overflow-auto mb-4"></div>
+        <div class="flex justify-end gap-2">
+          <button id="closeDrill" class="px-4 py-2 bg-gray-200 rounded">Close</button>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+    $("closeDrill").addEventListener("click", () => m.classList.add("hidden"));
+    return m;
+  }
+
+  // --------------------------
   // Load Chart of Accounts
-  // =========================
+  // --------------------------
   async function loadChartOfAccounts() {
     try {
       const res = await fetch("/api/finance/chart_of_accounts");
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Failed to fetch chart of accounts");
-      chartOfAccounts = result.data || [];
+      const json = await res.json();
+      chartOfAccounts = json.data || [];
     } catch (err) {
-      console.error("Error loading chart of accounts:", err);
+      console.error("Failed to load COA:", err);
+      chartOfAccounts = []; // fallback
     }
   }
 
-  // =========================
-  // Modal Controls
-  // =========================
-  openModalBtn.addEventListener("click", async () => {
-    transactionModal.classList.remove("hidden");
-    transactionForm.reset();
+  // --------------------------
+  // Modal control for Add Transaction
+  // --------------------------
+  openModalBtn?.addEventListener("click", async () => {
     if (!chartOfAccounts.length) await loadChartOfAccounts();
-  });
-
-  cancelModalBtn.addEventListener("click", () => {
-    transactionModal.classList.add("hidden");
-    transactionForm.reset();
-  });
-
-  transactionModal.addEventListener("click", (e) => {
-    if (e.target === transactionModal) transactionModal.classList.add("hidden");
-  });
-
-  // =========================
-  // Filter Categories
-  // =========================
-  function filterCategories() {
-    const type = txnTypeSelect.value;
+    // populate categories with full list by default
     categorySelect.innerHTML = '<option value="">Select Category</option>';
-    if (!type || !chartOfAccounts.length) return;
+    (chartOfAccounts || []).forEach(acc => {
+      const opt = document.createElement("option");
+      opt.value = acc.account_id; // account id numeric
+      opt.dataset.name = acc.name || "";
+      opt.textContent = `${acc.code || ""} - ${acc.name || acc.account_id}`;
+      categorySelect.appendChild(opt);
+    });
+    modal?.classList.remove("hidden");
+    form?.reset();
+  });
+  cancelModalBtn?.addEventListener("click", () => { modal?.classList.add("hidden"); form?.reset(); });
+  modal?.addEventListener("click", (e) => { if (e.target === modal) { modal.classList.add("hidden"); } });
 
-    let accountType;
-    switch (type) {
-      case "income":
-      case "capital_revenue": accountType = "revenue"; break;
-      case "expense":
-      case "capital_expense": accountType = "expense"; break;
-      case "liability": accountType = "liability"; break;
-      case "asset_sale": accountType = "asset"; break;
-    }
+  // When txn type changes, filter categories accordingly
+  txnType?.addEventListener("change", () => {
+    const t = txnType.value;
+    const typeMap = {
+      income: "revenue",
+      capital_revenue: "revenue",
+      expense: "expense",
+      capital_expense: "expense",
+      liability: "liability",
+      asset_sale: "asset"
+    };
+    const wanted = typeMap[t];
+    categorySelect.innerHTML = '<option value="">Select Category</option>';
+    (chartOfAccounts || []).filter(a => a.type === wanted).forEach(acc => {
+      const opt = document.createElement("option");
+      opt.value = acc.account_id;
+      opt.dataset.name = acc.name;
+      opt.textContent = `${acc.code || ""} - ${acc.name}`;
+      categorySelect.appendChild(opt);
+    });
+  });
 
-    chartOfAccounts
-      .filter(acc => acc.type === accountType)
-      .forEach(acc => {
-        const option = document.createElement("option");
-        option.value = acc.account_id;
-        option.textContent = `${acc.code} - ${acc.name}`;
-        categorySelect.appendChild(option);
-      });
-  }
-  txnTypeSelect.addEventListener("change", filterCategories);
-
-  // =========================
-  // Add Transaction
-  // =========================
-  transactionForm.addEventListener("submit", async (e) => {
+  // --------------------------
+  // Submit transaction (sends both account_id and category name)
+  // --------------------------
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const fd = new FormData(form);
+    const payload = {
+      date: fd.get("date"),
+      description: fd.get("description"),
+      amount: num(fd.get("amount")),
+      type: fd.get("type"),
+      account_id: fd.get("category") ? parseInt(fd.get("category")) : null,
+    };
+    // also include category name to support server expecting name OR id
+    const selectedOpt = categorySelect.selectedOptions?.[0];
+    payload.category = selectedOpt ? (selectedOpt.dataset.name || selectedOpt.textContent) : null;
 
-    const date = transactionForm.querySelector('input[name="date"]').value;
-    const description = transactionForm.querySelector('input[name="description"]').value;
-    const amount = parseFloat(transactionForm.querySelector('input[name="amount"]').value);
-    const type = txnTypeSelect.value;
-    const account_id = parseInt(categorySelect.value);
-
-    if (!date || !description || !amount || !type || !Number.isFinite(account_id)) {
-      return alert("Please fill in all required fields!");
+    if (!payload.date || !payload.description || !payload.amount || !payload.type || !payload.account_id) {
+      return alert("Please complete all required fields (including category).");
     }
-
-    const formData = { date, description, amount, type, account_id };
 
     try {
       const res = await fetch("/api/finance/transactions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payload)
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Failed to add transaction");
-
-      alert(result.message || "Transaction added!");
-      transactionModal.classList.add("hidden");
-      loadTransactions();
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || json.message || "Failed to add");
+      showToast("Transaction saved");
+      form.reset();
+      modal.classList.add("hidden");
+      await loadTransactions(); // refresh
     } catch (err) {
       console.error("Error adding transaction:", err);
+      alert("Failed to add transaction: " + (err.message || err));
     }
   });
 
-  // =========================
-  // Charts
-  // =========================
-  let lineChartInstance, pieChartInstance;
+  // --------------------------
+  // Fetch / Filter by Period
+  // --------------------------
+  async function loadTransactions(periodStart = null, periodEnd = null) {
+    try {
+      const res = await fetch("/api/finance/transactions");
+      const json = await res.json();
+      transactions = json.data || [];
 
-  function initCharts() {
-    const lineCtx = document.getElementById("lineChart").getContext("2d");
-    const pieCtx = document.getElementById("pieChart").getContext("2d");
+      // If period provided, filter by created/posted date or transaction date
+      let filtered = transactions;
+      if (periodStart || periodEnd) {
+        const start = periodStart ? new Date(periodStart) : null;
+        const end = periodEnd ? new Date(periodEnd) : null;
+        filtered = transactions.filter(tx => {
+          const d = new Date(tx.date);
+          return (!start || d >= start) && (!end || d <= end);
+        });
+      }
+      renderTransactionTable(filtered);
+      updateSummary(filtered);
+      updateCharts(filtered);
+    } catch (err) {
+      console.error("Load transactions failed:", err);
+    }
+  }
 
-    lineChartInstance = new Chart(lineCtx, {
-      type: "line",
-      data: { labels: [], datasets: [
-        { label: "Revenue", data: [], borderColor: "#10b981", backgroundColor: "rgba(16,185,129,0.2)", fill: true, tension: 0.4 },
-        { label: "Expenses", data: [], borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.2)", fill: true, tension: 0.4 }
-      ]},
-      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
-    });
+  // wire period filter UI (if present)
+  if (startDateInput && endDateInput) {
+    // refresh when either changes
+    [startDateInput, endDateInput].forEach(inp =>
+      inp.addEventListener("change", () => loadTransactions(startDateInput.value || null, endDateInput.value || null))
+    );
+  }
 
-    pieChartInstance = new Chart(pieCtx, {
-      type: "pie",
-      data: { labels: [], datasets: [{ data: [], backgroundColor: ["#fbbf24","#f87171","#60a5fa","#34d399","#c084fc"] }]},
-      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  // --------------------------
+  // Render Transaction Table (with Reference/PaymentMethod/Status)
+  // --------------------------
+  function renderTransactionTable(data = []) {
+    if (!transactionBody) return;
+    transactionBody.innerHTML = "";
+    data.forEach(tx => {
+      const ref = tx.reference || (tx.transaction_id ? `TXN-${tx.transaction_id}` : "-");
+      const pm = tx.payment_method || tx.paymentMethod || "-";
+      const st = tx.status || "posted";
+      transactionBody.innerHTML += `
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-2">${tx.date}</td>
+          <td class="px-4 py-2">${tx.description}</td>
+          <td class="px-4 py-2">${tx.category_name || tx.category || "-"}</td>
+          <td class="px-4 py-2 text-right">${formatMoney(tx.amount)}</td>
+          <td class="px-4 py-2">${tx.type}</td>
+          <td class="px-4 py-2">${ref}</td>
+          <td class="px-4 py-2">${pm}</td>
+          <td class="px-4 py-2">${st}</td>
+        </tr>`;
     });
   }
 
-  function updateCharts(data) {
-    if (!lineChartInstance || !pieChartInstance) return;
+  // --------------------------
+  // Charts: stable sizing + update
+  // --------------------------
+  function initCharts() {
+    const lineCanvas = document.getElementById("lineChart");
+    const pieCanvas = document.getElementById("pieChart");
+    if (!lineCanvas || !pieCanvas) return;
+
+    // stable pixel heights to avoid runaway growth
+    lineCanvas.style.height = "300px";
+    pieCanvas.style.height = "300px";
+
+    const lc = lineCanvas.getContext("2d");
+    const pc = pieCanvas.getContext("2d");
+
+    if (lineChart) lineChart.destroy();
+    if (pieChart) pieChart.destroy();
+
+    lineChart = new Chart(lc, {
+      type: "line",
+      data: { labels: [], datasets: [
+        { label: "Revenue", data: [], borderColor: "#10b981", backgroundColor: "rgba(16,185,129,0.12)", fill: true, tension: 0.3 },
+        { label: "Expenses", data: [], borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.12)", fill: true, tension: 0.3 }
+      ]},
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+    });
+
+    pieChart = new Chart(pc, {
+      type: "pie",
+      data: { labels: [], datasets: [{ data: [], backgroundColor: ["#fbbf24","#f87171","#60a5fa","#34d399","#c084fc"] }]},
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+    });
+  }
+
+  function updateCharts(data = []) {
+    if (!lineChart || !pieChart) return;
 
     const monthly = {};
     data.forEach(tx => {
-      const month = tx.date.slice(0, 7);
-      if (!monthly[month]) monthly[month] = { income: 0, expense: 0 };
-      if (["income","capital_revenue"].includes(tx.type)) monthly[month].income += tx.amount;
-      if (["expense","capital_expense"].includes(tx.type)) monthly[month].expense += tx.amount;
+      const m = tx.date ? tx.date.slice(0,7) : "unknown";
+      monthly[m] = monthly[m] || { income: 0, expense: 0 };
+      if (["income","capital_revenue"].includes(tx.type)) monthly[m].income += num(tx.amount);
+      if (["expense","capital_expense"].includes(tx.type)) monthly[m].expense += num(tx.amount);
     });
 
     const months = Object.keys(monthly).sort();
-    lineChartInstance.data.labels = months;
-    lineChartInstance.data.datasets[0].data = months.map(m => monthly[m].income);
-    lineChartInstance.data.datasets[1].data = months.map(m => monthly[m].expense);
-    lineChartInstance.update();
+    lineChart.data.labels = months;
+    lineChart.data.datasets[0].data = months.map(m => monthly[m].income);
+    lineChart.data.datasets[1].data = months.map(m => monthly[m].expense);
+    lineChart.update();
 
-    const categoryMap = {};
+    const catMap = {};
     data.filter(tx => ["expense","capital_expense"].includes(tx.type)).forEach(tx => {
-      categoryMap[tx.category_name || tx.category] = (categoryMap[tx.category_name || tx.category] || 0) + tx.amount;
+      const name = tx.category_name || tx.category || "Unknown";
+      catMap[name] = (catMap[name] || 0) + num(tx.amount);
     });
 
-    pieChartInstance.data.labels = Object.keys(categoryMap);
-    pieChartInstance.data.datasets[0].data = Object.values(categoryMap);
-    pieChartInstance.update();
+    pieChart.data.labels = Object.keys(catMap);
+    pieChart.data.datasets[0].data = Object.values(catMap);
+    pieChart.update();
   }
 
-  // =========================
-  // Summary Cards
-  // =========================
-  function updateSummary(data) {
-    const income = data.filter(tx => ["income","capital_revenue"].includes(tx.type)).reduce((s, tx) => s + tx.amount, 0);
-    const expenses = data.filter(tx => ["expense","capital_expense"].includes(tx.type)).reduce((s, tx) => s + tx.amount, 0);
-    const capex = data.filter(tx => tx.type === "capital_expense").reduce((s, tx) => s + tx.amount, 0);
-    const caprev = data.filter(tx => tx.type === "capital_revenue").reduce((s, tx) => s + tx.amount, 0);
-    const liabilities = data.filter(tx => tx.type === "liability").reduce((s, tx) => s + tx.amount, 0);
+  // --------------------------
+  // Summary Cards update
+  // --------------------------
+  function updateSummary(data = []) {
+    const totals = { income: 0, expenses: 0, capex: 0, caprev: 0, liabilities: 0, cashflow: 0, equity: 0, workingCapital: 0 };
+    data.forEach(tx => {
+      const a = num(tx.amount);
+      if (["income","capital_revenue"].includes(tx.type)) totals.income += a;
+      if (["expense","capital_expense"].includes(tx.type)) totals.expenses += a;
+      if (tx.type === "capital_expense") totals.capex += a;
+      if (tx.type === "capital_revenue") totals.caprev += a;
+      if (tx.type === "liability") totals.liabilities += a;
+    });
 
-    revenueEl.textContent = `ZMW ${income.toFixed(2)}`;
-    expensesEl.textContent = `ZMW ${expenses.toFixed(2)}`;
-    profitEl.textContent = `ZMW ${(income - expenses).toFixed(2)}`;
-    capexEl.textContent = `ZMW ${capex.toFixed(2)}`;
-    caprevEl.textContent = `ZMW ${caprev.toFixed(2)}`;
-    liabilitiesEl.textContent = `ZMW ${liabilities.toFixed(2)}`;
+    // basic derived metrics (placeholders — replace with true formulae if available)
+    totals.cashflow = totals.income - totals.expenses;
+    totals.equity = (balanceSheet[0]?.equity) ? num(balanceSheet[0].equity) : (totals.caprev - totals.capex);
+    totals.workingCapital = (balanceSheet[0] && balanceSheet[0].assets !== undefined && balanceSheet[0].liabilities !== undefined) ? (num(balanceSheet[0].assets) - num(balanceSheet[0].liabilities)) : 0;
+
+    revenueEl && (revenueEl.textContent = formatMoney(totals.income));
+    expensesEl && (expensesEl.textContent = formatMoney(totals.expenses));
+    profitEl && (profitEl.textContent = formatMoney(totals.income - totals.expenses));
+    capexEl && (capexEl.textContent = formatMoney(totals.capex));
+    caprevEl && (caprevEl.textContent = formatMoney(totals.caprev));
+    liabilitiesEl && (liabilitiesEl.textContent = formatMoney(totals.liabilities));
   }
 
-  // =========================
-  // Data Loaders
-  // =========================
-  async function loadTransactions() {
+  // --------------------------
+  // Trial Balance, ETB, Balance Sheet & Assets loaders & ETB validation
+  // --------------------------
+  async function loadTrialBalanceAndETB() {
     try {
-      const res = await fetch("/api/finance/transactions");
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Failed to load transactions");
-      transactions = result.data || [];
-      renderTransactions(transactions);
-      updateCharts(transactions);
-      updateSummary(transactions);
+      const res = await fetch("/api/finance/trial-balance");
+      const json = await res.json();
+      trialBalance = json.data || [];
+
+      // Render main TB table
+      if (trialBalanceBody) {
+        trialBalanceBody.innerHTML = "";
+        trialBalance.forEach(r => {
+          trialBalanceBody.innerHTML += `<tr>
+            <td class="px-4 py-2">${r.account}</td>
+            <td class="px-4 py-2 text-right">${formatMoney(r.debit)}</td>
+            <td class="px-4 py-2 text-right">${formatMoney(r.credit)}</td>
+            <td class="px-4 py-2">${r.fiscal_year || ""}</td>
+          </tr>`;
+        });
+      }
+
+      // Validate total debits vs credits
+      const totals = trialBalance.reduce((acc, r) => { acc.debit += num(r.debit); acc.credit += num(r.credit); return acc; }, { debit:0, credit:0});
+      const diff = Math.abs(totals.debit - totals.credit);
+
+      // Extended Trial Balance (ETB) rendering: group by account, show balance
+      renderExtendedTrialBalance(trialBalance);
+
+      if (diff > 0.005) {
+        console.warn("Trial Balance mismatch: debits and credits do not balance.", totals);
+        showToast(`TB imbalance detected: ${formatMoney(diff)}`, 4000);
+      }
+
     } catch (err) {
-      console.error("Error loading transactions:", err);
+      console.error("Failed to load trial balance:", err);
     }
   }
 
-  function renderTransactions(data) {
-    transactionBody.innerHTML = "";
-    data.forEach(tx => {
-      transactionBody.innerHTML += `
-        <tr>
-          <td class="px-4 py-2">${tx.date}</td>
-          <td class="px-4 py-2">${tx.description}</td>
-          <td class="px-4 py-2">${tx.category_name || tx.category}</td>
-          <td class="px-4 py-2">ZMW ${tx.amount.toFixed(2)}</td>
-          <td class="px-4 py-2">${tx.type}</td>
-        </tr>`;
-    });
-  }
+  function renderExtendedTrialBalance(tbRows) {
+    // Create or reuse ETB container
+    let etbContainer = $("extendedTrialBalance");
+    if (!etbContainer) {
+      etbContainer = document.createElement("div");
+      etbContainer.id = "extendedTrialBalance";
+      etbContainer.className = "bg-white rounded-xl shadow-md p-6 my-4 mx-6";
+      // place after trial balance section if present
+      const ref = trialBalanceBody?.closest("section") || document.body;
+      ref.parentNode.insertBefore(etbContainer, ref.nextSibling);
+    }
 
-  async function loadTrialBalance() {
-    const res = await fetch("/api/finance/trial-balance");
-    const { data } = await res.json();
-    trialBalanceBody.innerHTML = "";
-    data.forEach(entry => {
-      trialBalanceBody.innerHTML += `
-        <tr>
-          <td class="px-4 py-2">${entry.account}</td>
-          <td class="px-4 py-2">ZMW ${entry.debit.toFixed(2)}</td>
-          <td class="px-4 py-2">ZMW ${entry.credit.toFixed(2)}</td>
-          <td class="px-4 py-2">${entry.fiscal_year}</td>
-        </tr>`;
+    // aggregate balances
+    const map = {};
+    tbRows.forEach(r => {
+      const key = r.account;
+      map[key] = map[key] || { debit:0, credit:0 };
+      map[key].debit += num(r.debit);
+      map[key].credit += num(r.credit);
     });
+
+    const rows = Object.keys(map).map(account => {
+      const d = map[account].debit; const c = map[account].credit;
+      const balance = d - c;
+      const balType = balance >= 0 ? "Dr" : "Cr";
+      return `<tr>
+        <td class="px-4 py-2">${account}</td>
+        <td class="px-4 py-2 text-right">${formatMoney(d)}</td>
+        <td class="px-4 py-2 text-right">${formatMoney(c)}</td>
+        <td class="px-4 py-2 text-right">${formatMoney(Math.abs(balance))} ${balType}</td>
+      </tr>`;
+    }).join("");
+
+    etbContainer.innerHTML = `<h3 class="text-lg font-semibold mb-3">Extended Trial Balance (ETB)</h3>
+      <div class="overflow-x-auto"><table class="w-full text-sm">
+        <thead class="bg-gray-100"><tr>
+          <th class="px-4 py-2">Account</th>
+          <th class="px-4 py-2">Debit</th>
+          <th class="px-4 py-2">Credit</th>
+          <th class="px-4 py-2">Balance</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
   }
 
   async function loadBalanceSheet() {
-    const res = await fetch("/api/finance/balance-sheet");
-    const { data } = await res.json();
-    balanceSheetBody.innerHTML = "";
-    data.forEach(entry => {
-      balanceSheetBody.innerHTML += `
-        <tr>
-          <td class="px-4 py-2">${entry.fiscal_year}</td>
-          <td class="px-4 py-2">ZMW ${entry.assets.toFixed(2)}</td>
-          <td class="px-4 py-2">ZMW ${entry.liabilities.toFixed(2)}</td>
-          <td class="px-4 py-2">ZMW ${entry.equity.toFixed(2)}</td>
-        </tr>`;
-    });
+    try {
+      const res = await fetch("/api/finance/balance-sheet");
+      const json = await res.json();
+      balanceSheet = json.data || [];
+      if (balanceSheetBody) {
+        balanceSheetBody.innerHTML = "";
+        balanceSheet.forEach(b => {
+          balanceSheetBody.innerHTML += `<tr>
+            <td class="px-4 py-2">${b.fiscal_year}</td>
+            <td class="px-4 py-2 text-right">${formatMoney(b.assets)}</td>
+            <td class="px-4 py-2 text-right">${formatMoney(b.liabilities)}</td>
+            <td class="px-4 py-2 text-right">${formatMoney(b.equity)}</td>
+          </tr>`;
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load balance sheet:", err);
+    }
   }
 
   async function loadAssets() {
-    const res = await fetch("/api/finance/assets");
-    const { data } = await res.json();
-    assetLifecycleBody.innerHTML = "";
-    data.forEach(asset => {
-      assetLifecycleBody.innerHTML += `
-        <tr>
-          <td class="px-4 py-2">${asset.category}</td>
-          <td class="px-4 py-2">ZMW ${asset.purchase.toFixed(2)}</td>
-          <td class="px-4 py-2">ZMW ${asset.sale.toFixed(2)}</td>
-          <td class="px-4 py-2">ZMW ${asset.gain_loss.toFixed(2)}</td>
-          <td class="px-4 py-2">${asset.status}</td>
-        </tr>`;
+    try {
+      const res = await fetch("/api/finance/assets");
+      const json = await res.json();
+      assets = json.data || [];
+      if (assetLifecycleBody) {
+        assetLifecycleBody.innerHTML = "";
+        assets.forEach(a => {
+          assetLifecycleBody.innerHTML += `<tr>
+            <td class="px-4 py-2">${a.category}</td>
+            <td class="px-4 py-2 text-right">${formatMoney(a.purchase)}</td>
+            <td class="px-4 py-2 text-right">${formatMoney(a.sale)}</td>
+            <td class="px-4 py-2 text-right">${formatMoney(a.gain_loss)}</td>
+            <td class="px-4 py-2">${a.status}</td>
+          </tr>`;
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load assets:", err);
+    }
+  }
+
+  // --------------------------
+  // Journal Entries + Expand inline
+  // --------------------------
+  async function loadJournalEntries() {
+    try {
+      const res = await fetch("/api/finance/journal-entries");
+      const json = await res.json();
+      journals.entries = json.data || [];
+      renderJournalEntries();
+    } catch (err) {
+      console.error("Journal entries load error:", err);
+    }
+  }
+
+  async function loadJournalLines() {
+    try {
+      const res = await fetch("/api/finance/journal-lines");
+      const json = await res.json();
+      journals.lines = json.data || [];
+      renderJournalLines(); // full list view (if needed)
+    } catch (err) {
+      console.error("Journal lines load error:", err);
+    }
+  }
+
+  function renderJournalEntries() {
+    if (!journalEntriesTbody) return;
+    journalEntriesTbody.innerHTML = "";
+    journals.entries.forEach(entry => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="px-4 py-2 border">${entry.entry_id}</td>
+        <td class="px-4 py-2 border">${entry.date}</td>
+        <td class="px-4 py-2 border">${entry.description}</td>
+        <td class="px-4 py-2 border text-right"><button class="inline-expand px-2 py-1 bg-gray-100 rounded" data-entry="${entry.entry_id}">Toggle Lines</button></td>
+      `;
+      journalEntriesTbody.appendChild(tr);
+      // placeholder row for expansion
+      const expRow = document.createElement("tr");
+      expRow.className = "journal-lines-row hidden";
+      expRow.dataset.entry = entry.entry_id;
+      expRow.innerHTML = `<td colspan="4" class="px-4 py-2 border"><div class="journal-lines-container"></div></td>`;
+      journalEntriesTbody.appendChild(expRow);
+    });
+
+    // attach expand handlers
+    journalEntriesTbody.querySelectorAll(".inline-expand").forEach(btn => {
+      btn.addEventListener("click", (ev) => {
+        const entryId = ev.currentTarget.dataset.entry;
+        const row = journalEntriesTbody.querySelector(`tr.journal-lines-row[data-entry="${entryId}"]`);
+        if (!row) return;
+        if (row.classList.contains("hidden")) {
+          // populate lines
+          const container = row.querySelector(".journal-lines-container");
+          const lines = journals.lines.filter(l => String(l.entry_id) === String(entryId));
+          container.innerHTML = lines.length ? `<table class="w-full text-sm">
+              <thead class="bg-gray-100"><tr><th>Line ID</th><th>Account</th><th>Debit</th><th>Credit</th></tr></thead>
+              <tbody>${lines.map(l => `<tr><td>${l.line_id}</td><td>${l.account}</td><td class="text-right">${formatMoney(l.debit)}</td><td class="text-right">${formatMoney(l.credit)}</td></tr>`).join("")}</tbody>
+            </table>` : `<div class="text-sm text-gray-600">No lines found</div>`;
+          row.classList.remove("hidden");
+        } else {
+          row.classList.add("hidden");
+        }
+      });
     });
   }
 
-  // =========================
-  // Import & Export
-  // =========================
-  document.getElementById("importBtn").addEventListener("click", () => {
-    document.getElementById("importFile").click();
+  function renderJournalLines() {
+    if (!journalLinesTbody) return;
+    journalLinesTbody.innerHTML = "";
+    journals.lines.forEach(l => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="px-4 py-2 border">${l.line_id}</td>
+        <td class="px-4 py-2 border">${l.entry_id}</td>
+        <td class="px-4 py-2 border">${l.account}</td>
+        <td class="px-4 py-2 border text-right">${formatMoney(l.debit)}</td>
+        <td class="px-4 py-2 border text-right">${formatMoney(l.credit)}</td>`;
+      journalLinesTbody.appendChild(tr);
+    });
+  }
+
+  // --------------------------
+  // Drill-down: show transactions composing a category total
+  // --------------------------
+  function openDrillDown(categoryName) {
+    const m = ensureDrillModal();
+    const container = $("drillBody");
+    const rows = transactions.filter(tx => (tx.category_name || tx.category) === categoryName);
+    container.innerHTML = rows.length ? `<table class="w-full text-sm">
+      <thead class="bg-gray-100"><tr><th>Date</th><th>Description</th><th class="text-right">Amount</th><th>Type</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${r.date}</td><td>${r.description}</td><td class="text-right">${formatMoney(r.amount)}</td><td>${r.type}</td></tr>`).join("")}</tbody>
+    </table>` : `<div class="text-sm text-gray-600">No transactions</div>`;
+    $("drillTitle").textContent = `Transactions for: ${categoryName}`;
+    m.classList.remove("hidden");
+  }
+
+  // --------------------------
+  // EXPORT helpers: CSV / Excel / PDF
+  // --------------------------
+  function arrayToCSV(rows) {
+    return rows.map(r => r.map(c => `"${String(c).replace(/"/g,"'")}"`).join(",")).join("\n");
+  }
+
+  function exportJSONToExcel(json, filename = "data.xlsx") {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(json);
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    XLSX.writeFile(wb, filename);
+  }
+
+  async function exportTablePDF(head, bodyRows, filename = "report.pdf", title = "Report") {
+    const { jsPDF } = window.jspdf || window.jspdf;
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt" });
+    doc.text(title, 40, 40);
+    // head summary horizontal display (small)
+    let y = 60;
+    head.forEach((h, i) => {
+      doc.setFontSize(10);
+      doc.text(h.label + ": " + h.value, 40 + i * 140, y);
+    });
+    // autoTable body if available
+    if (doc.autoTable && bodyRows.length) {
+      doc.autoTable({ head: [bodyRows.head], body: bodyRows.body, startY: y + 30, styles: { fontSize: 9 } });
+    } else {
+      // fallback: basic text
+      let sy = y + 30;
+      bodyRows.body.forEach(row => { doc.text(row.join(" | "), 40, sy); sy += 12; });
+    }
+    doc.save(filename);
+  }
+
+  // specific exports
+  $("exportJournalBtn")?.addEventListener("click", () => {
+    // export entries and lines as CSVs
+    const entriesRows = [["entry_id","date","description"], ...journals.entries.map(e => [e.entry_id,e.date,e.description])];
+    const linesRows = [["line_id","entry_id","account","debit","credit"], ...journals.lines.map(l => [l.line_id,l.entry_id,l.account,l.debit,l.credit])];
+    const blob1 = new Blob([arrayToCSV(entriesRows)], { type: "text/csv" });
+    const a1 = document.createElement("a"); a1.href = URL.createObjectURL(blob1); a1.download = "journal_entries.csv"; a1.click();
+    const blob2 = new Blob([arrayToCSV(linesRows)], { type: "text/csv" });
+    const a2 = document.createElement("a"); a2.href = URL.createObjectURL(blob2); a2.download = "journal_lines.csv"; a2.click();
+    showToast("Journal exported");
   });
 
-  document.getElementById("importFile").addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    const ext = file.name.split(".").pop().toLowerCase();
+  // Export ETB / TB / Balance sheet
+  $("exportExcel")?.addEventListener("click", () => {
+    exportJSONToExcel(transactions, "transactions.xlsx"); showToast("Transactions Excel exported");
+  });
+  // additional buttons for TB / ETB / Balance sheet PDF/Excel
+  // export ETB
+  function exportETB() {
+    // ETB rows
+    const rows = Object.keys(trialBalance.reduce((m, r) => {
+      m[r.account] = m[r.account] || { debit:0, credit:0 };
+      m[r.account].debit += num(r.debit); m[r.account].credit += num(r.credit);
+      return m;
+    }, {})).map(account => {
+      const r = trialBalance.find(x => x.account === account) || {debit:0, credit:0};
+      return { account, debit: r.debit || 0, credit: r.credit || 0 };
+    });
+    exportJSONToExcel(rows, "extended_trial_balance.xlsx");
+    showToast("Extended Trial Balance exported");
+  }
 
-    if (ext === "csv") {
-      reader.onload = evt => {
-        const lines = evt.target.result.split("\n").map(l => l.split(","));
-        lines.slice(1).forEach(row => {
-          if (row.length >= 5) {
-            const [date, desc, category, amount, type] = row;
-            if (date && amount && type) {
-              transactions.push({ date, description: desc, category, amount: parseFloat(amount), type });
-            }
-          }
-        });
-        renderTransactions(transactions);
-        updateSummary(transactions);
-        updateCharts(transactions);
-      };
-      reader.readAsText(file);
-    } else if (ext === "xlsx") {
-      reader.onload = evt => {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
-        sheet.slice(1).forEach(row => {
-          if (row.length >= 5) {
-            const [date, desc, category, amount, type] = row;
-            transactions.push({ date, description: desc, category, amount: parseFloat(amount), type });
-          }
-        });
-        renderTransactions(transactions);
-        updateSummary(transactions);
-        updateCharts(transactions);
-      };
-      reader.readAsArrayBuffer(file);
+  // wire additional export triggers if DOM buttons exist
+  $("exportJournalBtn") && $("exportJournalBtn").addEventListener("click", () => { /* already wired above */ });
+  // example: hook ETB export to exportJournalBtn alt-click? We'll add a dedicated button id="exportETBBtn" if present:
+  $("exportETBBtn")?.addEventListener("click", exportETB);
+
+  // --------------------------
+  // initial load
+  // --------------------------
+  initCharts();
+  loadChartOfAccounts();
+  loadTransactions();
+  loadTrialBalanceAndETB();
+  loadBalanceSheet();
+  loadAssets();
+  loadJournalEntries();
+  loadJournalLines();
+
+  // Expose some utilities globally for debugging / manual use
+  window.financeAPI = {
+    reloadAll: () => {
+      initCharts();
+      loadChartOfAccounts();
+      loadTransactions();
+      loadTrialBalanceAndETB();
+      loadBalanceSheet();
+      loadAssets();
+      loadJournalEntries();
+      loadJournalLines();
+    },
+    openDrillDown
+  };
+
+  // --------------------------
+  // Attach drill-down on pie slices (category click)
+  // --------------------------
+  // chart.js doesn't provide DOM click for slices by default; attach interaction via chart event
+  if (pieChart) {
+    // nothing to do here until pieChart is created; updateCharts will populate
+  }
+
+  // clickable rows: allow clicking a transaction category cell to open drill-down
+  transactionBody?.addEventListener("click", (e) => {
+    const td = e.target.closest("td");
+    if (!td) return;
+    const tr = td.closest("tr");
+    const cells = Array.from(tr.children);
+    // find category column (3rd cell in our render)
+    const categoryCell = cells[2];
+    if (categoryCell && categoryCell.contains(td)) {
+      openDrillDown(categoryCell.textContent.trim());
     }
   });
 
-  document.getElementById("exportCSV").addEventListener("click", () => {
-    const rows = [["Date","Description","Category","Amount","Type"], ...transactions.map(tx => [tx.date, tx.description, tx.category, tx.amount, tx.type])];
-    const csvContent = rows.map(r => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "transactions.csv";
-    link.click();
-  });
-
-  document.getElementById("exportExcel").addEventListener("click", () => {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(transactions);
-    XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-    XLSX.writeFile(wb, "transactions.xlsx");
-  });
-
-  document.getElementById("exportPDF").addEventListener("click", () => {
-    const doc = new jspdf.jsPDF();
-    doc.autoTable({ html: "#transactionTable" });
-    doc.save("transactions.pdf");
-  });
-
-  // =========================
-  // Init
-  // =========================
-  initCharts();
-  loadTransactions();
-  loadTrialBalance();
-  loadBalanceSheet();
-  loadAssets();
 });
 </script>
-    <script>
-         
-  const container = document.getElementById("journalTables");
- 
-
-  
-
-async function loadJournalEntries() {
-  const res = await fetch("/api/finance/journal-entries");
-  const { data } = await res.json();
-  const tbody = document.querySelector("#journalEntriesTable tbody");
-  tbody.innerHTML = "";
-
-  data.forEach(entry => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td class="px-4 py-2 border">${entry.entry_id}</td>
-      <td class="px-4 py-2 border">${entry.date}</td>
-      <td class="px-4 py-2 border">${entry.description}</td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-async function loadJournalLines() {
-  const res = await fetch("/api/finance/journal-lines");
-  const { data } = await res.json();
-  const tbody = document.querySelector("#journalLinesTable tbody");
-  tbody.innerHTML = "";
-
-  data.forEach(line => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td class="px-4 py-2 border">${line.line_id}</td>
-      <td class="px-4 py-2 border">${line.entry_id}</td>
-      <td class="px-4 py-2 border">${line.account}</td>
-      <td class="px-4 py-2 border">${line.debit}</td>
-      <td class="px-4 py-2 border">${line.credit}</td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  loadJournalEntries();
-  loadJournalLines();
-});
-
-let previewRows = [];
-let previewType = "";
-
-document.getElementById("importJournalInput").addEventListener("change", async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const text = await file.text();
-  const rows = text.split("\n").map(r => r.split(","));
-  previewType = rows[0].includes("entry_id") ? "lines" : "entries";
-
-  previewRows = rows.map((r, i) => `<tr>${r.map(cell => `<td class="border px-2 py-1">${cell}</td>`).join("")}</tr>`).join("");
-  document.getElementById("importPreviewContent").innerHTML = `<table class="table-auto w-full border"><tbody>${previewRows}</tbody></table>`;
-  document.getElementById("importPreviewModal").classList.remove("hidden");
-});
-
-document.getElementById("cancelImportBtn").addEventListener("click", () => {
-  document.getElementById("importPreviewModal").classList.add("hidden");
-});
-
-document.getElementById("confirmImportBtn").addEventListener("click", async () => {
-  const csvText = previewRows.map(row => row.replace(/<\/?[^>]+(>|$)/g, "")).join("\n");
-
-  const res = await fetch("/api/finance/import-journal", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ csvText, type: previewType }),
-  });
-
-  const result = await res.json();
-  alert(result.success ? result.message : "Import failed: " + JSON.stringify(result.errors));
-  document.getElementById("importPreviewModal").classList.add("hidden");
-  loadJournalEntries();
-  loadJournalLines();
-});
-
-
-function exportTableToCSV(tableId, filename) {
-  const rows = document.querySelectorAll(`#${tableId} tr`);
-  const csv = Array.from(rows).map(row =>
-    Array.from(row.cells).map(cell => `"${cell.innerText}"`).join(",")
-  ).join("\n");
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
-}
-
-document.getElementById("exportJournalBtn").addEventListener("click", () => {
-  exportTableToCSV("journalEntriesTable", "journal_entries.csv");
-  exportTableToCSV("journalLinesTable", "journal_lines.csv");
-});
-document.getElementById("importJournalInput").addEventListener("change", async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const text = await file.text();
-  const rows = text.split("\n").map(r => r.split(","));
-
-  console.log("Imported CSV rows:", rows);
-
-  // You can now POST these rows to /api/finance/journal-entries or journal-lines
-  // Or preview them in a modal before saving
-});
-
-    </script>
-
-
-
-
 </body>
 </html>
-
-
-
-
-
 
 
 
