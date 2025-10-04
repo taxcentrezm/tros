@@ -424,675 +424,228 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // --------------------------
-  // Config & Helpers
-  // --------------------------
-  const nf = new Intl.NumberFormat("en-ZM", { style: "currency", currency: "ZMW", minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const num = v => (typeof v === "number" ? v : (parseFloat(v) || 0));
+  const nf = new Intl.NumberFormat("en-ZM", { style: "currency", currency: "ZMW", minimumFractionDigits: 2 });
 
-  function formatMoney(v) { return nf.format(num(v)); }
-  function showToast(msg, ms = 2400) {
-    let el = document.getElementById("exportFeedback");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "exportFeedback";
-      el.className = "fixed bottom-6 right-6 bg-primary-600 text-white px-4 py-2 rounded-lg shadow-lg transition-opacity duration-500";
-      document.body.appendChild(el);
-    }
-    el.textContent = msg; el.classList.remove("hidden"); el.style.opacity = "1";
-    setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.classList.add("hidden"), 400); }, ms);
-  }
+  // ============ DOM Refs ============
+  const transactionModal = document.getElementById("transactionModal");
+  const transactionForm = document.getElementById("transactionForm");
+  const openModalBtn = document.getElementById("openModal");
+  const cancelModalBtn = document.getElementById("cancelModal");
 
-  // Null-safe DOM getter
-  const $ = id => document.getElementById(id);
+  const transactionBody = document.getElementById("transactionBody");
+  const trialBalanceBody = document.getElementById("trialBalanceBody");
+  const etbBody = document.getElementById("extendedTrialBalanceBody");
+  const balanceSheetBody = document.getElementById("balanceSheetBody");
+  const chartContainer = document.getElementById("chartsContainer");
 
-  // --------------------------
-  // DOM references (existing)
-  // --------------------------
-  const modal = $("transactionModal");
-  const openModalBtn = $("openModal");
-  const cancelModalBtn = $("cancelModal");
-  const form = $("transactionForm");
-  const txnType = $("txnType");
-  const categorySelect = $("category");
-  const transactionBody = $("transactionBody");
-  const trialBalanceBody = $("trialBalanceBody");
-  const balanceSheetBody = $("balanceSheetBody");
-  const assetLifecycleBody = $("assetLifecycleBody");
-  const journalEntriesTbody = document.querySelector("#journalEntriesTable tbody");
-  const journalLinesTbody = document.querySelector("#journalLinesTable tbody");
-  const startDateInput = $("startDate");
-  const endDateInput = $("endDate");
-  const reportTypeSelect = $("reportType");
+  const totalRevenueEl = document.getElementById("totalRevenue");
+  const totalExpensesEl = document.getElementById("totalExpenses");
+  const netProfitEl = document.getElementById("netProfit");
 
-  const revenueEl = $("totalRevenue");
-  const expensesEl = $("totalExpenses");
-  const profitEl = $("netProfit");
-  const capexEl = $("totalCapex");
-  const caprevEl = $("totalCaprev");
-  const liabilitiesEl = $("totalLiabilities");
-
-  // --------------------------
-  // State
-  // --------------------------
-  let chartOfAccounts = [];
   let transactions = [];
-  let journals = { entries: [], lines: [] };
-  let trialBalance = [];
-  let balanceSheet = [];
-  let assets = [];
-  let lineChart = null;
-  let pieChart = null;
+  let chartInstance = null;
 
-  // --------------------------
-  // Create drill modal (if not present)
-  // --------------------------
-  function ensureDrillModal() {
-    let m = $("drillModal");
-    if (m) return m;
-    m = document.createElement("div");
-    m.id = "drillModal";
-    m.className = "fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-60";
-    m.innerHTML = `
-      <div class="bg-white rounded-xl p-6 w-full max-w-2xl">
-        <h3 id="drillTitle" class="text-lg font-semibold mb-4">Details</h3>
-        <div id="drillBody" class="max-h-72 overflow-auto mb-4"></div>
-        <div class="flex justify-end gap-2">
-          <button id="closeDrill" class="px-4 py-2 bg-gray-200 rounded">Close</button>
-        </div>
-      </div>`;
-    document.body.appendChild(m);
-    $("closeDrill").addEventListener("click", () => m.classList.add("hidden"));
-    return m;
-  }
+  // =============================
+  // Transaction Modal Controls
+  // =============================
+  window.openTransactionModal = function () {
+    transactionModal.classList.remove("hidden");
+    transactionForm.reset();
+  };
 
-  // --------------------------
-  // Load Chart of Accounts
-  // --------------------------
-  async function loadChartOfAccounts() {
-    try {
-      const res = await fetch("/api/finance/chart_of_accounts");
-      const json = await res.json();
-      chartOfAccounts = json.data || [];
-    } catch (err) {
-      console.error("Failed to load COA:", err);
-      chartOfAccounts = []; // fallback
-    }
-  }
-
-  // --------------------------
-  // Modal control for Add Transaction
-  // --------------------------
-  openModalBtn?.addEventListener("click", async () => {
-    if (!chartOfAccounts.length) await loadChartOfAccounts();
-    // populate categories with full list by default
-    categorySelect.innerHTML = '<option value="">Select Category</option>';
-    (chartOfAccounts || []).forEach(acc => {
-      const opt = document.createElement("option");
-      opt.value = acc.account_id; // account id numeric
-      opt.dataset.name = acc.name || "";
-      opt.textContent = `${acc.code || ""} - ${acc.name || acc.account_id}`;
-      categorySelect.appendChild(opt);
-    });
-    modal?.classList.remove("hidden");
-    form?.reset();
-  });
-  cancelModalBtn?.addEventListener("click", () => { modal?.classList.add("hidden"); form?.reset(); });
-  modal?.addEventListener("click", (e) => { if (e.target === modal) { modal.classList.add("hidden"); } });
-
-  // When txn type changes, filter categories accordingly
-  txnType?.addEventListener("change", () => {
-    const t = txnType.value;
-    const typeMap = {
-      income: "revenue",
-      capital_revenue: "revenue",
-      expense: "expense",
-      capital_expense: "expense",
-      liability: "liability",
-      asset_sale: "asset"
-    };
-    const wanted = typeMap[t];
-    categorySelect.innerHTML = '<option value="">Select Category</option>';
-    (chartOfAccounts || []).filter(a => a.type === wanted).forEach(acc => {
-      const opt = document.createElement("option");
-      opt.value = acc.account_id;
-      opt.dataset.name = acc.name;
-      opt.textContent = `${acc.code || ""} - ${acc.name}`;
-      categorySelect.appendChild(opt);
-    });
+  cancelModalBtn.addEventListener("click", () => {
+    transactionModal.classList.add("hidden");
+    transactionForm.reset();
   });
 
-  // --------------------------
-  // Submit transaction (sends both account_id and category name)
-  // --------------------------
-  form?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fd = new FormData(form);
-    const payload = {
-      date: fd.get("date"),
-      description: fd.get("description"),
-      amount: num(fd.get("amount")),
-      type: fd.get("type"),
-      account_id: fd.get("category") ? parseInt(fd.get("category")) : null,
-    };
-    // also include category name to support server expecting name OR id
-    const selectedOpt = categorySelect.selectedOptions?.[0];
-    payload.category = selectedOpt ? (selectedOpt.dataset.name || selectedOpt.textContent) : null;
-
-    if (!payload.date || !payload.description || !payload.amount || !payload.type || !payload.account_id) {
-      return alert("Please complete all required fields (including category).");
-    }
-
-    try {
-      const res = await fetch("/api/finance/transactions", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || json.message || "Failed to add");
-      showToast("Transaction saved");
-      form.reset();
-      modal.classList.add("hidden");
-      await loadTransactions(); // refresh
-    } catch (err) {
-      console.error("Error adding transaction:", err);
-      alert("Failed to add transaction: " + (err.message || err));
-    }
+  transactionModal.addEventListener("click", (e) => {
+    if (e.target === transactionModal) transactionModal.classList.add("hidden");
   });
 
-  // --------------------------
-  // Fetch / Filter by Period
-  // --------------------------
-  async function loadTransactions(periodStart = null, periodEnd = null) {
-    try {
-      const res = await fetch("/api/finance/transactions");
-      const json = await res.json();
-      transactions = json.data || [];
-
-      // If period provided, filter by created/posted date or transaction date
-      let filtered = transactions;
-      if (periodStart || periodEnd) {
-        const start = periodStart ? new Date(periodStart) : null;
-        const end = periodEnd ? new Date(periodEnd) : null;
-        filtered = transactions.filter(tx => {
-          const d = new Date(tx.date);
-          return (!start || d >= start) && (!end || d <= end);
-        });
-      }
-      renderTransactionTable(filtered);
-      updateSummary(filtered);
-      updateCharts(filtered);
-    } catch (err) {
-      console.error("Load transactions failed:", err);
-    }
+  // =============================
+  // Load Data
+  // =============================
+  async function loadTransactions() {
+    const res = await fetch("/api/finance/transactions");
+    const result = await res.json();
+    transactions = result.data || [];
+    renderTransactions();
+    updateSummary();
+    renderCharts();
   }
 
-  // wire period filter UI (if present)
-  if (startDateInput && endDateInput) {
-    // refresh when either changes
-    [startDateInput, endDateInput].forEach(inp =>
-      inp.addEventListener("change", () => loadTransactions(startDateInput.value || null, endDateInput.value || null))
-    );
-  }
-
-  // --------------------------
-  // Render Transaction Table (with Reference/PaymentMethod/Status)
-  // --------------------------
-  function renderTransactionTable(data = []) {
-    if (!transactionBody) return;
-    transactionBody.innerHTML = "";
-    data.forEach(tx => {
-      const ref = tx.reference || (tx.transaction_id ? `TXN-${tx.transaction_id}` : "-");
-      const pm = tx.payment_method || tx.paymentMethod || "-";
-      const st = tx.status || "posted";
-      transactionBody.innerHTML += `
-        <tr class="hover:bg-gray-50">
-          <td class="px-4 py-2">${tx.date}</td>
-          <td class="px-4 py-2">${tx.description}</td>
-          <td class="px-4 py-2">${tx.category_name || tx.category || "-"}</td>
-          <td class="px-4 py-2 text-right">${formatMoney(tx.amount)}</td>
-          <td class="px-4 py-2">${tx.type}</td>
-          <td class="px-4 py-2">${ref}</td>
-          <td class="px-4 py-2">${pm}</td>
-          <td class="px-4 py-2">${st}</td>
+  async function loadTrialBalance() {
+    const res = await fetch("/api/finance/trial-balance");
+    const { data } = await res.json();
+    trialBalanceBody.innerHTML = "";
+    data.forEach(row => {
+      trialBalanceBody.innerHTML += `
+        <tr>
+          <td>${row.account}</td>
+          <td>${nf.format(row.debit)}</td>
+          <td>${nf.format(row.credit)}</td>
+          <td>${nf.format(row.debit - row.credit)}</td>
         </tr>`;
     });
   }
 
-  // --------------------------
-  // Charts: stable sizing + update
-  // --------------------------
-  function initCharts() {
-    const lineCanvas = document.getElementById("lineChart");
-    const pieCanvas = document.getElementById("pieChart");
-    if (!lineCanvas || !pieCanvas) return;
-
-    // stable pixel heights to avoid runaway growth
-    lineCanvas.style.height = "300px";
-    pieCanvas.style.height = "300px";
-
-    const lc = lineCanvas.getContext("2d");
-    const pc = pieCanvas.getContext("2d");
-
-    if (lineChart) lineChart.destroy();
-    if (pieChart) pieChart.destroy();
-
-    lineChart = new Chart(lc, {
-      type: "line",
-      data: { labels: [], datasets: [
-        { label: "Revenue", data: [], borderColor: "#10b981", backgroundColor: "rgba(16,185,129,0.12)", fill: true, tension: 0.3 },
-        { label: "Expenses", data: [], borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.12)", fill: true, tension: 0.3 }
-      ]},
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
-    });
-
-    pieChart = new Chart(pc, {
-      type: "pie",
-      data: { labels: [], datasets: [{ data: [], backgroundColor: ["#fbbf24","#f87171","#60a5fa","#34d399","#c084fc"] }]},
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
-    });
-  }
-
-  function updateCharts(data = []) {
-    if (!lineChart || !pieChart) return;
-
-    const monthly = {};
-    data.forEach(tx => {
-      const m = tx.date ? tx.date.slice(0,7) : "unknown";
-      monthly[m] = monthly[m] || { income: 0, expense: 0 };
-      if (["income","capital_revenue"].includes(tx.type)) monthly[m].income += num(tx.amount);
-      if (["expense","capital_expense"].includes(tx.type)) monthly[m].expense += num(tx.amount);
-    });
-
-    const months = Object.keys(monthly).sort();
-    lineChart.data.labels = months;
-    lineChart.data.datasets[0].data = months.map(m => monthly[m].income);
-    lineChart.data.datasets[1].data = months.map(m => monthly[m].expense);
-    lineChart.update();
-
-    const catMap = {};
-    data.filter(tx => ["expense","capital_expense"].includes(tx.type)).forEach(tx => {
-      const name = tx.category_name || tx.category || "Unknown";
-      catMap[name] = (catMap[name] || 0) + num(tx.amount);
-    });
-
-    pieChart.data.labels = Object.keys(catMap);
-    pieChart.data.datasets[0].data = Object.values(catMap);
-    pieChart.update();
-  }
-
-  // --------------------------
-  // Summary Cards update
-  // --------------------------
-  function updateSummary(data = []) {
-    const totals = { income: 0, expenses: 0, capex: 0, caprev: 0, liabilities: 0, cashflow: 0, equity: 0, workingCapital: 0 };
-    data.forEach(tx => {
-      const a = num(tx.amount);
-      if (["income","capital_revenue"].includes(tx.type)) totals.income += a;
-      if (["expense","capital_expense"].includes(tx.type)) totals.expenses += a;
-      if (tx.type === "capital_expense") totals.capex += a;
-      if (tx.type === "capital_revenue") totals.caprev += a;
-      if (tx.type === "liability") totals.liabilities += a;
-    });
-
-    // basic derived metrics (placeholders — replace with true formulae if available)
-    totals.cashflow = totals.income - totals.expenses;
-    totals.equity = (balanceSheet[0]?.equity) ? num(balanceSheet[0].equity) : (totals.caprev - totals.capex);
-    totals.workingCapital = (balanceSheet[0] && balanceSheet[0].assets !== undefined && balanceSheet[0].liabilities !== undefined) ? (num(balanceSheet[0].assets) - num(balanceSheet[0].liabilities)) : 0;
-
-    revenueEl && (revenueEl.textContent = formatMoney(totals.income));
-    expensesEl && (expensesEl.textContent = formatMoney(totals.expenses));
-    profitEl && (profitEl.textContent = formatMoney(totals.income - totals.expenses));
-    capexEl && (capexEl.textContent = formatMoney(totals.capex));
-    caprevEl && (caprevEl.textContent = formatMoney(totals.caprev));
-    liabilitiesEl && (liabilitiesEl.textContent = formatMoney(totals.liabilities));
-  }
-
-  // --------------------------
-  // Trial Balance, ETB, Balance Sheet & Assets loaders & ETB validation
-  // --------------------------
-  async function loadTrialBalanceAndETB() {
-    try {
-      const res = await fetch("/api/finance/trial-balance");
-      const json = await res.json();
-      trialBalance = json.data || [];
-
-      // Render main TB table
-      if (trialBalanceBody) {
-        trialBalanceBody.innerHTML = "";
-        trialBalance.forEach(r => {
-          trialBalanceBody.innerHTML += `<tr>
-            <td class="px-4 py-2">${r.account}</td>
-            <td class="px-4 py-2 text-right">${formatMoney(r.debit)}</td>
-            <td class="px-4 py-2 text-right">${formatMoney(r.credit)}</td>
-            <td class="px-4 py-2">${r.fiscal_year || ""}</td>
-          </tr>`;
-        });
-      }
-
-      // Validate total debits vs credits
-      const totals = trialBalance.reduce((acc, r) => { acc.debit += num(r.debit); acc.credit += num(r.credit); return acc; }, { debit:0, credit:0});
-      const diff = Math.abs(totals.debit - totals.credit);
-
-      // Extended Trial Balance (ETB) rendering: group by account, show balance
-      renderExtendedTrialBalance(trialBalance);
-
-      if (diff > 0.005) {
-        console.warn("Trial Balance mismatch: debits and credits do not balance.", totals);
-        showToast(`TB imbalance detected: ${formatMoney(diff)}`, 4000);
-      }
-
-    } catch (err) {
-      console.error("Failed to load trial balance:", err);
-    }
-  }
-
-  function renderExtendedTrialBalance(tbRows) {
-    // Create or reuse ETB container
-    let etbContainer = $("extendedTrialBalance");
-    if (!etbContainer) {
-      etbContainer = document.createElement("div");
-      etbContainer.id = "extendedTrialBalance";
-      etbContainer.className = "bg-white rounded-xl shadow-md p-6 my-4 mx-6";
-      // place after trial balance section if present
-      const ref = trialBalanceBody?.closest("section") || document.body;
-      ref.parentNode.insertBefore(etbContainer, ref.nextSibling);
-    }
-
-    // aggregate balances
-    const map = {};
-    tbRows.forEach(r => {
-      const key = r.account;
-      map[key] = map[key] || { debit:0, credit:0 };
-      map[key].debit += num(r.debit);
-      map[key].credit += num(r.credit);
-    });
-
-    const rows = Object.keys(map).map(account => {
-      const d = map[account].debit; const c = map[account].credit;
-      const balance = d - c;
-      const balType = balance >= 0 ? "Dr" : "Cr";
-      return `<tr>
-        <td class="px-4 py-2">${account}</td>
-        <td class="px-4 py-2 text-right">${formatMoney(d)}</td>
-        <td class="px-4 py-2 text-right">${formatMoney(c)}</td>
-        <td class="px-4 py-2 text-right">${formatMoney(Math.abs(balance))} ${balType}</td>
-      </tr>`;
-    }).join("");
-
-    etbContainer.innerHTML = `<h3 class="text-lg font-semibold mb-3">Extended Trial Balance (ETB)</h3>
-      <div class="overflow-x-auto"><table class="w-full text-sm">
-        <thead class="bg-gray-100"><tr>
-          <th class="px-4 py-2">Account</th>
-          <th class="px-4 py-2">Debit</th>
-          <th class="px-4 py-2">Credit</th>
-          <th class="px-4 py-2">Balance</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table></div>`;
-  }
-
   async function loadBalanceSheet() {
-    try {
-      const res = await fetch("/api/finance/balance-sheet");
-      const json = await res.json();
-      balanceSheet = json.data || [];
-      if (balanceSheetBody) {
-        balanceSheetBody.innerHTML = "";
-        balanceSheet.forEach(b => {
-          balanceSheetBody.innerHTML += `<tr>
-            <td class="px-4 py-2">${b.fiscal_year}</td>
-            <td class="px-4 py-2 text-right">${formatMoney(b.assets)}</td>
-            <td class="px-4 py-2 text-right">${formatMoney(b.liabilities)}</td>
-            <td class="px-4 py-2 text-right">${formatMoney(b.equity)}</td>
-          </tr>`;
-        });
-      }
-    } catch (err) {
-      console.error("Failed to load balance sheet:", err);
-    }
-  }
-
-  async function loadAssets() {
-    try {
-      const res = await fetch("/api/finance/assets");
-      const json = await res.json();
-      assets = json.data || [];
-      if (assetLifecycleBody) {
-        assetLifecycleBody.innerHTML = "";
-        assets.forEach(a => {
-          assetLifecycleBody.innerHTML += `<tr>
-            <td class="px-4 py-2">${a.category}</td>
-            <td class="px-4 py-2 text-right">${formatMoney(a.purchase)}</td>
-            <td class="px-4 py-2 text-right">${formatMoney(a.sale)}</td>
-            <td class="px-4 py-2 text-right">${formatMoney(a.gain_loss)}</td>
-            <td class="px-4 py-2">${a.status}</td>
-          </tr>`;
-        });
-      }
-    } catch (err) {
-      console.error("Failed to load assets:", err);
-    }
-  }
-
-  // --------------------------
-  // Journal Entries + Expand inline
-  // --------------------------
-  async function loadJournalEntries() {
-    try {
-      const res = await fetch("/api/finance/journal-entries");
-      const json = await res.json();
-      journals.entries = json.data || [];
-      renderJournalEntries();
-    } catch (err) {
-      console.error("Journal entries load error:", err);
-    }
-  }
-
-  async function loadJournalLines() {
-    try {
-      const res = await fetch("/api/finance/journal-lines");
-      const json = await res.json();
-      journals.lines = json.data || [];
-      renderJournalLines(); // full list view (if needed)
-    } catch (err) {
-      console.error("Journal lines load error:", err);
-    }
-  }
-
-  function renderJournalEntries() {
-    if (!journalEntriesTbody) return;
-    journalEntriesTbody.innerHTML = "";
-    journals.entries.forEach(entry => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="px-4 py-2 border">${entry.entry_id}</td>
-        <td class="px-4 py-2 border">${entry.date}</td>
-        <td class="px-4 py-2 border">${entry.description}</td>
-        <td class="px-4 py-2 border text-right"><button class="inline-expand px-2 py-1 bg-gray-100 rounded" data-entry="${entry.entry_id}">Toggle Lines</button></td>
-      `;
-      journalEntriesTbody.appendChild(tr);
-      // placeholder row for expansion
-      const expRow = document.createElement("tr");
-      expRow.className = "journal-lines-row hidden";
-      expRow.dataset.entry = entry.entry_id;
-      expRow.innerHTML = `<td colspan="4" class="px-4 py-2 border"><div class="journal-lines-container"></div></td>`;
-      journalEntriesTbody.appendChild(expRow);
-    });
-
-    // attach expand handlers
-    journalEntriesTbody.querySelectorAll(".inline-expand").forEach(btn => {
-      btn.addEventListener("click", (ev) => {
-        const entryId = ev.currentTarget.dataset.entry;
-        const row = journalEntriesTbody.querySelector(`tr.journal-lines-row[data-entry="${entryId}"]`);
-        if (!row) return;
-        if (row.classList.contains("hidden")) {
-          // populate lines
-          const container = row.querySelector(".journal-lines-container");
-          const lines = journals.lines.filter(l => String(l.entry_id) === String(entryId));
-          container.innerHTML = lines.length ? `<table class="w-full text-sm">
-              <thead class="bg-gray-100"><tr><th>Line ID</th><th>Account</th><th>Debit</th><th>Credit</th></tr></thead>
-              <tbody>${lines.map(l => `<tr><td>${l.line_id}</td><td>${l.account}</td><td class="text-right">${formatMoney(l.debit)}</td><td class="text-right">${formatMoney(l.credit)}</td></tr>`).join("")}</tbody>
-            </table>` : `<div class="text-sm text-gray-600">No lines found</div>`;
-          row.classList.remove("hidden");
-        } else {
-          row.classList.add("hidden");
-        }
-      });
+    const res = await fetch("/api/finance/balance-sheet");
+    const { data } = await res.json();
+    balanceSheetBody.innerHTML = "";
+    data.forEach(entry => {
+      balanceSheetBody.innerHTML += `
+        <tr>
+          <td>${entry.fiscal_year}</td>
+          <td>${nf.format(entry.assets)}</td>
+          <td>${nf.format(entry.liabilities)}</td>
+          <td>${nf.format(entry.equity)}</td>
+        </tr>`;
     });
   }
 
-  function renderJournalLines() {
-    if (!journalLinesTbody) return;
-    journalLinesTbody.innerHTML = "";
-    journals.lines.forEach(l => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td class="px-4 py-2 border">${l.line_id}</td>
-        <td class="px-4 py-2 border">${l.entry_id}</td>
-        <td class="px-4 py-2 border">${l.account}</td>
-        <td class="px-4 py-2 border text-right">${formatMoney(l.debit)}</td>
-        <td class="px-4 py-2 border text-right">${formatMoney(l.credit)}</td>`;
-      journalLinesTbody.appendChild(tr);
+  // =============================
+  // Render Functions
+  // =============================
+  function renderTransactions() {
+    transactionBody.innerHTML = "";
+    transactions.forEach(tx => {
+      transactionBody.innerHTML += `
+        <tr>
+          <td>${tx.date}</td>
+          <td>${tx.description}</td>
+          <td>${tx.reference || "-"}</td>
+          <td>${tx.payment_method || "-"}</td>
+          <td>${tx.status || "Pending"}</td>
+          <td>${nf.format(tx.amount)}</td>
+          <td>${tx.type}</td>
+        </tr>`;
     });
   }
 
-  // --------------------------
-  // Drill-down: show transactions composing a category total
-  // --------------------------
-  function openDrillDown(categoryName) {
-    const m = ensureDrillModal();
-    const container = $("drillBody");
-    const rows = transactions.filter(tx => (tx.category_name || tx.category) === categoryName);
-    container.innerHTML = rows.length ? `<table class="w-full text-sm">
-      <thead class="bg-gray-100"><tr><th>Date</th><th>Description</th><th class="text-right">Amount</th><th>Type</th></tr></thead>
-      <tbody>${rows.map(r => `<tr><td>${r.date}</td><td>${r.description}</td><td class="text-right">${formatMoney(r.amount)}</td><td>${r.type}</td></tr>`).join("")}</tbody>
-    </table>` : `<div class="text-sm text-gray-600">No transactions</div>`;
-    $("drillTitle").textContent = `Transactions for: ${categoryName}`;
-    m.classList.remove("hidden");
+  function updateSummary() {
+    const income = transactions.filter(t => ["income", "capital_revenue"].includes(t.type)).reduce((a,b)=>a+b.amount,0);
+    const expense = transactions.filter(t => ["expense","capital_expense"].includes(t.type)).reduce((a,b)=>a+b.amount,0);
+    const profit = income - expense;
+
+    totalRevenueEl.textContent = nf.format(income);
+    totalExpensesEl.textContent = nf.format(expense);
+    netProfitEl.textContent = nf.format(profit);
   }
 
-  // --------------------------
-  // EXPORT helpers: CSV / Excel / PDF
-  // --------------------------
-  function arrayToCSV(rows) {
-    return rows.map(r => r.map(c => `"${String(c).replace(/"/g,"'")}"`).join(",")).join("\n");
-  }
+  function renderCharts() {
+    const canvas = document.getElementById("profitTrendChart");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
 
-  function exportJSONToExcel(json, filename = "data.xlsx") {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(json);
-    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    XLSX.writeFile(wb, filename);
-  }
+    if (chartInstance) chartInstance.destroy();
 
-  async function exportTablePDF(head, bodyRows, filename = "report.pdf", title = "Report") {
-    const { jsPDF } = window.jspdf || window.jspdf;
-    const doc = new jsPDF({ orientation: "portrait", unit: "pt" });
-    doc.text(title, 40, 40);
-    // head summary horizontal display (small)
-    let y = 60;
-    head.forEach((h, i) => {
-      doc.setFontSize(10);
-      doc.text(h.label + ": " + h.value, 40 + i * 140, y);
+    const months = {};
+    transactions.forEach(t => {
+      const m = t.date.slice(0,7);
+      if (!months[m]) months[m] = { income:0, expense:0 };
+      if (["income","capital_revenue"].includes(t.type)) months[m].income += t.amount;
+      if (["expense","capital_expense"].includes(t.type)) months[m].expense += t.amount;
     });
-    // autoTable body if available
-    if (doc.autoTable && bodyRows.length) {
-      doc.autoTable({ head: [bodyRows.head], body: bodyRows.body, startY: y + 30, styles: { fontSize: 9 } });
-    } else {
-      // fallback: basic text
-      let sy = y + 30;
-      bodyRows.body.forEach(row => { doc.text(row.join(" | "), 40, sy); sy += 12; });
-    }
-    doc.save(filename);
-  }
 
-  // specific exports
-  $("exportJournalBtn")?.addEventListener("click", () => {
-    // export entries and lines as CSVs
-    const entriesRows = [["entry_id","date","description"], ...journals.entries.map(e => [e.entry_id,e.date,e.description])];
-    const linesRows = [["line_id","entry_id","account","debit","credit"], ...journals.lines.map(l => [l.line_id,l.entry_id,l.account,l.debit,l.credit])];
-    const blob1 = new Blob([arrayToCSV(entriesRows)], { type: "text/csv" });
-    const a1 = document.createElement("a"); a1.href = URL.createObjectURL(blob1); a1.download = "journal_entries.csv"; a1.click();
-    const blob2 = new Blob([arrayToCSV(linesRows)], { type: "text/csv" });
-    const a2 = document.createElement("a"); a2.href = URL.createObjectURL(blob2); a2.download = "journal_lines.csv"; a2.click();
-    showToast("Journal exported");
-  });
+    const labels = Object.keys(months).sort();
+    const income = labels.map(l=>months[l].income);
+    const expense = labels.map(l=>months[l].expense);
 
-  // Export ETB / TB / Balance sheet
-  $("exportExcel")?.addEventListener("click", () => {
-    exportJSONToExcel(transactions, "transactions.xlsx"); showToast("Transactions Excel exported");
-  });
-  // additional buttons for TB / ETB / Balance sheet PDF/Excel
-  // export ETB
-  function exportETB() {
-    // ETB rows
-    const rows = Object.keys(trialBalance.reduce((m, r) => {
-      m[r.account] = m[r.account] || { debit:0, credit:0 };
-      m[r.account].debit += num(r.debit); m[r.account].credit += num(r.credit);
-      return m;
-    }, {})).map(account => {
-      const r = trialBalance.find(x => x.account === account) || {debit:0, credit:0};
-      return { account, debit: r.debit || 0, credit: r.credit || 0 };
+    chartInstance = new Chart(ctx, {
+      type:"line",
+      data:{ labels, datasets:[
+        { label:"Income", data:income, borderColor:"#10b981", tension:0.3 },
+        { label:"Expense", data:expense, borderColor:"#ef4444", tension:0.3 }
+      ]},
+      options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
     });
-    exportJSONToExcel(rows, "extended_trial_balance.xlsx");
-    showToast("Extended Trial Balance exported");
   }
 
-  // wire additional export triggers if DOM buttons exist
-  $("exportJournalBtn") && $("exportJournalBtn").addEventListener("click", () => { /* already wired above */ });
-  // example: hook ETB export to exportJournalBtn alt-click? We'll add a dedicated button id="exportETBBtn" if present:
-  $("exportETBBtn")?.addEventListener("click", exportETB);
-
-  // --------------------------
-  // initial load
-  // --------------------------
-  initCharts();
-  loadChartOfAccounts();
-  loadTransactions();
-  loadTrialBalanceAndETB();
-  loadBalanceSheet();
-  loadAssets();
-  loadJournalEntries();
-  loadJournalLines();
-
-  // Expose some utilities globally for debugging / manual use
-  window.financeAPI = {
-    reloadAll: () => {
-      initCharts();
-      loadChartOfAccounts();
-      loadTransactions();
-      loadTrialBalanceAndETB();
-      loadBalanceSheet();
-      loadAssets();
-      loadJournalEntries();
-      loadJournalLines();
-    },
-    openDrillDown
+  // =============================
+  // Drill-Down Feature
+  // =============================
+  window.showDrillDown = function(category) {
+    const filtered = transactions.filter(t => t.category_name === category);
+    const modalBody = document.getElementById("drillDownBody");
+    modalBody.innerHTML = filtered.map(t => `
+      <tr>
+        <td>${t.date}</td>
+        <td>${t.description}</td>
+        <td>${nf.format(t.amount)}</td>
+        <td>${t.type}</td>
+      </tr>`).join("");
+    document.getElementById("drillDownModal").classList.remove("hidden");
   };
 
-  // --------------------------
-  // Attach drill-down on pie slices (category click)
-  // --------------------------
-  // chart.js doesn't provide DOM click for slices by default; attach interaction via chart event
-  if (pieChart) {
-    // nothing to do here until pieChart is created; updateCharts will populate
-  }
-
-  // clickable rows: allow clicking a transaction category cell to open drill-down
-  transactionBody?.addEventListener("click", (e) => {
-    const td = e.target.closest("td");
-    if (!td) return;
-    const tr = td.closest("tr");
-    const cells = Array.from(tr.children);
-    // find category column (3rd cell in our render)
-    const categoryCell = cells[2];
-    if (categoryCell && categoryCell.contains(td)) {
-      openDrillDown(categoryCell.textContent.trim());
-    }
+  document.getElementById("closeDrillDown").addEventListener("click", () => {
+    document.getElementById("drillDownModal").classList.add("hidden");
   });
 
+  // =============================
+  // Export Handlers
+  // =============================
+  document.getElementById("exportTB").addEventListener("click", exportTrialBalance);
+  document.getElementById("validateLedger").addEventListener("click", validateDoubleLedger);
+  document.getElementById("exportPDF").addEventListener("click", exportTransactionsToPDF);
+  document.getElementById("exportETB").addEventListener("click", exportExtendedTrialBalance);
+  document.getElementById("exportBalanceSheet").addEventListener("click", exportBalanceSheetToCSV);
+
+  function exportTrialBalance() {
+    const csv = [["Account","Debit","Credit","Balance"]];
+    document.querySelectorAll("#trialBalanceBody tr").forEach(tr=>{
+      const cols=[...tr.children].map(td=>td.innerText);
+      csv.push(cols);
+    });
+    downloadCSV(csv,"trial_balance.csv");
+  }
+
+  function exportBalanceSheetToCSV() {
+    const csv = [["Year","Assets","Liabilities","Equity"]];
+    document.querySelectorAll("#balanceSheetBody tr").forEach(tr=>{
+      csv.push([...tr.children].map(td=>td.innerText));
+    });
+    downloadCSV(csv,"balance_sheet.csv");
+  }
+
+  function exportTransactionsToPDF() {
+    const doc = new jspdf.jsPDF();
+    doc.text("Transactions", 15, 15);
+    doc.autoTable({ html:"#transactionTable" });
+    doc.save("transactions.pdf");
+  }
+
+  function exportExtendedTrialBalance() {
+    const csv = [["Account","Debit","Credit","Adjustments","Adjusted Balance"]];
+    document.querySelectorAll("#extendedTrialBalanceBody tr").forEach(tr=>{
+      csv.push([...tr.children].map(td=>td.innerText));
+    });
+    downloadCSV(csv,"extended_trial_balance.csv");
+  }
+
+  function downloadCSV(rows, filename) {
+    const csv = rows.map(r=>r.join(",")).join("\n");
+    const blob = new Blob([csv], { type:"text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+  }
+
+  function validateDoubleLedger() {
+    const debit = [...document.querySelectorAll("#trialBalanceBody tr td:nth-child(2)")].reduce((s,td)=>s+parseFloat(td.innerText.replace(/[^0-9.-]+/g,"")),0);
+    const credit = [...document.querySelectorAll("#trialBalanceBody tr td:nth-child(3)")].reduce((s,td)=>s+parseFloat(td.innerText.replace(/[^0-9.-]+/g,"")),0);
+    alert(Math.abs(debit-credit) < 1 ? "✅ Ledger balances!" : `❌ Ledger out of balance: Diff = ${nf.format(debit-credit)}`);
+  }
+
+  // =============================
+  // Init
+  // =============================
+  loadTransactions();
+  loadTrialBalance();
+  loadBalanceSheet();
 });
 </script>
 </body>
 </html>
+
