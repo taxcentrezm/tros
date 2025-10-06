@@ -653,70 +653,79 @@ document.addEventListener("DOMContentLoaded", () => {
     }catch(err){ console.error("Balance Sheet load failed:",err); }
   }
 
-  // ---------------------------
-  // 5️⃣ Journal Entries
-  // ---------------------------
-  async function loadJournalEntries(){
-    try{
-      const data=isArraySafe((await (await fetch("/api/finance/journal-entries")).json()).data);
-      const tbody=document.getElementById("journalBody");
-      if(!tbody) return;
-      if(!data.length) return showNoData(tbody,4,"No journal entries");
-      tbody.innerHTML = "";
-      data.forEach(entry=>{
-        const tr=document.createElement("tr");
-        tr.innerHTML=`
-          <td>${entry.entry_id||entry.id||"N/A"}</td>
-          <td>${entry.date||""}</td>
-          <td>${entry.description||""}</td>
-          <td class="text-center">
-            <button class="view-lines-btn px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold hover:bg-blue-200 transition">
-              View Lines
-            </button>
-          </td>`;
-        tbody.appendChild(tr);
-      });
-    }catch(err){ console.error("Journal Entries load failed:",err); }
-  }
+// ---------------------------
+// 5️⃣ Journal Entries
+// ---------------------------
+async function loadJournalEntries() {
+  try {
+    const data = isArraySafe((await (await fetch("/api/finance/journal-entries")).json()).data);
+    const tbody = document.getElementById("journalBody");
+    if (!tbody) return;
+    if (!data.length) return showNoData(tbody, 4, "No journal entries");
 
-  document.getElementById("journalBody")?.addEventListener("click", e=>{
-    if(e.target.closest(".view-lines-btn")){
-      const row = e.target.closest("tr");
-      const entryId = row.cells[0].textContent;
-      toggleJournalLines(entryId,row);
-    }
-  });
+    tbody.innerHTML = "";
+    data.forEach(entry => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${entry.entry_id || entry.id || "N/A"}</td>
+        <td>${entry.date || ""}</td>
+        <td>${entry.description || ""}</td>
+        <td class="text-center">
+          <button class="view-lines-btn px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold hover:bg-blue-200 transition">
+            View Lines
+          </button>
+        </td>`;
+      tbody.appendChild(tr);
+});
+} catch (err) {
+    console.error("Journal Entries load failed:", err);
+}
+}
 
-  async function toggleJournalLines(entry, clickedRow) {
-  if (!entry.lines || !entry.lines.length) return;
+document.getElementById("journalBody")?.addEventListener("click", e => {
+  if (e.target.closest(".view-lines-btn")) {
+    const row = e.target.closest("tr");
+    const entryId = row.cells[0].textContent;
+    toggleJournalLines(entryId, row);
+}
+});
 
-  const existing = document.querySelector(`tr[data-lines='${entry.entry_id || entry.id}']`);
-  if (existing) {
-    existing.remove(); // close if already open
-    return;
-  }
+async function toggleJournalLines(entryId, clickedRow) {
+  try {
+    const data = await fetch(`/api/finance/journal-lines?entry_id=${entryId}`);
+    const entry = await data.json();
 
-  const linesHTML = entry.lines
-    .map(l => `<tr>
-        <td>${l.account_name}</td>
-        <td class="text-right">${nf.format(l.debit || 0)}</td>
-        <td class="text-right">${nf.format(l.credit || 0)}</td>
-      </tr>`).join("");
+    if (!entry.lines ||!entry.lines.length) return;
 
-  const tr = document.createElement("tr");
-  tr.dataset.lines = entry.entry_id || entry.id;
-  tr.innerHTML = `
-    <td colspan="4">
-      <table class="w-full text-sm border-t border-gray-200">
-        <thead class="bg-gray-100">
-          <tr><th>Account</th><th>Debit</th><th>Credit</th></tr>
-        </thead>
-        <tbody>${linesHTML}</tbody>
-      </table>
-    </td>`;
-  clickedRow.parentNode.insertBefore(tr, clickedRow.nextSibling);
-}catch(err){ console.error("Journal lines load failed:",err); }
-  }
+    const existing = document.querySelector(`tr[data-lines='${entry.entry_id || entry.id}']`);
+    if (existing) {
+      existing.remove(); // close if already open
+      return;
+}
+
+    const linesHTML = entry.lines
+.map(l => `<tr>
+          <td>${l.account_name}</td>
+          <td class="text-right">${nf.format(l.debit || 0)}</td>
+          <td class="text-right">${nf.format(l.credit || 0)}</td>
+        </tr>`).join("");
+
+    const tr = document.createElement("tr");
+    tr.dataset.lines = entry.entry_id || entry.id;
+    tr.innerHTML = `
+      <td colspan="4">
+        <table class="w-full text-sm border-t border-gray-200">
+          <thead class="bg-gray-100">
+            <tr><th>Account</th><th>Debit</th><th>Credit</th></tr>
+          </thead>
+          <tbody>${linesHTML}</tbody>
+        </table>
+      </td>`;
+    clickedRow.parentNode.insertBefore(tr, clickedRow.nextSibling);
+} catch (err) {
+    console.error("Journal lines load failed:", err);
+}
+}
 
   // ---------------------------
   // 6️⃣ Charts (stub)
@@ -864,6 +873,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
