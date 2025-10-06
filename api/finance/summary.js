@@ -2,26 +2,61 @@ import { client } from "../../db.js";
 
 export default async function handler(req, res) {
   try {
-    // Aggregate total debit and credit per account
-    const result = await client.execute(`
-      SELECT 
-        account_id, 
-        SUM(debit) AS debit, 
-        SUM(credit) AS credit
+    // ================================
+    // 1️⃣  Summary (Revenue, Expenses, etc.)
+    // ================================
+    const summaryResult = await client.execute(`
+      SELECT
+        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) AS revenue,
+        SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS expenses,
+        SUM(CASE WHEN type = 'capital_expense' THEN amount ELSE 0 END) AS capex,
+        SUM(CASE WHEN type = 'capital_revenue' THEN amount ELSE 0 END) AS caprev,
+        SUM(CASE WHEN type = 'liability' THEN amount ELSE 0 END) AS liabilities
       FROM transactions
-      GROUP BY account_id
     `);
 
-    // Map results to a clean JSON structure
-    const summary = result.rows.map(row => ({
-      account_id: row[0],
-      total_debit: row[1] || 0,
-      total_credit: row[2] || 0,
-    }));
+    const s = summaryResult.rows[0] || {};
+    const net_profit = (s.revenue || 0) - (s.expenses || 0);
 
-    res.status(200).json(summary);
+    // ================================
+    // 2️⃣  Extended Trial Balance (ETB)
+    // ================================
+    const etbResult = await client.execute(`
+      SELECT 
+        a.name AS account_name,
+        SUM(CASE WHEN jl.debit > 0 THEN jl.debit ELSE 0 END) AS debit,
+        SUM(CASE WHEN jl.credit > 0 THEN jl.credit ELSE 0 END) AS credit,
+        0 AS adjustments,
+        SUM(
+          CASE 
+            WHEN jl.debit > jl.credit THEN jl.debit - jl.credit 
+            ELSE jl.credit - jl.debit 
+          END
+        ) AS closing_balance
+      FROM journal_lines jl
+      JOIN accounts a ON a.id = jl.account_id
+      GROUP BY a.name
+      ORDER BY a.name
+    `);
+
+    // ================================
+    // 3️⃣  Combined Response
+    // ================================
+    res.status(200).json({
+      success: true,
+      summary: {
+        revenue: Number(s.revenue) || 0,
+        expenses: Number(s.expenses) || 0,
+        capex: Number(s.capex) || 0,
+        caprev: Number(s.caprev) || 0,
+        liabilities: Number(s.liabilities) || 0,
+        net_profit,
+      },
+      extended_trial_balance: etbResult.rows || [],
+    });
+
   } catch (err) {
-    console.error("❌ Error in /api/finance/summary:", err);
-    res.status(500).json({ error: err.message });
+    console.error("SUMMARY + ETB ERROR:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 }
