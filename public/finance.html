@@ -609,62 +609,74 @@ document.addEventListener("DOMContentLoaded", () => {
   // 5️⃣ Load Journal Entries
   // =========================
   async function loadJournalEntries() {
-    try {
-      const res = await fetch("/api/finance/journal-entries");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { data } = await res.json();
+  try {
+    const res = await fetch("/api/finance/journal-entries");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
 
-      const tbody = document.getElementById("journalBody");
-      if (!tbody) return;
+    const tbody = document.getElementById("journalBody");
+    if (!tbody) return;
 
-      if (!data.length) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-2 text-gray-500">No journal entries</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = "";
-      data.forEach((entry) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${entry.id}</td>
-          <td>${entry.date}</td>
-          <td>${entry.description}</td>
-          <td>Click to view lines</td>`;
-        tr.addEventListener("click", () => toggleJournalLines(entry));
-        tbody.appendChild(tr);
-      });
-    } catch (err) {
-      console.error("Journal Entries load failed:", err);
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center py-2 text-gray-500">No journal entries</td></tr>`;
+      return;
     }
+
+    tbody.innerHTML = "";
+    data.forEach((entry) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${entry.entry_id || entry.id || "N/A"}</td>
+        <td>${entry.date || ""}</td>
+        <td>${entry.description || ""}</td>
+        <td class="text-center cursor-pointer text-blue-600 hover:underline">Click to view lines</td>`;
+      
+      tr.addEventListener("click", () => toggleJournalLines(entry));
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error("Journal Entries load failed:", err);
   }
+}
 
-  function toggleJournalLines(entry) {
-    if (!entry.lines || !entry.lines.length) return;
-    const existing = document.querySelector(`tr[data-lines='${entry.id}']`);
-    if (existing) return existing.remove();
+function toggleJournalLines(entry) {
+  if (!entry.lines || !entry.lines.length) return;
 
-    const linesHTML = entry.lines
-      .map(
-        (l) => `<tr>
-          <td>${l.account_name || ""}</td>
-          <td>${nf.format(l.debit || 0)}</td>
-          <td>${nf.format(l.credit || 0)}</td>
-        </tr>`
-      )
-      .join("");
+  const existing = document.querySelector(`tr[data-lines='${entry.entry_id || entry.id}']`);
+  if (existing) return existing.remove();
 
-    const tr = document.createElement("tr");
-    tr.dataset.lines = entry.id;
-    tr.innerHTML = `<td colspan="5">
-      <table class="w-full text-sm border-t mt-1">
-        <thead class="bg-gray-100">
-          <tr><th>Account</th><th>Debit</th><th>Credit</th></tr>
-        </thead>
-        <tbody>${linesHTML}</tbody>
-      </table>
-    </td>`;
-    document.getElementById("journalBody").appendChild(tr);
-  }
+  const linesHTML = entry.lines
+    .map(
+      (l) => `<tr>
+        <td>${l.account_name || ""}</td>
+        <td class="text-right">${nf.format(l.debit || 0)}</td>
+        <td class="text-right">${nf.format(l.credit || 0)}</td>
+      </tr>`
+    )
+    .join("");
+
+  const tr = document.createElement("tr");
+  tr.dataset.lines = entry.entry_id || entry.id;
+  tr.innerHTML = `<td colspan="4">
+    <table class="w-full text-sm border-t">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="px-2 py-1 text-left">Account</th>
+          <th class="px-2 py-1 text-right">Debit</th>
+          <th class="px-2 py-1 text-right">Credit</th>
+        </tr>
+      </thead>
+      <tbody>${linesHTML}</tbody>
+    </table>
+  </td>`;
+
+  // Insert lines immediately after the clicked row
+  const parent = document.getElementById("journalBody");
+  const rowIndex = Array.from(parent.children).indexOf(
+    document.querySelector(`tr[data-lines='${entry.entry_id || entry.id}']`) || tr
+  );
+  parent.insertBefore(tr, parent.children[rowIndex + 1]);
+}
 
   // =========================
   // 6️⃣ Charts
@@ -732,6 +744,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
