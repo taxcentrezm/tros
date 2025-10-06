@@ -435,6 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const transactionBody = document.getElementById("transactionBody");
   const trialBalanceBody = document.getElementById("trialBalanceBody");
   const balanceSheetBody = document.getElementById("balanceSheetBody");
+  const extendedTrialBalanceBody = document.getElementById("extendedTrialBalanceBody");
   const journalEntriesBody = document.getElementById("journalEntriesBody");
 
   const totalRevenueEl = document.getElementById("totalRevenue");
@@ -447,6 +448,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let transactions = [];
   let trialBalance = [];
   let journalEntries = [];
+  let extendedTrialBalance = [];
 
   let lineChart, pieChart, profitChart, liabAssetChart;
 
@@ -482,9 +484,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadJournalEntries() {
     try {
-      const res = await fetch("/api/finance/journal");
+      const res = await fetch("/api/finance/journal-entries");
       const json = await res.json();
       journalEntries = json.data || [];
+
+      // Fetch lines for each entry
+      await Promise.all(
+        journalEntries.map(async (entry) => {
+          const resLines = await fetch(`/api/finance/journal-lines?entry_id=${entry.id}`);
+          const linesJson = await resLines.json();
+          entry.lines = linesJson.data || [];
+        })
+      );
+
       renderJournalEntries();
     } catch (err) {
       console.warn("Journal not available:", err);
@@ -496,10 +508,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/api/finance/extended-trial-balance");
       if (!res.ok) throw new Error("No ETB endpoint");
       const json = await res.json();
-      renderExtendedTrialBalance(json.data || []);
+      extendedTrialBalance = json.data || [];
+      renderExtendedTrialBalance(extendedTrialBalance);
     } catch (err) {
       console.warn("ETB skipped:", err.message);
-      document.getElementById("extendedTrialBalanceBody").innerHTML =
+      extendedTrialBalanceBody.innerHTML =
         `<tr><td colspan="5" class="text-center py-3 text-gray-500">Extended Trial Balance not available</td></tr>`;
     }
   }
@@ -542,10 +555,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderExtendedTrialBalance(rows) {
-    const etbBody = document.getElementById("extendedTrialBalanceBody");
-    etbBody.innerHTML = "";
+    extendedTrialBalanceBody.innerHTML = "";
+    if (!rows.length) {
+      extendedTrialBalanceBody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-gray-500">No data</td></tr>`;
+      return;
+    }
     rows.forEach((r) => {
-      etbBody.innerHTML += `
+      extendedTrialBalanceBody.innerHTML += `
         <tr>
           <td>${r.account_name}</td>
           <td>${nf.format(safe(r.debit))}</td>
@@ -605,7 +621,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .join("")}</tbody>
         </table>
       </td>`;
-    document.getElementById("journalEntriesBody").appendChild(tr);
+    journalEntriesBody.appendChild(tr);
   };
 
   // =============================
@@ -617,19 +633,12 @@ document.addEventListener("DOMContentLoaded", () => {
         .filter((t) => types.includes(t.type))
         .reduce((a, b) => a + safe(b.amount), 0);
 
-    const income = sum(["income", "capital_revenue"]);
-    const expenses = sum(["expense", "capital_expense"]);
-    const profit = income - expenses;
-    const capex = sum(["capital_expense"]);
-    const caprev = sum(["capital_revenue"]);
-    const liabilities = sum(["liability"]);
-
-    totalRevenueEl.textContent = nf.format(income);
-    totalExpensesEl.textContent = nf.format(expenses);
-    netProfitEl.textContent = nf.format(profit);
-    totalCapexEl.textContent = nf.format(capex);
-    totalCaprevEl.textContent = nf.format(caprev);
-    totalLiabilitiesEl.textContent = nf.format(liabilities);
+    totalRevenueEl.textContent = nf.format(sum(["income", "capital_revenue"]));
+    totalExpensesEl.textContent = nf.format(sum(["expense", "capital_expense"]));
+    netProfitEl.textContent = nf.format(sum(["income", "capital_revenue"]) - sum(["expense", "capital_expense"]));
+    totalCapexEl.textContent = nf.format(sum(["capital_expense"]));
+    totalCaprevEl.textContent = nf.format(sum(["capital_revenue"]));
+    totalLiabilitiesEl.textContent = nf.format(sum(["liability"]));
   }
 
   // =============================
@@ -651,13 +660,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (["income", "capital_revenue"].includes(t.type)) months[m].income += t.amount;
       if (["expense", "capital_expense"].includes(t.type)) months[m].expense += t.amount;
     });
-    const labels = Object.keys(months).sort();
 
+    const labels = Object.keys(months).sort();
     const incomeData = labels.map((m) => months[m].income);
     const expenseData = labels.map((m) => months[m].expense);
     const profitData = labels.map((m) => months[m].income - months[m].expense);
 
-    // Destroy old charts to prevent runaway scaling
     [lineChart, pieChart, profitChart, liabAssetChart].forEach((c) => c?.destroy());
 
     lineChart = new Chart(lineCtx, {
@@ -674,7 +682,12 @@ document.addEventListener("DOMContentLoaded", () => {
       data: {
         labels: ["Income", "Expenses", "Capital", "Liabilities"],
         datasets: [{
-          data: [sum(["income"]), sum(["expense"]), sum(["capital_expense"]), sum(["liability"])],
+          data: [
+            transactions.filter(t=>["income","capital_revenue"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0),
+            transactions.filter(t=>["expense","capital_expense"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0),
+            transactions.filter(t=>["capital_expense"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0),
+            transactions.filter(t=>["liability"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0)
+          ],
           backgroundColor: ["#34d399", "#f87171", "#60a5fa", "#fbbf24"],
         }],
       },
@@ -694,44 +707,18 @@ document.addEventListener("DOMContentLoaded", () => {
         type: "bar",
         data: {
           labels: ["Assets", "Liabilities"],
-          datasets: [{ label: "Totals", data: [sum(["asset_sale"]), sum(["liability"])], backgroundColor: ["#34d399", "#f87171"] }],
+          datasets: [{
+            label: "Totals",
+            data: [
+              transactions.filter(t=>t.type==="asset_sale").reduce((a,b)=>a+safe(b.amount),0),
+              transactions.filter(t=>t.type==="liability").reduce((a,b)=>a+safe(b.amount),0)
+            ],
+            backgroundColor: ["#34d399", "#f87171"]
+          }],
         },
         options: { responsive: true, maintainAspectRatio: false },
       });
     }
-  }
-
-  // =============================
-  // Validation + Export
-  // =============================
-  document.getElementById("validateLedger").addEventListener("click", () => {
-    const debit = trialBalance.reduce((s, r) => s + safe(r.debit), 0);
-    const credit = trialBalance.reduce((s, r) => s + safe(r.credit), 0);
-    alert(Math.abs(debit - credit) < 1 ? "✅ Ledger balances!" : `❌ Mismatch: ${nf.format(debit - credit)}`);
-  });
-
-  document.getElementById("exportTB").addEventListener("click", () => exportCSV("trialBalanceBody", "trial_balance.csv"));
-  document.getElementById("exportETB").addEventListener("click", () => exportCSV("extendedTrialBalanceBody", "extended_trial_balance.csv"));
-  document.getElementById("exportBalanceSheet").addEventListener("click", () => exportCSV("balanceSheetBody", "balance_sheet.csv"));
-  document.getElementById("exportPDF").addEventListener("click", exportPDF);
-
-  function exportCSV(bodyId, filename) {
-    const rows = document.querySelectorAll(`#${bodyId} tr`);
-    const csv = Array.from(rows)
-      .map((r) => Array.from(r.children).map((c) => `"${c.innerText}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-  }
-
-  function exportPDF() {
-    const doc = new jspdf.jsPDF();
-    doc.text("Transactions", 15, 15);
-    doc.autoTable({ html: "#transactionTable" });
-    doc.save("transactions.pdf");
   }
 
   // =============================
@@ -746,6 +733,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
