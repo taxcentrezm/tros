@@ -692,8 +692,8 @@ document.getElementById("journalBody")?.addEventListener("click", e => {
 
 async function toggleJournalLines(entryId, clickedRow) {
   try {
-    const data = await fetch(`/api/finance/journal-lines?entry_id=${entryId}`);
-    const entry = await data.json();
+    const res = await fetch(`/api/finance/journal-lines?entry_id=${entryId}`);
+    const entry = await res.json();
 
     if (!entry.lines ||!entry.lines.length) return;
 
@@ -873,6 +873,7 @@ async function toggleJournalLines(entryId, clickedRow) {
 </script>
 </body>
 </html>
+
 
 
 
