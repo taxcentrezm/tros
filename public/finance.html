@@ -213,6 +213,20 @@
     width: 100% !important;
     height: 100% !important;
   }
+
+    
+/* Nested lines table container animation */
+.lines-container {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.35s ease-out, opacity 0.35s ease-out;
+  opacity: 0;
+}
+
+.lines-container.open {
+  max-height: 500px; /* large enough to fit most entries */
+  opacity: 1;
+}
 </style>
 
 
@@ -626,12 +640,17 @@ document.addEventListener("DOMContentLoaded", () => {
     data.forEach((entry) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${entry.entry_id || entry.id || "N/A"}</td>
-        <td>${entry.date || ""}</td>
-        <td>${entry.description || ""}</td>
-        <td class="text-center cursor-pointer text-blue-600 hover:underline">Click to view lines</td>`;
-      
-      tr.addEventListener("click", () => toggleJournalLines(entry));
+        <td class="px-3 py-2">${entry.entry_id || entry.id || "N/A"}</td>
+        <td class="px-3 py-2">${entry.date || ""}</td>
+        <td class="px-3 py-2">${entry.description || ""}</td>
+        <td class="px-3 py-2 text-center">
+          <button class="view-lines-btn px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold hover:bg-blue-200 transition">
+            View Lines
+          </button>
+        </td>`;
+
+      // Attach click to toggle lines
+      tr.querySelector(".view-lines-btn").addEventListener("click", () => toggleJournalLines(entry, tr));
       tbody.appendChild(tr);
     });
   } catch (err) {
@@ -639,46 +658,57 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 }
 
-function toggleJournalLines(entry) {
+function toggleJournalLines(entry, clickedRow) {
   if (!entry.lines || !entry.lines.length) return;
 
+  // Check if already open
   const existing = document.querySelector(`tr[data-lines='${entry.entry_id || entry.id}']`);
-  if (existing) return existing.remove();
+  if (existing) {
+    // Animate closing
+    const container = existing.querySelector(".lines-container");
+    container.classList.remove("open");
+    setTimeout(() => existing.remove(), 350); // remove after transition
+    return;
+  }
 
   const linesHTML = entry.lines
     .map(
       (l) => `<tr>
-        <td>${l.account_name || ""}</td>
-        <td class="text-right">${nf.format(l.debit || 0)}</td>
-        <td class="text-right">${nf.format(l.credit || 0)}</td>
+        <td class="px-2 py-1">${l.account_name || ""}</td>
+        <td class="px-2 py-1 text-right">${nf.format(l.debit || 0)}</td>
+        <td class="px-2 py-1 text-right">${nf.format(l.credit || 0)}</td>
       </tr>`
     )
     .join("");
 
   const tr = document.createElement("tr");
   tr.dataset.lines = entry.entry_id || entry.id;
-  tr.innerHTML = `<td colspan="4">
-    <table class="w-full text-sm border-t">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="px-2 py-1 text-left">Account</th>
-          <th class="px-2 py-1 text-right">Debit</th>
-          <th class="px-2 py-1 text-right">Credit</th>
-        </tr>
-      </thead>
-      <tbody>${linesHTML}</tbody>
-    </table>
-  </td>`;
+  tr.innerHTML = `
+    <td colspan="4" class="p-0">
+      <div class="lines-container">
+        <table class="w-full text-sm border-t border-gray-200">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-2 py-1 text-left">Account</th>
+              <th class="px-2 py-1 text-right">Debit</th>
+              <th class="px-2 py-1 text-right">Credit</th>
+            </tr>
+          </thead>
+          <tbody>${linesHTML}</tbody>
+        </table>
+      </div>
+    </td>`;
 
-  // Insert lines immediately after the clicked row
-  const parent = document.getElementById("journalBody");
-  const rowIndex = Array.from(parent.children).indexOf(
-    document.querySelector(`tr[data-lines='${entry.entry_id || entry.id}']`) || tr
-  );
-  parent.insertBefore(tr, parent.children[rowIndex + 1]);
+  // Insert after clicked row
+  clickedRow.parentNode.insertBefore(tr, clickedRow.nextSibling);
+
+  // Animate opening
+  requestAnimationFrame(() => {
+    tr.querySelector(".lines-container").classList.add("open");
+  });
 }
 
-  // =========================
+    // =========================
   // 6️⃣ Charts
   // =========================
   let lineChartInstance, netProfitChartInstance, liabilitiesChartInstance, pieChartInstance;
@@ -744,6 +774,7 @@ function toggleJournalLines(entry) {
 </script>
 </body>
 </html>
+
 
 
 
