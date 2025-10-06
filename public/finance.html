@@ -170,27 +170,51 @@
   </section>
 
   <!-- Charts: two rows -->
-  <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-    <div class="bg-white rounded-xl shadow p-6">
-      <h2 class="font-semibold mb-3">Monthly Revenue vs Expenses</h2>
-      <canvas id="lineChart" height="220"></canvas>
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white rounded-xl shadow p-6">
+    <h2 class="font-semibold mb-3">Monthly Revenue vs Expenses</h2>
+    <div class="chart-container h-[300px]">
+      <canvas id="lineChart"></canvas>
     </div>
+  </div>
 
-    <div class="bg-white rounded-xl shadow p-6">
-      <h2 class="font-semibold mb-3">Expense Breakdown</h2>
-      <canvas id="pieChart" height="220"></canvas>
+  <div class="bg-white rounded-xl shadow p-6">
+    <h2 class="font-semibold mb-3">Expense Breakdown</h2>
+    <div class="chart-container h-[300px]">
+      <canvas id="pieChart"></canvas>
     </div>
+  </div>
 
-    <div class="bg-white rounded-xl shadow p-6">
-      <h2 class="font-semibold mb-3">Net Profit Trend</h2>
-      <canvas id="netProfitTrend" height="220"></canvas>
+  <div class="bg-white rounded-xl shadow p-6">
+    <h2 class="font-semibold mb-3">Net Profit Trend</h2>
+    <div class="chart-container h-[300px]">
+      <canvas id="netProfitTrend"></canvas>
     </div>
+  </div>
 
-    <div class="bg-white rounded-xl shadow p-6">
-      <h2 class="font-semibold mb-3">Liabilities vs Assets</h2>
-      <canvas id="liabilitiesAssetsChart" height="220"></canvas>
+  <div class="bg-white rounded-xl shadow p-6">
+    <h2 class="font-semibold mb-3">Liabilities vs Assets</h2>
+    <div class="chart-container h-[300px]">
+      <canvas id="liabilitiesAssetsChart"></canvas>
     </div>
-  </section>
+  </div>
+</section>
+
+<style>
+  /* Force fixed height and prevent charts from expanding */
+  .chart-container {
+    position: relative;
+    width: 100%;
+    max-height: 300px;
+    overflow: hidden;
+  }
+
+  canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+</style>
+
 
   <!-- Transactions Table with richer details + export buttons -->
   <section class="bg-white rounded-xl shadow p-6 mb-6">
@@ -533,25 +557,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function toggleJournalLines(entry) {
-    const existing = document.querySelector(`tr[data-lines='${entry.id}']`);
-    if (existing) return existing.remove();
+  
+function toggleJournalLines(entry) {
+  if (!entry.lines || !entry.lines.length) return;
+  const existing = document.querySelector(`tr[data-lines='${entry.id}']`);
+  if (existing) return existing.remove();
 
-    const linesHTML = entry.lines
-      .map((l) => `<tr><td>${l.account_name}</td><td>${nf.format(l.debit)}</td><td>${nf.format(l.credit)}</td></tr>`)
-      .join("");
+  const linesHTML = entry.lines
+    .map(
+      (l) =>
+        `<tr>
+          <td>${l.account_name || ""}</td>
+          <td>${nf.format(l.debit || 0)}</td>
+          <td>${nf.format(l.credit || 0)}</td>
+        </tr>`
+    )
+    .join("");
 
-    const tr = document.createElement("tr");
-    tr.dataset.lines = entry.id;
-    tr.innerHTML = `
-      <td colspan="5">
-        <table class="w-full text-sm border-t mt-1">
-          <thead class="bg-gray-100"><tr><th>Account</th><th>Debit</th><th>Credit</th></tr></thead>
-          <tbody>${linesHTML}</tbody>
-        </table>
-      </td>`;
-    journalBody.insertBefore(tr, null);
-  }
+  const tr = document.createElement("tr");
+  tr.dataset.lines = entry.id;
+  tr.innerHTML = `<td colspan="5">
+      <table class="w-full text-sm border-t mt-1">
+        <thead class="bg-gray-100"><tr><th>Account</th><th>Debit</th><th>Credit</th></tr></thead>
+        <tbody>${linesHTML}</tbody>
+      </table>
+    </td>`;
+  journalBody.insertBefore(tr, null);
+}
 
   // =============================
   // Renderers
@@ -784,6 +816,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
