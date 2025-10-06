@@ -687,38 +687,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  async function toggleJournalLines(entryId, clickedRow){
-    try{
-      const res = await fetch(`/api/finance/journal-entries/${entryId}`);
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const entry = await res.json();
-      const lines = isArraySafe(entry.lines);
-      if(!lines.length) return;
-      const existing = document.querySelector(`tr[data-lines='${entryId}']`);
-      if(existing){ existing.remove(); return; }
+  async function toggleJournalLines(entry, clickedRow) {
+  if (!entry.lines || !entry.lines.length) return;
 
-      const tr=document.createElement("tr");
-      tr.dataset.lines=entryId;
-      const linesHTML = lines.map(l=>`
-        <tr>
-          <td>${l.account_name||""}</td>
-          <td class="text-right">${formatCurrency(l.debit)}</td>
-          <td class="text-right">${formatCurrency(l.credit)}</td>
-        </tr>`).join("");
-      tr.innerHTML = `<td colspan="4" class="p-0">
-        <div class="lines-container">
-          <table class="w-full text-sm border-t border-gray-200">
-            <thead class="bg-gray-100"><tr>
-              <th class="px-2 py-1 text-left">Account</th>
-              <th class="px-2 py-1 text-right">Debit</th>
-              <th class="px-2 py-1 text-right">Credit</th>
-            </tr></thead>
-            <tbody>${linesHTML}</tbody>
-          </table>
-        </div>
-      </td>`;
-      clickedRow.parentNode.insertBefore(tr, clickedRow.nextSibling);
-    }catch(err){ console.error("Journal lines load failed:",err); }
+  const existing = document.querySelector(`tr[data-lines='${entry.entry_id || entry.id}']`);
+  if (existing) {
+    existing.remove(); // close if already open
+    return;
+  }
+
+  const linesHTML = entry.lines
+    .map(l => `<tr>
+        <td>${l.account_name}</td>
+        <td class="text-right">${nf.format(l.debit || 0)}</td>
+        <td class="text-right">${nf.format(l.credit || 0)}</td>
+      </tr>`).join("");
+
+  const tr = document.createElement("tr");
+  tr.dataset.lines = entry.entry_id || entry.id;
+  tr.innerHTML = `
+    <td colspan="4">
+      <table class="w-full text-sm border-t border-gray-200">
+        <thead class="bg-gray-100">
+          <tr><th>Account</th><th>Debit</th><th>Credit</th></tr>
+        </thead>
+        <tbody>${linesHTML}</tbody>
+      </table>
+    </td>`;
+  clickedRow.parentNode.insertBefore(tr, clickedRow.nextSibling);
+}catch(err){ console.error("Journal lines load failed:",err); }
   }
 
   // ---------------------------
@@ -867,6 +864,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
