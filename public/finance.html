@@ -263,7 +263,7 @@
       </div>
 
       <div class="overflow-auto">
-        <table id="extendedTB" class="w-full text-sm">
+        <table id="extendedTrialBalanceTable" class="w-full text-sm">
           <thead class="bg-gray-100">
             <tr>
               <th class="px-2 py-2 text-left">Account</th>
@@ -276,7 +276,7 @@
               <th class="px-2 py-2 text-right">Balance Sheet</th>
             </tr>
           </thead>
-          <tbody id="extendedTBBody" class="divide-y divide-gray-200"></tbody>
+          <tbody id="extendedTrialBalanceBody" class="divide-y divide-gray-200"></tbody>
         </table>
       </div>
     </div>
@@ -329,7 +329,7 @@
   <section class="bg-white rounded-xl shadow p-6 mb-6">
     <h2 class="text-lg font-semibold mb-4">Journal Entries</h2>
     <div class="overflow-auto">
-      <table id="journalEntriesTable" class="w-full text-sm">
+      <table id="journalTable" class="w-full text-sm">
         <thead class="bg-gray-100">
           <tr>
             <th class="px-3 py-2">Entry ID</th>
@@ -338,7 +338,7 @@
             <th class="px-3 py-2">Lines</th>
           </tr>
         </thead>
-        <tbody id="journalEntriesBody"></tbody>
+        <tbody id="journalBody"></tbody>
       </table>
     </div>
   </section>
@@ -784,6 +784,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
