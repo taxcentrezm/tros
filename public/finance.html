@@ -728,7 +728,13 @@ document.addEventListener("DOMContentLoaded", () => {
       type: "bar",
       data: {
         labels: ["Assets","Liabilities"],
-        datasets:[{ label: "Totals", data: [safe(summary.caprev), safe(summary.liabilities)], backgroundColor: ["#34d399","#f87171"]] }
+        datasets: [
+  {
+    label: "Totals",
+    data: [safe(summary.caprev), safe(summary.liabilities)],
+    backgroundColor: ["#34d399", "#f87171"]
+}
+]
       },
       options: { responsive: true, maintainAspectRatio: false }
     });
@@ -778,6 +784,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
