@@ -447,77 +447,90 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let transactions = [];
   let trialBalance = [];
-  let extendedTrialBalance = [];
   let journalEntries = [];
+  let summary = {};
+  let etb = [];
 
   let lineChart, pieChart, profitChart, liabAssetChart;
 
-  // =============================
-  // Helpers
-  // =============================
   const safe = (x) => (x ? x : 0);
 
   // =============================
   // Loaders
   // =============================
   async function loadTransactions() {
-    const res = await fetch("/api/finance/transactions");
-    const json = await res.json();
-    transactions = json.data || [];
-    renderTransactions();
-    updateSummary();
-    renderCharts();
-  }
-
-  async function loadTrialBalance() {
-    const res = await fetch("/api/finance/trial-balance");
-    const json = await res.json();
-    trialBalance = json.data || [];
-    renderTrialBalance();
-  }
-
-  async function loadBalanceSheet() {
-    const res = await fetch("/api/finance/balance-sheet");
-    const json = await res.json();
-    renderBalanceSheet(json.data || []);
-  }
-
-  async function loadExtendedTrialBalance() {
     try {
-      const res = await fetch("/api/finance/extended-trial-balance");
-      if (!res.ok) throw new Error("No ETB endpoint");
+      const res = await fetch("/api/finance/transactions");
       const json = await res.json();
-      extendedTrialBalance = json.data || [];
-      renderExtendedTrialBalance(extendedTrialBalance);
-      updateSummary(); // Merge ETB totals into summary
-      renderCharts();  // Refresh charts with ETB data
+      transactions = json.data || [];
+      renderTransactions();
+      renderCharts(); // Render charts based on transactions
     } catch (err) {
-      console.warn("ETB skipped:", err.message);
+      console.warn("Transactions load failed:", err);
+    }
+  }
+
+  async function loadSummary() {
+    try {
+      const res = await fetch("/api/finance/summary");
+      const json = await res.json();
+      summary = json.summary || {};
+      etb = json.extended_trial_balance || [];
+      updateSummary();
+      renderExtendedTrialBalance(etb);
+      renderCharts(); // Render charts based on summary + transactions
+    } catch (err) {
+      console.warn("Summary + ETB load failed:", err);
       extendedTrialBalanceBody.innerHTML =
         `<tr><td colspan="5" class="text-center py-3 text-gray-500">Extended Trial Balance not available</td></tr>`;
     }
   }
 
-  async function loadJournalEntries() {
-    const res = await fetch("/api/finance/journal-entries");
-    const { data } = await res.json();
-    journalBody.innerHTML = "";
-    if (!data.length) {
-      journalBody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500 py-2">No journal entries</td></tr>`;
-      return;
+  async function loadTrialBalance() {
+    try {
+      const res = await fetch("/api/finance/trial-balance");
+      const json = await res.json();
+      trialBalance = json.data || [];
+      renderTrialBalance();
+    } catch (err) {
+      console.warn("Trial Balance load failed:", err);
     }
+  }
 
-    data.forEach((entry) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${entry.date}</td>
-        <td>${entry.description}</td>
-        <td>${entry.reference}</td>
-        <td>${nf.format(entry.total_debit)}</td>
-        <td>${nf.format(entry.total_credit)}</td>`;
-      tr.addEventListener("click", () => toggleJournalLines(entry));
-      journalBody.appendChild(tr);
-    });
+  async function loadBalanceSheet() {
+    try {
+      const res = await fetch("/api/finance/balance-sheet");
+      const json = await res.json();
+      renderBalanceSheet(json.data || []);
+    } catch (err) {
+      console.warn("Balance Sheet load failed:", err);
+    }
+  }
+
+  async function loadJournalEntries() {
+    try {
+      const res = await fetch("/api/finance/journal-entries");
+      const { data } = await res.json();
+      journalBody.innerHTML = "";
+      if (!data.length) {
+        journalBody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500 py-2">No journal entries</td></tr>`;
+        return;
+      }
+
+      data.forEach((entry) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${entry.date}</td>
+          <td>${entry.description}</td>
+          <td>${entry.reference}</td>
+          <td>${nf.format(entry.total_debit)}</td>
+          <td>${nf.format(entry.total_credit)}</td>`;
+        tr.addEventListener("click", () => toggleJournalLines(entry));
+        journalBody.appendChild(tr);
+      });
+    } catch (err) {
+      console.warn("Journal Entries load failed:", err);
+    }
   }
 
   function toggleJournalLines(entry) {
@@ -525,10 +538,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (existing) return existing.remove();
 
     const linesHTML = entry.lines
-      .map(
-        (l) =>
-          `<tr><td>${l.account_name}</td><td>${nf.format(l.debit)}</td><td>${nf.format(l.credit)}</td></tr>`
-      )
+      .map((l) => `<tr><td>${l.account_name}</td><td>${nf.format(l.debit)}</td><td>${nf.format(l.credit)}</td></tr>`)
       .join("");
 
     const tr = document.createElement("tr");
@@ -540,7 +550,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <tbody>${linesHTML}</tbody>
         </table>
       </td>`;
-    journalBody.appendChild(tr);
+    journalBody.insertBefore(tr, null);
   }
 
   // =============================
@@ -548,6 +558,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // =============================
   function renderTransactions() {
     transactionBody.innerHTML = "";
+    if (!transactions.length) {
+      transactionBody.innerHTML = `<tr><td colspan="8" class="text-center py-3 text-gray-500">No transactions</td></tr>`;
+      return;
+    }
     transactions.forEach((tx) => {
       transactionBody.innerHTML += `
         <tr>
@@ -583,7 +597,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderExtendedTrialBalance(rows) {
     extendedTrialBalanceBody.innerHTML = "";
     if (!rows.length) {
-      extendedTrialBalanceBody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-gray-500">No data</td></tr>`;
+      extendedTrialBalanceBody.innerHTML =
+        `<tr><td colspan="5" class="text-center py-3 text-gray-500">Extended Trial Balance not available</td></tr>`;
       return;
     }
     rows.forEach((r) => {
@@ -600,6 +615,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderBalanceSheet(rows) {
     balanceSheetBody.innerHTML = "";
+    if (!rows.length) return;
     rows.forEach((r) => {
       balanceSheetBody.innerHTML += `
         <tr>
@@ -615,22 +631,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // Summary Cards
   // =============================
   function updateSummary() {
-    const sum = (types) =>
-      [...transactions, ...extendedTrialBalance].reduce((acc, t) => {
-        if (types.includes(t.type || t.account_type)) return acc + safe(t.amount || t.debit || 0);
-        return acc;
-      }, 0);
-
-    totalRevenueEl.textContent = nf.format(sum(["income", "capital_revenue"]));
-    totalExpensesEl.textContent = nf.format(sum(["expense", "capital_expense"]));
-    netProfitEl.textContent = nf.format(sum(["income", "capital_revenue"]) - sum(["expense", "capital_expense"]));
-    totalCapexEl.textContent = nf.format(sum(["capital_expense"]));
-    totalCaprevEl.textContent = nf.format(sum(["capital_revenue"]));
-    totalLiabilitiesEl.textContent = nf.format(sum(["liability"]));
+    totalRevenueEl.textContent = nf.format(safe(summary.revenue));
+    totalExpensesEl.textContent = nf.format(safe(summary.expenses));
+    netProfitEl.textContent = nf.format(safe(summary.net_profit));
+    totalCapexEl.textContent = nf.format(safe(summary.capex));
+    totalCaprevEl.textContent = nf.format(safe(summary.caprev));
+    totalLiabilitiesEl.textContent = nf.format(safe(summary.liabilities));
   }
 
   // =============================
-  // Charts (stable)
+  // Charts
   // =============================
   function renderCharts() {
     const lineCtx = document.getElementById("lineChart")?.getContext("2d");
@@ -638,93 +648,116 @@ document.addEventListener("DOMContentLoaded", () => {
     const profitCtx = document.getElementById("netProfitTrend")?.getContext("2d");
     const liabCtx = document.getElementById("liabilitiesAssetsChart")?.getContext("2d");
 
+    // Destroy previous charts to prevent runaway scaling
+    [lineChart, pieChart, profitChart, liabAssetChart].forEach(c => c?.destroy());
+
     if (!lineCtx || !pieCtx) return;
 
+    // ==============================
+    // Monthly income vs expense
+    // ==============================
     const months = {};
-    transactions.forEach((t) => {
+    transactions.forEach(t => {
       const m = t.date?.slice(0, 7);
       if (!m) return;
       months[m] ??= { income: 0, expense: 0 };
-      if (["income", "capital_revenue"].includes(t.type)) months[m].income += safe(t.amount);
-      if (["expense", "capital_expense"].includes(t.type)) months[m].expense += safe(t.amount);
+      if (["income","capital_revenue"].includes(t.type)) months[m].income += safe(t.amount);
+      if (["expense","capital_expense"].includes(t.type)) months[m].expense += safe(t.amount);
     });
-
     const labels = Object.keys(months).sort();
-    const incomeData = labels.map((m) => months[m].income);
-    const expenseData = labels.map((m) => months[m].expense);
-    const profitData = labels.map((m) => months[m].income - months[m].expense);
+    const incomeData = labels.map(m => months[m].income);
+    const expenseData = labels.map(m => months[m].expense);
+    const profitData = labels.map(m => months[m].income - months[m].expense);
 
-    // Destroy previous charts
-    [lineChart, pieChart, profitChart, liabAssetChart].forEach((c) => c?.destroy());
-
+    // Line chart: income vs expense
     lineChart = new Chart(lineCtx, {
       type: "line",
-      data: {
-        labels,
-        datasets: [
-          { label: "Income", data: incomeData, borderColor: "#10b981", tension: 0.3 },
-          { label: "Expense", data: expenseData, borderColor: "#ef4444", tension: 0.3 }
-        ]
-      },
-      options: { responsive: true, maintainAspectRatio: false },
+      data: { labels, datasets:[
+        { label:"Income", data: incomeData, borderColor:"#10b981", tension:0.3 },
+        { label:"Expense", data: expenseData, borderColor:"#ef4444", tension:0.3 }
+      ]},
+      options:{ responsive:true, maintainAspectRatio:false }
     });
 
+    // Pie chart: summary breakdown
     pieChart = new Chart(pieCtx, {
-      type: "pie",
-      data: {
-        labels: ["Income", "Expenses", "Capital", "Liabilities"],
-        datasets: [{
-          data: [
-            transactions.filter(t=>["income","capital_revenue"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0),
-            transactions.filter(t=>["expense","capital_expense"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0),
-            transactions.filter(t=>["capital_expense"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0),
-            transactions.filter(t=>["liability"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0)
-          ],
-          backgroundColor: ["#34d399", "#f87171", "#60a5fa", "#fbbf24"]
+      type:"pie",
+      data:{
+        labels:["Income","Expenses","Capital","Liabilities"],
+        datasets:[{
+          data:[safe(summary.revenue), safe(summary.expenses), safe(summary.capex+summary.caprev), safe(summary.liabilities)],
+          backgroundColor:["#34d399","#f87171","#60a5fa","#fbbf24"]
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false }
+      options:{ responsive:true, maintainAspectRatio:false }
     });
 
+    // Profit trend
     if (profitCtx) {
-      profitChart = new Chart(profitCtx, {
-        type: "line",
-        data: { labels, datasets: [{ label: "Net Profit", data: profitData, borderColor: "#6366f1", tension: 0.3 }] },
-        options: { responsive: true, maintainAspectRatio: false }
+      profitChart = new Chart(profitCtx,{
+        type:"line",
+        data:{ labels, datasets:[{ label:"Net Profit", data:profitData, borderColor:"#6366f1", tension:0.3 }]},
+        options:{ responsive:true, maintainAspectRatio:false }
       });
     }
 
+    // Liabilities vs Assets
     if (liabCtx) {
-      liabAssetChart = new Chart(liabCtx, {
-        type: "bar",
-        data: {
-          labels: ["Assets", "Liabilities"],
-          datasets: [{
-            label: "Totals",
-            data: [
-              transactions.filter(t=>t.type==="asset_sale").reduce((a,b)=>a+safe(b.amount),0),
-              transactions.filter(t=>["liability"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0)
-            ],
-            backgroundColor: ["#34d399", "#f87171"]
-          }]
+      liabAssetChart = new Chart(liabCtx,{
+        type:"bar",
+        data:{
+          labels:["Assets","Liabilities"],
+          datasets:[{ label:"Totals", data:[safe(summary.caprev), safe(summary.liabilities)], backgroundColor:["#34d399","#f87171"]] }
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options:{ responsive:true, maintainAspectRatio:false }
       });
     }
+  }
+
+  // =============================
+  // Export & Validate
+  // =============================
+  document.getElementById("validateLedger")?.addEventListener("click", () => {
+    const debit = trialBalance.reduce((s,r)=>s+safe(r.debit),0);
+    const credit = trialBalance.reduce((s,r)=>s+safe(r.credit),0);
+    alert(Math.abs(debit-credit)<1?"✅ Ledger balances!":`❌ Mismatch: ${nf.format(debit-credit)}`);
+  });
+
+  document.getElementById("exportTB")?.addEventListener("click", ()=>exportCSV("trialBalanceBody","trial_balance.csv"));
+  document.getElementById("exportETB")?.addEventListener("click", ()=>exportCSV("extendedTrialBalanceBody","extended_trial_balance.csv"));
+  document.getElementById("exportBalanceSheet")?.addEventListener("click", ()=>exportCSV("balanceSheetBody","balance_sheet.csv"));
+  document.getElementById("exportPDF")?.addEventListener("click", exportPDF);
+
+  function exportCSV(bodyId, filename){
+    const rows = document.querySelectorAll(`#${bodyId} tr`);
+    const csv = Array.from(rows).map(r=>Array.from(r.children).map(c=>`"${c.innerText}"`).join(",")).join("\n");
+    const blob = new Blob([csv],{type:"text/csv"});
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+  }
+
+  function exportPDF(){
+    const doc = new jspdf.jsPDF();
+    doc.text("Transactions",15,15);
+    doc.autoTable({ html:"#transactionTable" });
+    doc.save("transactions.pdf");
   }
 
   // =============================
   // Init
   // =============================
   loadTransactions();
+  loadSummary();
   loadTrialBalance();
   loadBalanceSheet();
-  loadExtendedTrialBalance();
   loadJournalEntries();
 });
 </script>
 </body>
 </html>
+
 
 
 
