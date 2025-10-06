@@ -504,6 +504,36 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     doc.save(filename);
   }
+    // =========================
+// Validate Ledger button
+// =========================
+const validateBtn = document.getElementById("validateLedger");
+if (validateBtn) {
+  validateBtn.addEventListener("click", () => {
+    console.log("Validate Ledger clicked");
+
+    const tbody = document.getElementById("trialBalanceBody");
+    if (!tbody) return alert("No trial balance loaded.");
+
+    // Gather debit and credit totals
+    let totalDebit = 0;
+    let totalCredit = 0;
+    tbody.querySelectorAll("tr").forEach((row) => {
+      const debitCell = row.querySelector("td:nth-child(2)");
+      const creditCell = row.querySelector("td:nth-child(3)");
+      if (debitCell && creditCell) {
+        totalDebit += parseFloat(debitCell.textContent.replace(/[^0-9.-]+/g, "")) || 0;
+        totalCredit += parseFloat(creditCell.textContent.replace(/[^0-9.-]+/g, "")) || 0;
+      }
+    });
+
+    if (totalDebit === totalCredit) {
+      alert(`Ledger is valid ✅\nTotal Debit: ${totalDebit}\nTotal Credit: ${totalCredit}`);
+    } else {
+      alert(`Ledger imbalance ⚠️\nTotal Debit: ${totalDebit}\nTotal Credit: ${totalCredit}`);
+    }
+  });
+}
 
   // ---------------------------
   // Export buttons
@@ -690,41 +720,42 @@ document.getElementById("journalBody")?.addEventListener("click", e => {
 }
 });
 
-async function toggleJournalLines(entryId, clickedRow) {
-  try {
-    const res = await fetch(`/api/finance/journal-lines?entry_id=${entryId}`);
-    const entry = await res.json();
+function toggleJournalLines(entry, clickedRow) {
+  if (!entry.lines || !entry.lines.length) return;
 
-    if (!entry.lines ||!entry.lines.length) return;
+  const existing = document.querySelector(`tr[data-lines='${entry.entry_id || entry.id}']`);
+  if (existing) {
+    // Remove if already open
+    existing.remove();
+    return;
+  }
 
-    const existing = document.querySelector(`tr[data-lines='${entry.entry_id || entry.id}']`);
-    if (existing) {
-      existing.remove(); // close if already open
-      return;
-}
+  const linesHTML = entry.lines
+    .map(l => `
+      <tr>
+        <td class="px-2 py-1">${l.account_name}</td>
+        <td class="px-2 py-1 text-right">${nf.format(l.debit || 0)}</td>
+        <td class="px-2 py-1 text-right">${nf.format(l.credit || 0)}</td>
+      </tr>
+    `).join("");
 
-    const linesHTML = entry.lines
-.map(l => `<tr>
-          <td>${l.account_name}</td>
-          <td class="text-right">${nf.format(l.debit || 0)}</td>
-          <td class="text-right">${nf.format(l.credit || 0)}</td>
-        </tr>`).join("");
+  const tr = document.createElement("tr");
+  tr.dataset.lines = entry.entry_id || entry.id;
+  tr.innerHTML = `
+    <td colspan="4" class="p-0">
+      <table class="w-full text-sm border-t border-gray-200">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-2 py-1 text-left">Account</th>
+            <th class="px-2 py-1 text-right">Debit</th>
+            <th class="px-2 py-1 text-right">Credit</th>
+          </tr>
+        </thead>
+        <tbody>${linesHTML}</tbody>
+      </table>
+    </td>`;
 
-    const tr = document.createElement("tr");
-    tr.dataset.lines = entry.entry_id || entry.id;
-    tr.innerHTML = `
-      <td colspan="4">
-        <table class="w-full text-sm border-t border-gray-200">
-          <thead class="bg-gray-100">
-            <tr><th>Account</th><th>Debit</th><th>Credit</th></tr>
-          </thead>
-          <tbody>${linesHTML}</tbody>
-        </table>
-      </td>`;
-    clickedRow.parentNode.insertBefore(tr, clickedRow.nextSibling);
-} catch (err) {
-    console.error("Journal lines load failed:", err);
-}
+  clickedRow.parentNode.insertBefore(tr, clickedRow.nextSibling);
 }
 
   // ---------------------------
@@ -873,6 +904,7 @@ async function toggleJournalLines(entryId, clickedRow) {
 </script>
 </body>
 </html>
+
 
 
 
