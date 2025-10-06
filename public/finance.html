@@ -639,80 +639,101 @@ document.addEventListener("DOMContentLoaded", () => {
     totalLiabilitiesEl.textContent = nf.format(safe(summary.liabilities));
   }
 
-  // =============================
-  // Charts
-  // =============================
-  function renderCharts() {
-    const lineCtx = document.getElementById("lineChart")?.getContext("2d");
-    const pieCtx = document.getElementById("pieChart")?.getContext("2d");
-    const profitCtx = document.getElementById("netProfitTrend")?.getContext("2d");
-    const liabCtx = document.getElementById("liabilitiesAssetsChart")?.getContext("2d");
+ function renderCharts() {
+  const lineCtx = document.getElementById("lineChart")?.getContext("2d");
+  const pieCtx = document.getElementById("pieChart")?.getContext("2d");
+  const profitCtx = document.getElementById("netProfitTrend")?.getContext("2d");
+  const liabCtx = document.getElementById("liabilitiesAssetsChart")?.getContext("2d");
 
-    // Destroy previous charts to prevent runaway scaling
-    [lineChart, pieChart, profitChart, liabAssetChart].forEach(c => c?.destroy());
+  // Destroy previous charts
+  [lineChart, pieChart, profitChart, liabAssetChart].forEach(c => c?.destroy());
+  if (!lineCtx || !pieCtx) return;
 
-    if (!lineCtx || !pieCtx) return;
+  // ===========================
+  // Prepare month labels
+  // ===========================
+  const monthSet = new Set();
+  transactions.forEach(t => {
+    if (t.date) monthSet.add(t.date.slice(0, 7)); // YYYY-MM
+  });
+  // Also include months from ETB (optional)
+  etb.forEach(r => {
+    if (r.month) monthSet.add(r.month);
+  });
 
-    // ==============================
-    // Monthly income vs expense
-    // ==============================
-    const months = {};
-    transactions.forEach(t => {
-      const m = t.date?.slice(0, 7);
-      if (!m) return;
-      months[m] ??= { income: 0, expense: 0 };
-      if (["income","capital_revenue"].includes(t.type)) months[m].income += safe(t.amount);
-      if (["expense","capital_expense"].includes(t.type)) months[m].expense += safe(t.amount);
-    });
-    const labels = Object.keys(months).sort();
-    const incomeData = labels.map(m => months[m].income);
-    const expenseData = labels.map(m => months[m].expense);
-    const profitData = labels.map(m => months[m].income - months[m].expense);
+  // Sort months chronologically
+  const labels = Array.from(monthSet).sort((a, b) => new Date(a) - new Date(b));
 
-    // Line chart: income vs expense
-    lineChart = new Chart(lineCtx, {
+  // Initialize datasets
+  const incomeData = labels.map(m => 0);
+  const expenseData = labels.map(m => 0);
+  const profitData = labels.map(m => 0);
+
+  transactions.forEach(t => {
+    const m = t.date?.slice(0, 7);
+    if (!m) return;
+    const idx = labels.indexOf(m);
+    if (idx === -1) return;
+    if (["income","capital_revenue"].includes(t.type)) incomeData[idx] += safe(t.amount);
+    if (["expense","capital_expense"].includes(t.type)) expenseData[idx] += safe(t.amount);
+  });
+
+  labels.forEach((_, i) => {
+    profitData[i] = incomeData[i] - expenseData[i];
+  });
+
+  // ===========================
+  // Line chart: Income vs Expense
+  // ===========================
+  lineChart = new Chart(lineCtx, {
+    type: "line",
+    data: { labels, datasets:[
+      { label: "Income", data: incomeData, borderColor: "#10b981", tension: 0.3 },
+      { label: "Expense", data: expenseData, borderColor: "#ef4444", tension: 0.3 }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // ===========================
+  // Pie chart
+  // ===========================
+  pieChart = new Chart(pieCtx, {
+    type: "pie",
+    data: {
+      labels: ["Income","Expenses","Capital","Liabilities"],
+      datasets: [{
+        data: [safe(summary.revenue), safe(summary.expenses), safe(summary.capex + summary.caprev), safe(summary.liabilities)],
+        backgroundColor: ["#34d399","#f87171","#60a5fa","#fbbf24"]
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // ===========================
+  // Profit trend line
+  // ===========================
+  if (profitCtx) {
+    profitChart = new Chart(profitCtx,{
       type: "line",
-      data: { labels, datasets:[
-        { label:"Income", data: incomeData, borderColor:"#10b981", tension:0.3 },
-        { label:"Expense", data: expenseData, borderColor:"#ef4444", tension:0.3 }
-      ]},
-      options:{ responsive:true, maintainAspectRatio:false }
+      data: { labels, datasets: [{ label: "Net Profit", data: profitData, borderColor: "#6366f1", tension: 0.3 }] },
+      options: { responsive: true, maintainAspectRatio: false }
     });
-
-    // Pie chart: summary breakdown
-    pieChart = new Chart(pieCtx, {
-      type:"pie",
-      data:{
-        labels:["Income","Expenses","Capital","Liabilities"],
-        datasets:[{
-          data:[safe(summary.revenue), safe(summary.expenses), safe(summary.capex+summary.caprev), safe(summary.liabilities)],
-          backgroundColor:["#34d399","#f87171","#60a5fa","#fbbf24"]
-        }]
-      },
-      options:{ responsive:true, maintainAspectRatio:false }
-    });
-
-    // Profit trend
-    if (profitCtx) {
-      profitChart = new Chart(profitCtx,{
-        type:"line",
-        data:{ labels, datasets:[{ label:"Net Profit", data:profitData, borderColor:"#6366f1", tension:0.3 }]},
-        options:{ responsive:true, maintainAspectRatio:false }
-      });
-    }
-
-    // Liabilities vs Assets
-    if (liabCtx) {
-      liabAssetChart = new Chart(liabCtx,{
-        type:"bar",
-        data:{
-          labels:["Assets","Liabilities"],
-          datasets:[{ label:"Totals", data:[safe(summary.caprev), safe(summary.liabilities)], backgroundColor:["#34d399","#f87171"]] }
-        },
-        options:{ responsive:true, maintainAspectRatio:false }
-      });
-    }
   }
+
+  // ===========================
+  // Liabilities vs Assets bar
+  // ===========================
+  if (liabCtx) {
+    liabAssetChart = new Chart(liabCtx,{
+      type: "bar",
+      data: {
+        labels: ["Assets","Liabilities"],
+        datasets:[{ label: "Totals", data: [safe(summary.caprev), safe(summary.liabilities)], backgroundColor: ["#34d399","#f87171"]] }
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+}
 
   // =============================
   // Export & Validate
@@ -757,6 +778,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
