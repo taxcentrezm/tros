@@ -436,7 +436,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const trialBalanceBody = document.getElementById("trialBalanceBody");
   const balanceSheetBody = document.getElementById("balanceSheetBody");
   const extendedTrialBalanceBody = document.getElementById("extendedTrialBalanceBody");
-  const journalEntriesBody = document.getElementById("journalEntriesBody");
+  const journalBody = document.getElementById("journalEntriesBody");
 
   const totalRevenueEl = document.getElementById("totalRevenue");
   const totalExpensesEl = document.getElementById("totalExpenses");
@@ -447,8 +447,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let transactions = [];
   let trialBalance = [];
-  let journalEntries = [];
   let extendedTrialBalance = [];
+  let journalEntries = [];
 
   let lineChart, pieChart, profitChart, liabAssetChart;
 
@@ -482,27 +482,6 @@ document.addEventListener("DOMContentLoaded", () => {
     renderBalanceSheet(json.data || []);
   }
 
-  async function loadJournalEntries() {
-    try {
-      const res = await fetch("/api/finance/journal-entries");
-      const json = await res.json();
-      journalEntries = json.data || [];
-
-      // Fetch lines for each entry
-      await Promise.all(
-        journalEntries.map(async (entry) => {
-          const resLines = await fetch(`/api/finance/journal-lines?entry_id=${entry.id}`);
-          const linesJson = await resLines.json();
-          entry.lines = linesJson.data || [];
-        })
-      );
-
-      renderJournalEntries();
-    } catch (err) {
-      console.warn("Journal not available:", err);
-    }
-  }
-
   async function loadExtendedTrialBalance() {
     try {
       const res = await fetch("/api/finance/extended-trial-balance");
@@ -510,11 +489,58 @@ document.addEventListener("DOMContentLoaded", () => {
       const json = await res.json();
       extendedTrialBalance = json.data || [];
       renderExtendedTrialBalance(extendedTrialBalance);
+      updateSummary(); // Merge ETB totals into summary
+      renderCharts();  // Refresh charts with ETB data
     } catch (err) {
       console.warn("ETB skipped:", err.message);
       extendedTrialBalanceBody.innerHTML =
         `<tr><td colspan="5" class="text-center py-3 text-gray-500">Extended Trial Balance not available</td></tr>`;
     }
+  }
+
+  async function loadJournalEntries() {
+    const res = await fetch("/api/finance/journal-entries");
+    const { data } = await res.json();
+    journalBody.innerHTML = "";
+    if (!data.length) {
+      journalBody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500 py-2">No journal entries</td></tr>`;
+      return;
+    }
+
+    data.forEach((entry) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${entry.date}</td>
+        <td>${entry.description}</td>
+        <td>${entry.reference}</td>
+        <td>${nf.format(entry.total_debit)}</td>
+        <td>${nf.format(entry.total_credit)}</td>`;
+      tr.addEventListener("click", () => toggleJournalLines(entry));
+      journalBody.appendChild(tr);
+    });
+  }
+
+  function toggleJournalLines(entry) {
+    const existing = document.querySelector(`tr[data-lines='${entry.id}']`);
+    if (existing) return existing.remove();
+
+    const linesHTML = entry.lines
+      .map(
+        (l) =>
+          `<tr><td>${l.account_name}</td><td>${nf.format(l.debit)}</td><td>${nf.format(l.credit)}</td></tr>`
+      )
+      .join("");
+
+    const tr = document.createElement("tr");
+    tr.dataset.lines = entry.id;
+    tr.innerHTML = `
+      <td colspan="5">
+        <table class="w-full text-sm border-t mt-1">
+          <thead class="bg-gray-100"><tr><th>Account</th><th>Debit</th><th>Credit</th></tr></thead>
+          <tbody>${linesHTML}</tbody>
+        </table>
+      </td>`;
+    journalBody.appendChild(tr);
   }
 
   // =============================
@@ -585,53 +611,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function renderJournalEntries() {
-    journalEntriesBody.innerHTML = "";
-    if (!journalEntries.length) {
-      journalEntriesBody.innerHTML = `<tr><td colspan="4" class="text-center py-3 text-gray-500">No journal entries</td></tr>`;
-      return;
-    }
-    journalEntries.forEach((entry) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${entry.id}</td>
-        <td>${entry.date}</td>
-        <td>${entry.description}</td>
-        <td><button class="text-blue-600 underline" onclick="toggleLines('${entry.id}')">View</button></td>`;
-      journalEntriesBody.appendChild(tr);
-    });
-  }
-
-  window.toggleLines = (id) => {
-    const entry = journalEntries.find((e) => e.id == id);
-    if (!entry || !entry.lines) return;
-    const existing = document.getElementById(`lines-${id}`);
-    if (existing) return existing.remove();
-
-    const tr = document.createElement("tr");
-    tr.id = `lines-${id}`;
-    tr.innerHTML = `
-      <td colspan="4">
-        <table class="w-full text-sm border-t mt-2">
-          <thead class="bg-gray-50"><tr><th>Account</th><th>Debit</th><th>Credit</th></tr></thead>
-          <tbody>${entry.lines
-            .map(
-              (l) => `<tr><td>${l.account_name}</td><td>${nf.format(safe(l.debit))}</td><td>${nf.format(safe(l.credit))}</td></tr>`
-            )
-            .join("")}</tbody>
-        </table>
-      </td>`;
-    journalEntriesBody.appendChild(tr);
-  };
-
   // =============================
   // Summary Cards
   // =============================
   function updateSummary() {
     const sum = (types) =>
-      transactions
-        .filter((t) => types.includes(t.type))
-        .reduce((a, b) => a + safe(b.amount), 0);
+      [...transactions, ...extendedTrialBalance].reduce((acc, t) => {
+        if (types.includes(t.type || t.account_type)) return acc + safe(t.amount || t.debit || 0);
+        return acc;
+      }, 0);
 
     totalRevenueEl.textContent = nf.format(sum(["income", "capital_revenue"]));
     totalExpensesEl.textContent = nf.format(sum(["expense", "capital_expense"]));
@@ -642,7 +630,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =============================
-  // Charts
+  // Charts (stable)
   // =============================
   function renderCharts() {
     const lineCtx = document.getElementById("lineChart")?.getContext("2d");
@@ -657,8 +645,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const m = t.date?.slice(0, 7);
       if (!m) return;
       months[m] ??= { income: 0, expense: 0 };
-      if (["income", "capital_revenue"].includes(t.type)) months[m].income += t.amount;
-      if (["expense", "capital_expense"].includes(t.type)) months[m].expense += t.amount;
+      if (["income", "capital_revenue"].includes(t.type)) months[m].income += safe(t.amount);
+      if (["expense", "capital_expense"].includes(t.type)) months[m].expense += safe(t.amount);
     });
 
     const labels = Object.keys(months).sort();
@@ -666,14 +654,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const expenseData = labels.map((m) => months[m].expense);
     const profitData = labels.map((m) => months[m].income - months[m].expense);
 
+    // Destroy previous charts
     [lineChart, pieChart, profitChart, liabAssetChart].forEach((c) => c?.destroy());
 
     lineChart = new Chart(lineCtx, {
       type: "line",
-      data: { labels, datasets: [
-        { label: "Income", data: incomeData, borderColor: "#10b981", tension: 0.3 },
-        { label: "Expense", data: expenseData, borderColor: "#ef4444", tension: 0.3 },
-      ] },
+      data: {
+        labels,
+        datasets: [
+          { label: "Income", data: incomeData, borderColor: "#10b981", tension: 0.3 },
+          { label: "Expense", data: expenseData, borderColor: "#ef4444", tension: 0.3 }
+        ]
+      },
       options: { responsive: true, maintainAspectRatio: false },
     });
 
@@ -688,17 +680,17 @@ document.addEventListener("DOMContentLoaded", () => {
             transactions.filter(t=>["capital_expense"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0),
             transactions.filter(t=>["liability"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0)
           ],
-          backgroundColor: ["#34d399", "#f87171", "#60a5fa", "#fbbf24"],
-        }],
+          backgroundColor: ["#34d399", "#f87171", "#60a5fa", "#fbbf24"]
+        }]
       },
-      options: { responsive: true, maintainAspectRatio: false },
+      options: { responsive: true, maintainAspectRatio: false }
     });
 
     if (profitCtx) {
       profitChart = new Chart(profitCtx, {
         type: "line",
         data: { labels, datasets: [{ label: "Net Profit", data: profitData, borderColor: "#6366f1", tension: 0.3 }] },
-        options: { responsive: true, maintainAspectRatio: false },
+        options: { responsive: true, maintainAspectRatio: false }
       });
     }
 
@@ -711,12 +703,12 @@ document.addEventListener("DOMContentLoaded", () => {
             label: "Totals",
             data: [
               transactions.filter(t=>t.type==="asset_sale").reduce((a,b)=>a+safe(b.amount),0),
-              transactions.filter(t=>t.type==="liability").reduce((a,b)=>a+safe(b.amount),0)
+              transactions.filter(t=>["liability"].includes(t.type)).reduce((a,b)=>a+safe(b.amount),0)
             ],
             backgroundColor: ["#34d399", "#f87171"]
-          }],
+          }]
         },
-        options: { responsive: true, maintainAspectRatio: false },
+        options: { responsive: true, maintainAspectRatio: false }
       });
     }
   }
@@ -733,6 +725,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
 
 
