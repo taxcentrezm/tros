@@ -227,6 +227,14 @@
   max-height: 500px; /* large enough to fit most entries */
   opacity: 1;
 }
+
+    .lines-container {
+  transition: max-height 0.3s ease-in-out;
+}
+.lines-container.open {
+  overflow: visible;
+}
+
 </style>
 
 
@@ -748,6 +756,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 </html>
+
 
 
 
