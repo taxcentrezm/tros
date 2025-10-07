@@ -5,10 +5,18 @@ export default async function handler(req, res) {
     // 🟢 GET — fetch transactions
     if (req.method === "GET") {
       const result = await client.execute(`
-        SELECT t.transaction_id, t.date, t.description,
-               t.account_id, t.debit, t.credit,
-               t.category, t.type, t.amount,
-               a.name AS account_name
+        SELECT 
+          t.transaction_id,
+          t.entry_id,
+          t.date,
+          t.description,
+          t.account_id,
+          t.debit,
+          t.credit,
+          t.category,
+          t.type,
+          t.amount,
+          a.name AS account_name
         FROM transactions t
         JOIN chart_of_accounts a ON t.account_id = a.account_id
         ORDER BY t.date DESC
@@ -16,6 +24,7 @@ export default async function handler(req, res) {
 
       const data = result.rows.map(row => ({
         id: row.transaction_id,
+        entry_id: row.entry_id,
         date: row.date,
         description: row.description,
         account_id: row.account_id,
@@ -60,8 +69,8 @@ export default async function handler(req, res) {
       const debit = ["expense", "capital_expense"].includes(type) ? amount : 0;
       const credit = ["income", "capital_revenue"].includes(type) ? amount : 0;
 
-      // 🧾 1️⃣ Insert into transactions
-      await client.execute({
+      // 🧾 1️⃣ Insert into transactions (temporarily without entry_id)
+      const txResult = await client.execute({
         sql: `
           INSERT INTO transactions
           (account_id, date, description, debit, credit, category, type, amount)
@@ -70,16 +79,13 @@ export default async function handler(req, res) {
         args: [account_id, date, description, debit, credit, category, type, amount],
       });
 
-      // 🧾 2️⃣ Create matching journal entry
+      // 🧾 2️⃣ Create a matching journal entry
       await client.execute({
-        sql: `
-          INSERT INTO journal_entries (date, description)
-          VALUES (?, ?)
-        `,
+        sql: `INSERT INTO journal_entries (date, description) VALUES (?, ?)`,
         args: [date, description],
       });
 
-      // Fetch the latest entry_id
+      // Get the new entry_id
       const entryResult = await client.execute({
         sql: `
           SELECT entry_id FROM journal_entries
@@ -88,13 +94,22 @@ export default async function handler(req, res) {
         `,
         args: [date, description],
       });
-
       const entry_id = entryResult.rows[0]?.entry_id;
       if (!entry_id) {
         return res.status(500).json({ error: "Failed to retrieve journal entry ID" });
       }
 
-      // 🧾 3️⃣ Determine counterpart account
+      // 🔗 3️⃣ Link the transaction with the journal entry
+      await client.execute({
+        sql: `
+          UPDATE transactions
+          SET entry_id = ?
+          WHERE date = ? AND description = ?
+        `,
+        args: [entry_id, date, description],
+      });
+
+      // 🧾 4️⃣ Insert journal lines (double entry)
       const typeToAccount = {
         income: "Cash",
         capital_revenue: "Cash",
@@ -118,7 +133,6 @@ export default async function handler(req, res) {
         });
       }
 
-      // 🧾 4️⃣ Insert both journal lines (double entry)
       await client.execute({
         sql: `
           INSERT INTO journal_lines (entry_id, account_id, debit, credit)
@@ -133,6 +147,7 @@ export default async function handler(req, res) {
       return res.status(201).json({
         success: true,
         message: "✅ Transaction and journal entry successfully added",
+        entry_id,
       });
     }
 
