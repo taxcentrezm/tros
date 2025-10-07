@@ -532,7 +532,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const res = await fetch("/api/finance/summary");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { summary, extended_trial_balance , summary, monthly_trends, expense_breakdown } = await res.json();
+      const { summary, extended_trial_balance , monthly_trends, expense_breakdown } = await res.json();
 
       if (summary) {
         document.getElementById("totalRevenue").textContent = nf.format(summary.revenue || 0);
@@ -900,6 +900,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 </html>
+
 
 
 
