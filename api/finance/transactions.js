@@ -2,6 +2,7 @@ import { client } from "../../db.js";
 
 export default async function handler(req, res) {
   try {
+    // 🟢 GET — fetch transactions
     if (req.method === "GET") {
       const result = await client.execute(`
         SELECT t.transaction_id, t.date, t.description,
@@ -29,33 +30,37 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, data });
     }
 
+    // 🟡 POST — add new transaction
     if (req.method === "POST") {
       let { date, description, amount, type, account_id, category } = req.body;
 
-      // Type safety
-      date = typeof date === "string" ? date : new Date(date).toISOString().slice(0, 10);
-      description = String(description || "");
+      // Normalize + validate
+      date = date || new Date().toISOString().slice(0, 10);
+      description = String(description || "").trim();
       amount = Number(amount);
-      category = String(category || "");
-      type = String(type || "");
-      account_id = String(account_id || "");
+      type = String(type || "").trim().toLowerCase();
+      category = String(category || "").trim();
+      account_id = String(account_id || "").trim();
 
       if (!date || !description || !amount || !type || !account_id) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
+      // ✅ Check if account_id exists
       const accountCheck = await client.execute({
-        sql: "SELECT 1 FROM chart_of_accounts WHERE account_id = ? LIMIT 1",
+        sql: "SELECT name FROM chart_of_accounts WHERE account_id = ? LIMIT 1",
         args: [account_id],
       });
 
-      if (accountCheck.rows.length === 0) {
-        return res.status(400).json({ error: "Invalid account_id" });
+      if (!accountCheck.rows.length) {
+        return res.status(400).json({ error: `Invalid account_id: ${account_id}` });
       }
 
+      // Derive debit/credit automatically
       const debit = ["expense", "capital_expense"].includes(type) ? amount : 0;
       const credit = ["income", "capital_revenue"].includes(type) ? amount : 0;
 
+      // 🧾 1️⃣ Insert into transactions
       await client.execute({
         sql: `
           INSERT INTO transactions
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
         args: [account_id, date, description, debit, credit, category, type, amount],
       });
 
-      const reference = `TX-${Date.now()}`;
+      // 🧾 2️⃣ Create matching journal entry
       await client.execute({
         sql: `
           INSERT INTO journal_entries (date, description)
@@ -74,6 +79,7 @@ export default async function handler(req, res) {
         args: [date, description],
       });
 
+      // Fetch the latest entry_id
       const entryResult = await client.execute({
         sql: `
           SELECT entry_id FROM journal_entries
@@ -88,7 +94,7 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: "Failed to retrieve journal entry ID" });
       }
 
-      // 🔁 Map transaction type to counterpart account name
+      // 🧾 3️⃣ Determine counterpart account
       const typeToAccount = {
         income: "Cash",
         capital_revenue: "Cash",
@@ -96,9 +102,8 @@ export default async function handler(req, res) {
         capital_expense: "Supplies Expense",
         liability: "Accounts Payable",
         asset: "Vehicle Asset",
-        equity: "Equity Capital"
+        equity: "Equity Capital",
       };
-
       const fallbackName = typeToAccount[type] || "Suspense";
 
       const counterpartCheck = await client.execute({
@@ -108,9 +113,12 @@ export default async function handler(req, res) {
 
       const counterpart_id = counterpartCheck.rows[0]?.account_id;
       if (!counterpart_id) {
-        return res.status(400).json({ error: `Counterpart account '${fallbackName}' not found` });
+        return res.status(400).json({
+          error: `Counterpart account '${fallbackName}' not found in chart_of_accounts.`,
+        });
       }
 
+      // 🧾 4️⃣ Insert both journal lines (double entry)
       await client.execute({
         sql: `
           INSERT INTO journal_lines (entry_id, account_id, debit, credit)
@@ -118,13 +126,17 @@ export default async function handler(req, res) {
         `,
         args: [
           entry_id, account_id, debit, credit,
-          entry_id, counterpart_id, credit, debit
+          entry_id, counterpart_id, credit, debit,
         ],
       });
 
-      return res.status(201).json({ success: true, message: "Transaction and journal entry added" });
+      return res.status(201).json({
+        success: true,
+        message: "✅ Transaction and journal entry successfully added",
+      });
     }
 
+    // ❌ Invalid method
     return res.status(405).json({ error: "Method not allowed" });
   } catch (err) {
     console.error("❌ Error in /api/finance/transactions:", err);
