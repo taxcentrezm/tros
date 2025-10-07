@@ -637,50 +637,146 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 
+async function loadBalanceSheet() {
+  try {
+    const res = await fetch("/api/finance/balance-sheet");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-  // =============================
-  // 5️⃣ Load Journal Entries + Lines
-  // =============================
-  async function loadJournalEntries() {
-    try {
-      const res = await fetch("/api/finance/journal-entries");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { data } = await res.json();
-      const tbody = document.getElementById("journalBody");
-      if (!tbody) return;
+    const { data } = await res.json();
 
-      if (!data.length) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-2 text-gray-500">No journal entries</td></tr>`;
-        return;
-      }
+    const tbody = document.getElementById("balanceSheetBody");
+    if (!tbody) return;
 
-      tbody.innerHTML = "";
-      data.forEach((entry) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${entry.entry_id || entry.id || "N/A"}</td>
-          <td>${entry.date}</td>
-          <td>${entry.description}</td>
-        <td>
-  <button 
-    class="view-lines-btn bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs hover:bg-blue-200"
-    onclick='toggleJournalLines(${JSON.stringify(entry)}, this)'>
-    View Lines
-  </button>
-</td>
-`;
+    if (!Array.isArray(data) || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center py-2 text-gray-500">No data</td></tr>`;
+      return;
+    }
 
-        tr.querySelector(".view-lines-btn").addEventListener("click", () =>
-          toggleJournalLines(entry.entry_id || entry.id, tr)
-        );
-        tbody.appendChild(tr);
-      });
-    } catch (err) {
-      console.error("Journal load failed:", err);
+    tbody.innerHTML = data
+      .map(
+        (row) => `
+        <tr>
+          <td>${row.fiscal_year}</td>
+          <td class="text-right">${nf.format(row.assets || 0)}</td>
+          <td class="text-right">${nf.format(row.liabilities || 0)}</td>
+          <td class="text-right">${nf.format(row.equity || 0)}</td>
+        </tr>`
+      )
+      .join("");
+
+    // Optional: attach Export Balance Sheet button
+    const exportBtn = document.getElementById("exportBalanceSheet");
+    if (exportBtn) {
+      exportBtn.addEventListener("click", () => exportBalanceSheetCSV(data));
+    }
+  } catch (err) {
+    console.error("Balance Sheet load failed:", err);
+    const tbody = document.getElementById("balanceSheetBody");
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center py-2 text-red-500">Error loading data</td></tr>`;
     }
   }
+}
 
- async function toggleJournalLines(entry, clickedRow) {
+// Example CSV export function
+function exportBalanceSheetCSV(sheetData) {
+  if (!sheetData || !sheetData.length) return alert("No balance sheet data to export.");
+
+  const headers = ["Fiscal Year", "Assets", "Liabilities", "Equity"];
+  const csvRows = [
+    headers.join(","), // header row
+    ...sheetData.map(r =>
+      [r.fiscal_year, r.assets, r.liabilities, r.equity].join(",")
+    )
+  ];
+
+  const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `balance_sheet_${Date.now()}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+
+ 
+ 
+
+async function loadTrialBalance() {
+  try {
+    const res = await fetch("/api/finance/trial-balance");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const { data } = await res.json();
+
+    const tbody = document.getElementById("trialBalanceBody");
+    if (!tbody) return;
+
+    if (!Array.isArray(data) || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center py-2 text-gray-500">No data</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data
+      .map(
+        (row) => `
+        <tr>
+          <td>${row.account_name}</td>
+          <td class="text-right">${nf.format(row.debit || 0)}</td>
+          <td class="text-right">${nf.format(row.credit || 0)}</td>
+          <td class="text-right">${nf.format(row.balance || 0)}</td>
+        </tr>`
+      )
+      .join("");
+
+
+async function loadJournalEntries() {
+  try {
+    const res = await fetch("/api/finance/journal-entries");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+
+    const tbody = document.getElementById("journalBody");
+    if (!tbody) return;
+
+    if (!data?.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center py-2 text-gray-500">No journal entries</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data
+      .map(
+        (entry) => `
+        <tr>
+          <td>${entry.entry_id}</td>
+          <td>${entry.date}</td>
+          <td>${entry.description}</td>
+          <td class="text-center">
+            <button 
+              class="view-lines-btn px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs hover:bg-blue-200 transition"
+              data-entry='${JSON.stringify(entry)}'>
+              View Lines
+            </button>
+          </td>
+        </tr>`
+      )
+      .join("");
+
+    // Attach click listeners AFTER DOM is updated
+    tbody.querySelectorAll(".view-lines-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const entry = JSON.parse(btn.dataset.entry);
+        toggleJournalLines(entry, btn.closest("tr"));
+      });
+    });
+  } catch (err) {
+    console.error("Journal load failed:", err);
+  }
+}
+
+async function toggleJournalLines(entry, clickedRow) {
   const entryId = entry.entry_id || entry.id;
   if (!entryId) return console.error("Missing entry_id for journal entry:", entry);
 
@@ -700,9 +796,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const { data } = await res.json();
 
     if (!data?.length) {
-  alert(`No journal lines found for Entry #${entryId}`);
-  return;
-}
+      alert(`No journal lines found for Entry #${entryId}`);
+      return;
+    }
 
     // Build lines table
     const linesHTML = data
@@ -750,6 +846,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 }
 
+// Initialize journal entries on page load
+document.addEventListener("DOMContentLoaded", loadJournalEntries);
+ 
 
   // =============================
   // 6️⃣ Validate Ledger (Trial Balance)
@@ -782,11 +881,14 @@ document.addEventListener("DOMContentLoaded", () => {
   loadCategories();
   loadSummary();
   loadTransactions();
+  loadTrialBalance() 
+  loadBalanceSheet() 
   loadJournalEntries();
 });
 </script>
 
 </html>
+
 
 
 
