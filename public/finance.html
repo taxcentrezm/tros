@@ -597,7 +597,7 @@ document.addEventListener("DOMContentLoaded", () => {
     tbody.innerHTML = data
       .map(
         (tx) => `
-          <tr data-entry-id="${tx.id}">
+          <tr data-entry-id="${tx.entry_id}">
             <td>${tx.date}</td>
             <td>${tx.description || ""}</td>
             <td>${tx.category || ""}</td>
@@ -607,7 +607,14 @@ document.addEventListener("DOMContentLoaded", () => {
             <td class="text-right">
               <button 
                 class="view-lines-btn px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition"
-                data-entry='${JSON.stringify(tx)}'>
+               data-entry='${JSON.stringify({
+  entry_id: tx.entry_id,
+  date: tx.date,
+  description: tx.description,
+  amount: tx.amount,
+  type: tx.type,
+  account: tx.account
+})}'>
                 View Lines
               </button>
             </td>
@@ -689,10 +696,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const { data } = await res.json();
 
-    if (!data || !data.length) {
-      console.warn(`No lines found for entry ${entryId}`);
-      return;
-    }
+    if (!data?.length) {
+  alert(`No journal lines found for Entry #${entryId}`);
+  return;
+}
 
     // Build lines table
     const linesHTML = data
@@ -777,6 +784,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 </html>
+
 
 
 
