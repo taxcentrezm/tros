@@ -627,10 +627,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       tbody.innerHTML = data.map(row => `
         <tr>
-          <td>${row.account_name}</td>
-          <td class="text-right">${nf.format(row.debit || 0)}</td>
-          <td class="text-right">${nf.format(row.credit || 0)}</td>
-          <td class="text-right">${nf.format(row.balance || 0)}</td>
+          <td>${row.account || row.account_name || row.name}</td>
+<td class="text-right">${nf.format(row.debit || 0)}</td>
+<td class="text-right">${nf.format(row.credit || 0)}</td>
+<td class="text-right">${nf.format(row.balance || 0)}</td>
         </tr>`).join("");
     } catch (err) {
       console.error("Trial Balance load failed:", err);
@@ -815,6 +815,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 </html>
+
 
 
 
