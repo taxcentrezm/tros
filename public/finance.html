@@ -258,21 +258,20 @@
     </div>
 
     <div class="overflow-auto">
-      <table id="transactionTable" class="w-full text-sm">
-        <thead class="bg-gray-100">
-          <tr>
-            <th class="px-3 py-2 text-left">Date</th>
-            <th class="px-3 py-2 text-left">Reference</th>
-            <th class="px-3 py-2 text-left">Description</th>
-            <th class="px-3 py-2 text-left">Category</th>
-            <th class="px-3 py-2 text-right">Amount</th>
-            <th class="px-3 py-2 text-left">Payment Method</th>
-            <th class="px-3 py-2 text-left">Status</th>
-            <th class="px-3 py-2 text-left">Type</th>
-          </tr>
-        </thead>
-        <tbody id="transactionBody" class="divide-y divide-gray-200"></tbody>
-      </table>
+     <table id="transactionTable" class="w-full text-sm">
+  <thead class="bg-gray-100">
+    <tr>
+      <th class="px-3 py-2 text-left">Date</th>
+      <th class="px-3 py-2 text-left">Description</th>
+      <th class="px-3 py-2 text-left">Category</th>
+      <th class="px-3 py-2 text-left">Type</th>
+      <th class="px-3 py-2 text-left">Account</th>
+      <th class="px-3 py-2 text-right">Amount</th>
+      <th class="px-3 py-2 text-right">Action</th>
+    </tr>
+  </thead>
+  <tbody id="transactionBody" class="divide-y divide-gray-200"></tbody>
+</table>
     </div>
   </section>
 
@@ -576,39 +575,64 @@ document.addEventListener("DOMContentLoaded", () => {
   // =============================
   // 4️⃣ Load Transactions
   // =============================
-  async function loadTransactions() {
-    try {
-      const res = await fetch("/api/finance/transactions");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { data } = await res.json();
+ async function loadTransactions() {
+  try {
+    const res = await fetch("/api/finance/transactions");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
 
-      const tbody = document.getElementById("transactionBody");
-      if (!tbody) return;
+    const tbody = document.getElementById("transactionBody");
+    if (!tbody) return;
 
-      if (!data.length) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-2 text-gray-500">No transactions</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = data
-        .map(
-          (tx) => `
+    if (!data.length) {
+      tbody.innerHTML = `
         <tr>
-          <td>${tx.date}</td>
-          <td>${tx.reference || ""}</td>
-          <td>${tx.description || ""}</td>
-          <td>${tx.category || ""}</td>
-          <td class="text-right">${nf.format(tx.amount || 0)}</td>
-          <td>${tx.payment_method || ""}</td>
-          <td>${tx.status || ""}</td>
-          <td>${tx.type || ""}</td>
-        </tr>`
-        )
-        .join("");
-    } catch (err) {
-      console.error("Transactions load failed:", err);
+          <td colspan="7" class="text-center py-2 text-gray-500">
+            No transactions
+          </td>
+        </tr>`;
+      return;
     }
+
+    tbody.innerHTML = data
+      .map(
+        (tx) => `
+          <tr data-entry-id="${tx.id}">
+            <td>${tx.date}</td>
+            <td>${tx.description || ""}</td>
+            <td>${tx.category || ""}</td>
+            <td>${tx.type || ""}</td>
+            <td>${tx.account || ""}</td>
+            <td class="text-right">${nf.format(tx.amount || 0)}</td>
+            <td class="text-right">
+              <button 
+                class="view-lines-btn px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition"
+                data-entry='${JSON.stringify(tx)}'>
+                View Lines
+              </button>
+            </td>
+          </tr>`
+      )
+      .join("");
+
+    // Attach button listeners after rendering
+    document.querySelectorAll(".view-lines-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const entry = JSON.parse(btn.dataset.entry);
+        const clickedRow = btn.closest("tr");
+        toggleJournalLines(entry, clickedRow);
+      });
+    });
+  } catch (err) {
+    console.error("Transactions load failed:", err);
   }
+}
+
+// After expanding
+btn.textContent = "Hide Lines";
+// After collapsing
+btn.textContent = "View Lines";
 
   // =============================
   // 5️⃣ Load Journal Entries + Lines
@@ -756,6 +780,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 </html>
+
 
 
 
