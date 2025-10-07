@@ -525,11 +525,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // =============================
   // 3️⃣ Load Summary + Extended Trial Balance
   // =============================
+
+      let lineChart, pieChart, netProfitTrend, liabilitiesAssetsChart;
+    
   async function loadSummary() {
     try {
       const res = await fetch("/api/finance/summary");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { summary, extended_trial_balance } = await res.json();
+      const { summary, extended_trial_balance , summary, monthly_trends, expense_breakdown } = await res.json();
 
       if (summary) {
         document.getElementById("totalRevenue").textContent = nf.format(summary.revenue || 0);
@@ -539,7 +542,89 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("totalCaprev").textContent = nf.format(summary.caprev || 0);
         document.getElementById("totalLiabilities").textContent = nf.format(summary.liabilities || 0);
       }
+ // =============================
+  // 2️⃣ Render All Charts
+  // =============================
+  function renderCharts(monthlyTrends, expenseBreakdown, summary) {
+    // --- Line Chart: Monthly Revenue vs Expenses ---
+    const lineCtx = document.getElementById("lineChart").getContext("2d");
+    if (lineChart) lineChart.destroy();
+    lineChart = new Chart(lineCtx, {
+      type: "line",
+      data: {
+        labels: monthlyTrends.map(m => m.month),
+        datasets: [
+          {
+            label: "Revenue",
+            data: monthlyTrends.map(m => m.revenue || 0),
+            borderColor: "#4ade80",
+            backgroundColor: "rgba(74, 222, 128, 0.2)",
+            fill: true,
+            tension: 0.3
+          },
+          {
+            label: "Expenses",
+            data: monthlyTrends.map(m => m.expenses || 0),
+            borderColor: "#f87171",
+            backgroundColor: "rgba(248, 113, 113, 0.2)",
+            fill: true,
+            tension: 0.3
+          }
+        ]
+      },
+      options: { responsive: true }
+    });
 
+    // --- Pie Chart: Expense Breakdown ---
+    const pieCtx = document.getElementById("pieChart").getContext("2d");
+    if (pieChart) pieChart.destroy();
+    pieChart = new Chart(pieCtx, {
+      type: "pie",
+      data: {
+        labels: Object.keys(expenseBreakdown),
+        datasets: [{
+          data: Object.values(expenseBreakdown),
+          backgroundColor: ["#f87171","#fbbf24","#60a5fa","#22d3ee","#4ade80","#f472b6"]
+        }]
+      },
+      options: { responsive: true }
+    });
+
+    // --- Net Profit Trend ---
+    const netCtx = document.getElementById("netProfitTrend").getContext("2d");
+    if (netProfitTrend) netProfitTrend.destroy();
+    netProfitTrend = new Chart(netCtx, {
+      type: "line",
+      data: {
+        labels: monthlyTrends.map(m => m.month),
+        datasets: [{
+          label: "Net Profit",
+          data: monthlyTrends.map(m => (m.revenue || 0) - (m.expenses || 0)),
+          borderColor: "#60a5fa",
+          backgroundColor: "rgba(96, 165, 250, 0.2)",
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: { responsive: true }
+    });
+
+    // --- Liabilities vs Assets ---
+    const laCtx = document.getElementById("liabilitiesAssetsChart").getContext("2d");
+    if (liabilitiesAssetsChart) liabilitiesAssetsChart.destroy();
+    liabilitiesAssetsChart = new Chart(laCtx, {
+      type: "bar",
+      data: {
+        labels: ["Liabilities", "Assets", "Equity"],
+        datasets: [{
+          label: "ZMW",
+          data: [summary.liabilities || 0, summary.assets || 0, summary.equity || 0],
+          backgroundColor: ["#f87171", "#4ade80", "#60a5fa"]
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+  }
       renderExtendedTrialBalance(extended_trial_balance || []);
     } catch (err) {
       console.error("Summary load failed:", err);
@@ -815,6 +900,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 </html>
+
 
 
 
