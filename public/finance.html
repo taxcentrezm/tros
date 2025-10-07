@@ -646,7 +646,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (existing) return existing.remove();
 
     try {
-      const res = await fetch(`/api/finance/journal-entries/${entryId}`);
+      const res = await fetch(`/api/finance/journal-lines`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { lines } = await res.json();
 
@@ -705,6 +705,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 </html>
+
 
 
 
