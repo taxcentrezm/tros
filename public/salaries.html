@@ -160,13 +160,16 @@ async function loadSalaries() {
   try {
     const res = await fetch("/api/payroll/salaries");
     if (!res.ok) throw new Error("API request failed");
-    const { data } = await res.json();
-    renderSalaryTable(data);
+
+    const json = await res.json();
+    const salaries = json.salaries || []; // ✅ match backend
+    renderSalaryTable(salaries);
   } catch (err) {
     console.error("❌ loadSalaries failed:", err);
     alert("Failed to load salaries. Check server logs.");
   }
 }
+
 
 document.getElementById("salaryForm").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -216,6 +219,7 @@ loadSalaries();
 </script>
 </body>
 </html>
+
 
 
 
